@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Signal</title>
+<meta name="theme-color" content="#0A0A0F"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Signal"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #030308;
+  --surface:   #0D1117;
+  --surface2:  #111820;
+  --surface3:  #222230;
+  --border:    #182030;
+  --border2:   #1E3048;
+  --blue:      #0066CC;
+  --blue-dim:  #0052A3;
+  --blue-glow: rgba(0,102,204,0.18);
+  --red:       #CC0000;
+  --red-dim:   rgba(204,0,0,0.12);
+  --white:     #FFFFFF;
+  --gray1:     #F0F0F8;
+  --gray2:     #AAAABB;
+  --gray3:     #6A6A7E;
+  --green:     #00A86B;
+  --green-dim: rgba(0,168,107,0.12);
+  --amber:     #F5A623;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--white);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Subtle grid texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(0,102,204,0.06) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,102,204,0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.serif { font-family: 'DM Serif Display', serif; }
+
+/* ── PIN ─────────────────────────────────────────────────────── */
+#pin-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 999; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 32px;
+}
+#pin-screen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(28,105,212,0.08) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -70%);
+  pointer-events: none;
+}
+.pin-logo { text-align: center; position: relative; z-index: 1; }
+.pin-logo h1 { font-family: 'DM Serif Display', serif; font-size: 38px; color: var(--white); letter-spacing: -0.5px; }
+.pin-logo p { font-size: 12px; color: var(--gray2); margin-top: 6px; letter-spacing: 0.12em; text-transform: uppercase; }
+.pin-dots { display: flex; gap: 16px; position: relative; z-index: 1; }
+.pin-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border2); transition: background 0.15s, box-shadow 0.15s; }
+.pin-dot.filled { background: #0066CC; box-shadow: 0 0 12px rgba(0,102,204,0.8); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; position: relative; z-index: 1; }
+.pin-btn {
+  height: 72px; border-radius: 12px;
+  border: 1px solid var(--border2); background: var(--surface2);
+  font-family: 'DM Sans', sans-serif; font-size: 24px; font-weight: 400;
+  color: var(--white); cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.pin-btn:active { background: var(--surface3); border-color: var(--blue); }
+.pin-empty { height: 72px; }
+.pin-error { font-size: 11px; color: var(--red); height: 16px; transition: opacity 0.2s; opacity: 0; letter-spacing: 0.08em; text-transform: uppercase; position: relative; z-index: 1; }
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 58px;
+  background: rgba(9,9,14,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #182030;
+}
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-logo h1 { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--white); letter-spacing: -0.3px; }
+.header-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 6px var(--blue); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── MAIN ────────────────────────────────────────────────────── */
+main {
+  padding: 12px 16px 110px;
+  display: flex; flex-direction: column; gap: 12px;
+  max-width: 640px; margin: 0 auto;
+  position: relative; z-index: 1;
+}
+
+/* ── PAGES ───────────────────────────────────────────────────── */
+.page { display: none; flex-direction: column; gap: 12px; }
+.page.active { display: flex; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── PAGE TITLE ──────────────────────────────────────────────── */
+.page-title { padding: 6px 0 2px; }
+.page-title h2 { font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--white); letter-spacing: -0.5px; }
+.page-title p { font-size: 11px; color: var(--gray2); margin-top: 3px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* ── CARD ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 20px;
+}
+.card-blue {
+  background: linear-gradient(135deg, #0D1F3C 0%, #111118 60%);
+  border-color: rgba(28,105,212,0.3);
+}
+
+/* ── LABEL ───────────────────────────────────────────────────── */
+.lbl {
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--gray2); margin-bottom: 10px;
+}
+
+/* ── NUMBERS ─────────────────────────────────────────────────── */
+.num-xl { font-family: 'DM Serif Display', serif; font-size: 52px; color: var(--white); line-height: 1; letter-spacing: -1px; }
+.num-lg { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--white); line-height: 1; letter-spacing: -0.5px; }
+.num-md { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--white); line-height: 1; }
+.num-unit { font-size: 14px; color: var(--gray2); font-weight: 300; margin-left: 6px; }
+.num-delta-pos { font-size: 13px; font-weight: 500; color: var(--green); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.num-delta-neg { font-size: 13px; font-weight: 500; color: var(--red); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.num-sub { font-size: 11px; color: var(--gray2); margin-top: 5px; }
+
+/* ── BADGES ──────────────────────────────────────────────────── */
+.badge { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; }
+.badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,200,120,0.25); }
+.badge-amber { background: rgba(245,166,35,0.1); color: var(--amber); border: 1px solid rgba(245,166,35,0.25); }
+.badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(233,40,58,0.25); }
+.badge-blue { background: var(--blue-glow); color: var(--blue); border: 1px solid rgba(28,105,212,0.3); }
+
+/* ── PILLS ───────────────────────────────────────────────────── */
+.pills { display: flex; gap: 4px; }
+.pill { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--gray2); transition: all 0.15s; text-transform: uppercase; }
+.pill-on { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+/* ── PROGRESS ────────────────────────────────────────────────── */
+.prog-wrap { margin-bottom: 16px; }
+.prog-wrap:last-child { margin-bottom: 0; }
+.prog-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.prog-track { height: 3px; background: var(--border2); border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+.prog-sub { font-size: 10px; color: var(--gray3); margin-top: 5px; letter-spacing: 0.04em; }
+
+/* ── SPARKLINES ──────────────────────────────────────────────── */
+.sparkline { width: 80px; height: 30px; }
+
+/* ── GRID ────────────────────────────────────────────────────── */
+.grid-2col { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; }
+.col-stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── ROW UTILS ───────────────────────────────────────────────── */
+.row { display: flex; align-items: center; gap: 8px; }
+.row-sb { display: flex; justify-content: space-between; align-items: flex-start; }
+.row-sb-c { display: flex; justify-content: space-between; align-items: center; }
+
+/* ── DIVIDER ─────────────────────────────────────────────────── */
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+/* ── INSIGHT CARD ────────────────────────────────────────────── */
+.insight-card {
+  background: linear-gradient(135deg, #001F4D 0%, #0A0F1E 100%);
+  border: 1px solid rgba(28,105,212,0.25);
+  border-radius: 16px; padding: 24px;
+  position: relative; overflow: hidden;
+}
+.insight-card::before {
+  content: '';
+  position: absolute;
+  width: 280px; height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(28,105,212,0.08) 0%, transparent 70%);
+  top: -80px; right: -80px;
+}
+
+/* ── ACTIVITY FEED ───────────────────────────────────────────── */
+.act-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #182030; }
+.act-item:last-child { border-bottom: none; }
+.act-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+
+/* ── CYCLE ───────────────────────────────────────────────────── */
+.cycles { display: flex; gap: 6px; }
+.cycle-cell { flex: 1; text-align: center; padding: 14px 4px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); }
+.cycle-cell.active { border-color: var(--blue); background: rgba(28,105,212,0.08); }
+
+/* ── LAB ROW ─────────────────────────────────────────────────── */
+.lab-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #182030; }
+.lab-row:last-child { border-bottom: none; }
+
+/* ── DEXA ────────────────────────────────────────────────────── */
+.dexa-item { display: flex; gap: 14px; align-items: flex-start; padding-bottom: 16px; border-bottom: 1px solid #182030; }
+.dexa-item:last-child { border-bottom: none; padding-bottom: 0; }
+.dexa-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+/* ── FORMS ───────────────────────────────────────────────────── */
+input, select {
+  background: #0A1628; border: 1px solid #1A3A5C;
+  border-radius: 8px; padding: 9px 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  color: var(--white); outline: none; width: 100%;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: #0066CC; box-shadow: 0 0 0 2px rgba(0,102,204,0.2); }
+input::placeholder { color: #5A7090; }
+select option { background: var(--surface2); }
+.btn {
+  background: var(--blue); color: var(--white); border: none;
+  border-radius: 8px; padding: 9px 16px;
+  font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+  cursor: pointer; white-space: nowrap; transition: background 0.15s;
+}
+.btn:hover { background: var(--blue-dim); }
+.btn-full { width: 100%; padding: 12px; margin-top: 8px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.del-btn { background: none; border: none; color: var(--gray3); cursor: pointer; font-size: 18px; padding: 0 2px; transition: color 0.15s; }
+.del-btn:hover { color: var(--red); }
+.log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #182030; font-size: 12px; }
+.log-item:last-child { border-bottom: none; }
+
+/* ── BOTTOM NAV ──────────────────────────────────────────────── */
+nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(17,17,24,0.96);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6px; }
+.nav-btn {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 6px 10px; cursor: pointer;
+  color: var(--gray3); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  border: none; background: none; transition: color 0.15s;
+}
+.nav-btn.active { color: var(--blue); }
+.nav-btn.active svg { filter: drop-shadow(0 0 6px #0066CC); }
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <svg width="44" height="36" viewBox="0 0 56 44" fill="none" style="display:block;margin:0 auto 16px;">
+      <circle cx="28" cy="36" r="4" fill="#1C69D4"/>
+      <path d="M17 27 Q28 15 39 27" stroke="#1C69D4" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M10 19 Q28 4 46 19" stroke="#1C69D4" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M3 12 Q28 -6 53 12" stroke="#1C69D4" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+    </svg>
+    <h1>Signal</h1>
+    <p>Enter PIN to continue</p>
+  </div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinKey('1')">1</button>
+    <button class="pin-btn" onclick="pinKey('2')">2</button>
+    <button class="pin-btn" onclick="pinKey('3')">3</button>
+    <button class="pin-btn" onclick="pinKey('4')">4</button>
+    <button class="pin-btn" onclick="pinKey('5')">5</button>
+    <button class="pin-btn" onclick="pinKey('6')">6</button>
+    <button class="pin-btn" onclick="pinKey('7')">7</button>
+    <button class="pin-btn" onclick="pinKey('8')">8</button>
+    <button class="pin-btn" onclick="pinKey('9')">9</button>
+    <div class="pin-empty"></div>
+    <button class="pin-btn" onclick="pinKey('0')">0</button>
+    <button class="pin-btn" onclick="pinKey('del')">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-err">Incorrect PIN</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-logo">
+    <svg width="32" height="26" viewBox="0 0 56 44" fill="none">
+      <circle cx="28" cy="36" r="4" fill="#1C69D4"/>
+      <path d="M17 27 Q28 15 39 27" stroke="#1C69D4" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M10 19 Q28 4 46 19" stroke="#1C69D4" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+      <path d="M3 12 Q28 -6 53 12" stroke="#1C69D4" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.25"/>
+    </svg>
+    <h1>Signal</h1>
+  </div>
+  <div class="header-dot"></div>
+</header>
+
+<main>
+
+<!-- ═══════════════ PROGRESS ═══════════════ -->
+<div id="pg-progress" class="page active">
+  <div class="page-title"><h2>Progress</h2><p>Health Intelligence</p></div>
+
+  <!-- Weight -->
+  <div class="card card-blue">
+    <div class="row-sb" style="margin-bottom:14px;">
+      <div>
+        <div class="lbl">Weight</div>
+        <div class="row" style="align-items:baseline;flex-wrap:wrap;gap:4px;">
+          <span class="num-xl" id="wt-display">162.8</span>
+          <span class="num-unit">lbs</span>
+        </div>
+        <div class="num-delta-pos" id="wt-delta">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="wt-delta-val">14.5 lbs</span>
+        </div>
+        <div class="num-sub" id="wt-sub">Since Feb 5 · 7-day avg: <span id="wt-avg">163.0</span> lbs</div>
+      </div>
+      <div class="pills">
+        <button class="pill pill-on" onclick="wtRange(30,this)">30D</button>
+        <button class="pill" onclick="wtRange(60,this)">60D</button>
+        <button class="pill" onclick="wtRange(90,this)">90D</button>
+      </div>
+    </div>
+    <div style="height:160px;"><canvas id="wt-chart"></canvas></div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--gray3);">
+      <span id="wt-start-lbl"></span><span id="wt-end-lbl">May 23</span>
+    </div>
+  </div>
+
+  <!-- Body comp + vitals -->
+  <div class="grid-2col">
+    <div class="card">
+      <div class="lbl">Body Composition</div>
+      <div style="font-size:13px;font-weight:500;color:var(--gray1);margin-bottom:16px;">DEXA Progress</div>
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Body Fat</span>
+          <span style="font-size:13px;font-weight:600;color:var(--red);">26.2%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:26.2%;background:var(--red);"></div></div>
+        <div class="prog-sub">Goal 15% · was 37%</div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Lean Mass</span>
+          <span style="font-size:13px;font-weight:600;color:var(--blue);">116.9 lbs</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:62%;background:var(--blue);"></div></div>
+        <div class="prog-sub">Goal 132 lbs · +15.1 to go</div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Scale Weight</span>
+          <span style="font-size:13px;font-weight:600;color:var(--white);">162.8 lbs</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:77%;background:var(--gray2);"></div></div>
+        <div class="prog-sub">Goal 155 lbs · 77% there</div>
+      </div>
+    </div>
+
+    <div class="col-stack">
+      <div class="card" style="padding:16px;">
+        <div class="lbl">HRV</div>
+        <div class="row-sb-c" style="margin-top:2px;">
+          <div>
+            <div class="row" style="align-items:baseline;gap:3px;">
+              <span class="num-md">65</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">ms</span>
+            </div>
+            <div style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">BELOW RANGE</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,26 12,20 24,27 36,12 48,16 62,6 80,8" stroke="#1C69D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div class="lbl">RHR</div>
+        <div class="row-sb-c" style="margin-top:2px;">
+          <div>
+            <div class="row" style="align-items:baseline;gap:3px;">
+              <span class="num-md">51</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">bpm</span>
+            </div>
+            <div style="font-size:10px;color:var(--green);margin-top:2px;letter-spacing:0.04em;">EXCELLENT</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,16 18,18 36,14 54,16 72,14 80,15" stroke="#E9283A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;">
+        <div class="lbl">Sleep</div>
+        <div class="row-sb-c" style="margin-top:2px;">
+          <div>
+            <div class="row" style="align-items:baseline;gap:3px;">
+              <span class="num-md">7.5</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">hr</span>
+            </div>
+            <div style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">NEAR TARGET</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,10 12,16 24,6 36,14 48,8 62,6 80,12" stroke="#1C69D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEXA Timeline (moved from Body) -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:16px;">DEXA Timeline</div>
+    <div id="dexa-timeline"></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Add DEXA Scan</div>
+    <div class="form-grid-2"><input type="date" id="dexa-date"/><input type="number" id="dexa-wt" placeholder="Weight (lbs)" step="0.1"/></div>
+    <div class="form-grid-2"><input type="number" id="dexa-bf" placeholder="BF %" step="0.1"/><input type="number" id="dexa-lean" placeholder="Lean mass (lbs)" step="0.1"/></div>
+    <button class="btn btn-full" onclick="addDexa()">Add DEXA Result</button>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:4px;">Weight History — Full</div>
+    <div style="height:200px;margin-top:12px;"><canvas id="wt-full-chart"></canvas></div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight-card">
+    <div style="position:relative;z-index:2;">
+      <div class="lbl" style="color:rgba(28,105,212,0.7);">Signal Insight</div>
+      <div class="serif" style="font-size:22px;line-height:1.3;margin-top:8px;">Protocol is working.<br/>Stay the course.</div>
+      <p style="font-size:13px;color:var(--gray2);margin-top:12px;line-height:1.65;">Down 14.5 lbs since Feb with lean mass preserved. TRT is 8 days in — the real building phase begins post-June 11. Arrive at 161–162 and that's a win.</p>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+        <span class="badge badge-green">1,800 kcal ✓</span>
+        <span class="badge badge-green">C1 Week 2 ✓</span>
+        <span class="badge badge-blue">TRT Day 8</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ RECOVERY ═══════════════ -->
+<div id="pg-recovery" class="page">
+  <div class="page-title"><h2>Recovery</h2><p>HRV · Sleep · Readiness</p></div>
+
+  <div class="card">
+    <div class="row-sb" style="margin-bottom:12px;">
+      <div>
+        <div class="lbl">Heart Rate Variability</div>
+        <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
+          <span class="num-lg">79</span>
+          <span style="font-size:13px;color:var(--gray2);">ms · 30-day avg</span>
+        </div>
+        <div style="font-size:11px;color:var(--gray2);margin-top:3px;">Normal range: 69–89 ms</div>
+      </div>
+      <span class="badge badge-green">In Range</span>
+    </div>
+    <div style="height:160px;"><canvas id="hrv-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="row-sb" style="margin-bottom:12px;">
+      <div>
+        <div class="lbl">Sleep Duration</div>
+        <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
+          <span class="num-lg" id="sleep-avg">7.5</span>
+          <span style="font-size:13px;color:var(--gray2);">hr · 14-day avg</span>
+        </div>
+      </div>
+      <span class="badge badge-amber">Near Target</span>
+    </div>
+    <div style="height:130px;"><canvas id="sleep-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Resting Heart Rate</div>
+    <div class="row" style="align-items:baseline;gap:8px;margin-top:4px;margin-bottom:14px;">
+      <span class="num-lg">51</span>
+      <span style="font-size:13px;color:var(--gray2);">bpm</span>
+      <span class="badge badge-green" style="margin-left:4px;">Excellent</span>
+    </div>
+    <div style="height:80px;"><canvas id="rhr-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Log Recovery Note</div>
+    <div class="form-row" style="margin-top:6px;">
+      <input type="date" id="rec-date" style="max-width:140px;"/>
+      <input type="text" id="rec-note" placeholder="e.g. 79ms — full recovery"/>
+      <button class="btn" onclick="addRec()">Add</button>
+    </div>
+    <div id="rec-list" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ TRAINING ═══════════════ -->
+<div id="pg-training" class="page">
+  <div class="page-title"><h2>Training</h2><p>Foundation Program · Cycle 1</p></div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">Foundation — 6 Cycles</div>
+    <div class="cycles">
+      <div class="cycle-cell active">
+        <div style="font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--blue);text-transform:uppercase;">C1 ←</div>
+        <div class="serif" style="font-size:24px;color:var(--white);margin:6px 0;">3</div>
+        <div style="font-size:10px;color:var(--blue);">RIR 3</div>
+      </div>
+      <div class="cycle-cell"><div style="font-size:9px;color:var(--gray3);letter-spacing:.1em;text-transform:uppercase;">C2</div><div class="serif" style="font-size:24px;color:var(--border2);margin:6px 0;">3</div><div style="font-size:10px;color:var(--gray3);">RIR 2</div></div>
+      <div class="cycle-cell"><div style="font-size:9px;color:var(--gray3);letter-spacing:.1em;text-transform:uppercase;">C3</div><div class="serif" style="font-size:24px;color:var(--border2);margin:6px 0;">4</div><div style="font-size:10px;color:var(--gray3);">RIR 2</div></div>
+      <div class="cycle-cell"><div style="font-size:9px;color:var(--gray3);letter-spacing:.1em;text-transform:uppercase;">C4</div><div class="serif" style="font-size:24px;color:var(--border2);margin:6px 0;">3</div><div style="font-size:10px;color:var(--gray3);">RIR 2</div></div>
+      <div class="cycle-cell"><div style="font-size:9px;color:var(--gray3);letter-spacing:.1em;text-transform:uppercase;">C5</div><div class="serif" style="font-size:24px;color:var(--border2);margin:6px 0;">3</div><div style="font-size:10px;color:var(--gray3);">RIR 1</div></div>
+      <div class="cycle-cell"><div style="font-size:9px;color:var(--gray3);letter-spacing:.1em;text-transform:uppercase;">C6</div><div class="serif" style="font-size:24px;color:var(--border2);margin:6px 0;">2</div><div style="font-size:10px;color:var(--gray3);">RIR 4</div></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:14px;font-size:10px;color:var(--gray3);">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--blue);display:inline-block;"></span>Current</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--border2);display:inline-block;"></span>Upcoming</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:4px;">Strength Volume</div>
+    <div style="height:150px;margin-top:12px;"><canvas id="train-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Strength PRs</div>
+    <div id="pr-list"></div>
+    <div style="margin-top:16px;">
+      <div class="form-grid-2"><input type="date" id="pr-date"/><input type="text" id="pr-lift" placeholder="Exercise"/></div>
+      <div class="form-row"><input type="number" id="pr-weight" placeholder="lbs" step="0.5"/><input type="text" id="pr-note" placeholder="Note"/><button class="btn" onclick="addPR()">Add</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Recent Sessions</div>
+    <div id="activity-feed"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ LABS ═══════════════ -->
+<div id="pg-labs" class="page">
+  <div class="page-title"><h2>Labs</h2><p>Vive Health Panel · May 9, 2026</p></div>
+  <div class="card"><div class="lbl" style="margin-bottom:12px;">🔴 Flagged</div><div id="labs-red"></div></div>
+  <div class="card"><div class="lbl" style="margin-bottom:12px;">⚠️ Monitor</div><div id="labs-amber"></div></div>
+  <div class="card"><div class="lbl" style="margin-bottom:12px;">✓ Optimal</div><div id="labs-green"></div></div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Add Result</div>
+    <div class="form-grid-2"><input type="date" id="lab-date"/><input type="text" id="lab-name" placeholder="Marker"/></div>
+    <div class="form-grid-3"><input type="text" id="lab-val" placeholder="Value"/><input type="text" id="lab-ref" placeholder="Reference"/><select id="lab-status"><option value="green">✓ Normal</option><option value="amber">⚠ Monitor</option><option value="red">✗ Flagged</option></select></div>
+    <button class="btn btn-full" onclick="addLab()">Add Lab Result</button>
+    <div id="labs-custom" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ TRENDS ═══════════════ -->
+<div id="pg-trends" class="page">
+  <div class="page-title"><h2>Trends</h2><p>Garmin 2016 · Coros 2024 · Today</p></div>
+
+  <div class="card">
+    <div class="lbl">RHR — Annual Average</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--gray2);">Lower is better · dashed line = baseline year</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <span style="font-size:10px;color:var(--gray3);letter-spacing:0.06em;text-transform:uppercase;">Base</span>
+        <select id="rhr-baseline-year" onchange="renderTrends()" style="width:auto;padding:3px 8px;font-size:11px;background:var(--surface2);border:1px solid var(--border2);color:var(--white);border-radius:6px;">
+          <option value="2013">2013</option>
+          <option value="2014">2014</option>
+          <option value="2018">2018</option>
+          <option value="2019">2019</option>
+          <option value="2024" selected>2024</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+    </div>
+    <div style="height:220px;"><canvas id="rhr-bar-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Daily Steps — Annual Average</div>
+    <div style="font-size:11px;color:var(--gray2);margin-top:2px;margin-bottom:16px;">Average steps per day by year</div>
+    <div style="height:220px;"><canvas id="steps-bar-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:10px;">Steps — Monthly Pattern</div>
+    <div id="steps-month-filters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+    <div style="height:220px;"><canvas id="steps-month-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="row-sb-c" style="margin-bottom:16px;">
+      <div>
+        <div class="lbl">RHR — Full History</div>
+        <div style="font-size:11px;color:var(--gray2);margin-top:2px;">Monthly average with event markers</div>
+      </div>
+<div style="font-size:10px;color:var(--gray3);letter-spacing:0.06em;">Tap a race below to plot</div>
+    </div>
+    <div style="height:180px;"><canvas id="rhr-history-chart"></canvas></div>
+  </div>
+
+  <!-- Race History Timeline -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">Race History — All Years</div>
+    <div id="race-history-list"></div>
+  </div>
+
+  <div class="insight-card">
+    <div style="position:relative;z-index:2;">
+      <div class="lbl" style="color:rgba(28,105,212,0.7);">10-Year Signal</div>
+      <div class="serif" style="font-size:22px;line-height:1.3;margin-top:8px;">Elite baseline.<br/>Consistent for a decade.</div>
+      <p style="font-size:13px;color:var(--gray2);margin-top:12px;line-height:1.65;">RHR held 49–53 bpm every year since 2018 regardless of training load or weight. Peak steps in 2019 during Ironman training. 2025 RHR is actually lower than 2019 — you're in better cardiovascular shape now than your Ironman year.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ FUEL ═══════════════ -->
+<div id="pg-fuel" class="page">
+  <div class="page-title"><h2>Fuel</h2><p>Nutrition Intelligence</p></div>
+
+  <!-- Today's intake entry -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">Today's Intake So Far</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Calories</div>
+        <input type="number" id="fuel-cals" placeholder="e.g. 1200" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Protein (g)</div>
+        <input type="number" id="fuel-protein" placeholder="e.g. 120" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Carbs (g)</div>
+        <input type="number" id="fuel-carbs" placeholder="e.g. 80" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Fat (g)</div>
+        <input type="number" id="fuel-fat" placeholder="e.g. 40" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+    </div>
+
+    <!-- Progress bars -->
+    <div id="fuel-progress" style="display:none;">
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Calories</span>
+          <span style="font-size:12px;font-weight:600;" id="fuel-cals-label">0 / 1800</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-cals-bar" style="width:0%;background:var(--blue);"></div></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Protein</span>
+          <span style="font-size:12px;font-weight:600;" id="fuel-protein-label">0 / 180g</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-protein-bar" style="width:0%;background:var(--green);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-bottom:0;">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Carbs</span>
+          <span style="font-size:12px;font-weight:600;" id="fuel-carbs-label">0 / 150g</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-carbs-bar" style="width:0%;background:var(--amber);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context toggles -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Today's Context</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Trained today?</div>
+        <div style="display:flex;gap:6px;">
+          <button id="ctx-trained-yes" onclick="setCtx('trained','yes')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Yes</button>
+          <button id="ctx-trained-no" onclick="setCtx('trained','no')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">No</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Sleep quality</div>
+        <div style="display:flex;gap:6px;">
+          <button id="ctx-sleep-good" onclick="setCtx('sleep','good')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Good</button>
+          <button id="ctx-sleep-poor" onclick="setCtx('sleep','poor')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Poor</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Goal today</div>
+      <div style="display:flex;gap:6px;">
+        <button id="ctx-goal-recomp" onclick="setCtx('goal','recomp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--blue);background:rgba(28,105,212,0.1);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Recomp</button>
+        <button id="ctx-goal-performance" onclick="setCtx('goal','performance')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Performance</button>
+        <button id="ctx-goal-recovery" onclick="setCtx('goal','recovery')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Recovery</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Recommendation -->
+  <div class="card card-blue">
+    <div class="lbl" style="color:rgba(28,105,212,0.7);margin-bottom:12px;">Signal Fuel Advisor</div>
+    <div id="fuel-result" style="font-size:13px;color:var(--gray2);line-height:1.65;min-height:60px;">
+      Enter today's intake and tap Analyze to get a personalized recommendation.
+    </div>
+    <button onclick="analyzeFuel()" id="fuel-btn" style="margin-top:16px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--blue);color:white;font-family:DM Sans,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.04em;">
+      ANALYZE
+    </button>
+  </div>
+
+  <!-- 30-day history chart -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:4px;">Calorie History — 30 Days</div>
+    <div style="font-size:11px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
+    <div style="height:140px;"><canvas id="fuel-history-chart"></canvas></div>
+  </div>
+
+  <!-- Macro averages -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">30-Day Averages</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;text-align:center;">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);">1,776</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">kcal</div>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);">175</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">protein</div>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);">167</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">carbs</div>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);">64</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">fat</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</main>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showPage('progress',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3.5 18.5l6-6 4 4L22 6.92" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="18.5" r="1.5" fill="currentColor"/><circle cx="9.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="13.5" cy="16.5" r="1.5" fill="currentColor"/><circle cx="22" cy="7" r="1.5" fill="currentColor"/></svg>
+      Progress
+    </button>
+    <button class="nav-btn" onclick="showPage('recovery',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Recovery
+    </button>
+    <button class="nav-btn" onclick="showPage('training',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 4v16M18 4v16M6 12h12M3 8h3M18 8h3M3 16h3M18 16h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Training
+    </button>
+    <button class="nav-btn" onclick="showPage('labs',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M9 3v8L4 19a1 1 0 001 1h14a1 1 0 001-1L15 11V3M9 3H6M15 3h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Labs
+    </button>
+
+    <button class="nav-btn" onclick="showPage('trends',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 16l4-4 4 4 4-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Trends
+    </button>
+    <button class="nav-btn" onclick="showPage('fuel',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3h18M3 3v14a2 2 0 002 2h14a2 2 0 002-2V3M8 3v4h8V3M12 11v6M9 14h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Fuel
+    </button>
+  </div>
+</nav>
+
+<script>
+const D = {"weight": [{"date": "2026-05-08", "value": 163.6}, {"date": "2026-05-07", "value": 162.6}, {"date": "2026-05-06", "value": 163.3}, {"date": "2026-05-05", "value": 163.7}, {"date": "2026-05-04", "value": 163.4}, {"date": "2026-05-03", "value": 163.0}, {"date": "2026-05-02", "value": 162.7}, {"date": "2026-05-01", "value": 162.6}, {"date": "2026-04-30", "value": 163.2}, {"date": "2026-04-29", "value": 163.9}, {"date": "2026-04-28", "value": 163.6}, {"date": "2026-04-27", "value": 164.2}, {"date": "2026-04-26", "value": 164.4}, {"date": "2026-04-25", "value": 163.7}, {"date": "2026-04-24", "value": 164.7}, {"date": "2026-04-21", "value": 165.1}, {"date": "2026-04-20", "value": 166.4}, {"date": "2026-04-19", "value": 165.0}, {"date": "2026-04-18", "value": 164.0}, {"date": "2026-04-17", "value": 165.0}, {"date": "2026-04-16", "value": 164.1}, {"date": "2026-04-15", "value": 164.9}, {"date": "2026-04-14", "value": 165.1}, {"date": "2026-04-13", "value": 166.0}, {"date": "2026-04-12", "value": 166.1}, {"date": "2026-04-11", "value": 167.2}, {"date": "2026-04-10", "value": 166.9}, {"date": "2026-04-09", "value": 166.3}, {"date": "2026-04-08", "value": 166.4}, {"date": "2026-04-07", "value": 167.4}, {"date": "2026-04-06", "value": 167.0}, {"date": "2026-04-05", "value": 165.9}, {"date": "2026-04-04", "value": 167.6}, {"date": "2026-04-03", "value": 167.9}, {"date": "2026-04-02", "value": 167.9}, {"date": "2026-04-01", "value": 167.1}, {"date": "2026-03-31", "value": 167.4}, {"date": "2026-03-30", "value": 166.6}, {"date": "2026-03-29", "value": 166.9}, {"date": "2026-03-28", "value": 167.9}, {"date": "2026-03-27", "value": 169.3}, {"date": "2026-03-26", "value": 169.0}, {"date": "2026-03-25", "value": 169.3}, {"date": "2026-03-24", "value": 169.6}, {"date": "2026-03-23", "value": 168.8}, {"date": "2026-03-22", "value": 167.9}, {"date": "2026-03-21", "value": 172.4}, {"date": "2026-03-20", "value": 170.4}, {"date": "2026-03-19", "value": 170.5}, {"date": "2026-03-18", "value": 170.8}, {"date": "2026-03-17", "value": 173.1}, {"date": "2026-03-16", "value": 171.4}, {"date": "2026-03-15", "value": 170.4}, {"date": "2026-03-14", "value": 171.2}, {"date": "2026-03-13", "value": 170.6}, {"date": "2026-03-12", "value": 170.6}, {"date": "2026-03-11", "value": 171.4}, {"date": "2026-03-10", "value": 172.0}, {"date": "2026-03-09", "value": 172.1}, {"date": "2026-03-08", "value": 172.5}, {"date": "2026-03-07", "value": 172.4}, {"date": "2026-03-06", "value": 173.9}, {"date": "2026-03-05", "value": 170.2}, {"date": "2026-03-04", "value": 170.8}, {"date": "2026-03-03", "value": 172.9}, {"date": "2026-03-02", "value": 173.3}, {"date": "2026-03-01", "value": 172.7}, {"date": "2026-02-28", "value": 173.0}, {"date": "2026-02-27", "value": 173.5}, {"date": "2026-02-26", "value": 173.7}, {"date": "2026-02-25", "value": 173.4}, {"date": "2026-02-24", "value": 174.4}, {"date": "2026-02-23", "value": 174.3}, {"date": "2026-02-22", "value": 173.4}, {"date": "2026-02-21", "value": 174.2}, {"date": "2026-02-20", "value": 175.1}, {"date": "2026-02-19", "value": 175.6}, {"date": "2026-02-18", "value": 174.7}, {"date": "2026-02-17", "value": 174.4}, {"date": "2026-02-16", "value": 174.5}, {"date": "2026-02-15", "value": 174.7}, {"date": "2026-02-14", "value": 175.3}, {"date": "2026-02-13", "value": 175.5}, {"date": "2026-02-12", "value": 175.6}, {"date": "2026-02-11", "value": 175.8}, {"date": "2026-02-09", "value": 176.8}, {"date": "2026-02-08", "value": 176.3}, {"date": "2026-02-07", "value": 176.4}, {"date": "2026-02-06", "value": 177.3}, {"date": "2026-02-05", "value": 177.1}], "rhr": [{"date": "2026-04-25", "value": 51}, {"date": "2026-04-21", "value": 51}, {"date": "2026-04-10", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-01", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-01-18", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-07", "value": 52}, {"date": "2025-12-07", "value": 52}, {"date": "2025-12-07", "value": 52}], "hrv": [{"date": "2026-04-25", "value": 131.0}, {"date": "2026-04-21", "value": 88.0}, {"date": "2026-04-10", "value": 60.0}, {"date": "2026-04-01", "value": 71.0}, {"date": "2026-03-30", "value": 60.0}, {"date": "2026-03-22", "value": 106.0}, {"date": "2026-01-17", "value": 44.0}, {"date": "2025-12-31", "value": 39.0}, {"date": "2025-12-07", "value": 33.0}, {"date": "2025-10-15", "value": 64.0}, {"date": "2025-10-08", "value": 31.0}, {"date": "2025-10-07", "value": 38.0}, {"date": "2025-09-07", "value": 150.0}, {"date": "2025-07-23", "value": 50.0}, {"date": "2025-07-20", "value": 113.0}, {"date": "2025-07-16", "value": 125.0}, {"date": "2025-05-21", "value": 100.0}, {"date": "2025-04-23", "value": 88.0}, {"date": "2025-04-20", "value": 47.0}, {"date": "2025-03-16", "value": 32.0}, {"date": "2025-03-14", "value": 42.0}, {"date": "2025-03-05", "value": 71.0}, {"date": "2025-03-04", "value": 71.0}, {"date": "2025-02-24", "value": 56.0}, {"date": "2025-02-23", "value": 65.0}, {"date": "2025-02-07", "value": 48.0}, {"date": "2025-01-30", "value": 135.0}, {"date": "2025-01-19", "value": 91.0}, {"date": "2025-01-16", "value": 66.0}, {"date": "2025-01-11", "value": 103.0}, {"date": "2024-12-08", "value": 32.0}, {"date": "2024-10-17", "value": 67.0}, {"date": "2024-09-23", "value": 123.0}, {"date": "2024-09-09", "value": 74.0}, {"date": "2024-08-26", "value": 156.0}, {"date": "2024-08-24", "value": 119.0}], "sleep": [{"date": "2026-05-07", "value": 6.9}, {"date": "2026-05-06", "value": 8.1}, {"date": "2026-05-05", "value": 8.8}, {"date": "2026-05-04", "value": 7.4}, {"date": "2026-05-03", "value": 6.4}, {"date": "2026-05-02", "value": 9.4}, {"date": "2026-05-01", "value": 8.7}, {"date": "2026-04-30", "value": 8.0}, {"date": "2026-04-29", "value": 6.6}, {"date": "2026-04-28", "value": 5.7}, {"date": "2026-04-27", "value": 7.8}, {"date": "2026-04-26", "value": 9.0}, {"date": "2026-04-25", "value": 8.7}, {"date": "2026-04-24", "value": 6.8}, {"date": "2026-04-21", "value": 8.6}, {"date": "2026-04-20", "value": 6.5}, {"date": "2026-04-19", "value": 7.6}, {"date": "2026-04-18", "value": 8.8}, {"date": "2026-04-17", "value": 7.2}, {"date": "2026-04-16", "value": 6.0}, {"date": "2026-04-15", "value": 7.2}, {"date": "2026-04-14", "value": 6.2}, {"date": "2026-04-13", "value": 6.2}, {"date": "2026-04-12", "value": 7.4}, {"date": "2026-04-11", "value": 6.8}, {"date": "2026-04-10", "value": 9.1}, {"date": "2026-04-09", "value": 6.3}, {"date": "2026-04-08", "value": 6.3}, {"date": "2026-04-07", "value": 6.3}, {"date": "2026-04-06", "value": 5.6}, {"date": "2026-04-05", "value": 8.8}, {"date": "2026-04-04", "value": 9.2}, {"date": "2026-04-03", "value": 7.5}, {"date": "2026-04-02", "value": 9.2}, {"date": "2026-04-01", "value": 5.5}, {"date": "2026-03-31", "value": 7.0}, {"date": "2026-03-30", "value": 6.6}, {"date": "2026-03-29", "value": 6.0}, {"date": "2026-03-28", "value": 9.2}, {"date": "2026-03-27", "value": 5.4}, {"date": "2026-03-26", "value": 8.6}, {"date": "2026-03-25", "value": 9.4}, {"date": "2026-03-24", "value": 9.9}, {"date": "2026-03-23", "value": 6.5}, {"date": "2026-03-22", "value": 5.9}, {"date": "2026-03-21", "value": 10.3}, {"date": "2026-03-20", "value": 8.2}, {"date": "2026-03-19", "value": 6.6}, {"date": "2026-03-18", "value": 7.2}, {"date": "2026-03-17", "value": 7.0}, {"date": "2026-03-16", "value": 6.7}, {"date": "2026-03-15", "value": 8.1}, {"date": "2026-03-14", "value": 9.9}, {"date": "2026-03-13", "value": 9.0}, {"date": "2026-03-12", "value": 7.1}, {"date": "2026-03-11", "value": 5.7}, {"date": "2026-03-10", "value": 7.6}, {"date": "2026-03-09", "value": 5.8}, {"date": "2026-03-08", "value": 7.0}, {"date": "2026-03-06", "value": 7.4}], "exercise": [{"date": "2026-05-08", "title": "Friday \u2014 Arsenal", "type": 58, "duration": 30}, {"date": "2026-05-08", "title": "Strength May 8, 2026 8:55 AM", "type": 45, "duration": 50}, {"date": "2026-05-07", "title": "Strength May 7, 2026 6:46 AM", "type": 45, "duration": 81}, {"date": "2026-05-07", "title": "Thursday \u2014 Ground", "type": 58, "duration": 88}, {"date": "2026-05-06", "title": "Strength May 6, 2026 6:39 AM", "type": 45, "duration": 47}, {"date": "2026-05-06", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 60}, {"date": "2026-05-06", "title": "Indoor Run May 6, 2026 7:27 AM", "type": 34, "duration": 19}, {"date": "2026-05-06", "title": "Walk May 6, 2026 5:54 PM", "type": 53, "duration": 21}, {"date": "2026-05-05", "title": "Tuesday \u2014 Pull", "type": 58, "duration": 72}, {"date": "2026-05-05", "title": "Strength May 5, 2026 5:43 AM", "type": 45, "duration": 92}, {"date": "2026-05-04", "title": "Monday \u2014 Strike", "type": 58, "duration": 58}, {"date": "2026-05-04", "title": "Strength May 4, 2026 5:13 AM", "type": 45, "duration": 85}, {"date": "2026-05-04", "title": "Walk May 4, 2026 7:27 PM", "type": 53, "duration": 16}, {"date": "2026-05-01", "title": "Strength May 1, 2026 7:06 AM", "type": 45, "duration": 52}, {"date": "2026-05-01", "title": "Indoor Run May 1, 2026 8:00 AM", "type": 34, "duration": 41}, {"date": "2026-04-30", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 64}, {"date": "2026-04-30", "title": "Strength Apr 30, 2026 5:41 AM", "type": 45, "duration": 96}, {"date": "2026-04-29", "title": "Strength Apr 29, 2026 5:27 AM", "type": 45, "duration": 46}, {"date": "2026-04-29", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 60}, {"date": "2026-04-29", "title": "Indoor Run Apr 29, 2026 6:16 AM", "type": 34, "duration": 23}, {"date": "2026-04-28", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 79}, {"date": "2026-04-28", "title": "Strength Apr 28, 2026 6:01 AM", "type": 45, "duration": 80}, {"date": "2026-04-27", "title": "Monday \u2014 Conquest", "type": 58, "duration": 60}, {"date": "2026-04-27", "title": "Strength Apr 27, 2026 5:29 AM", "type": 45, "duration": 64}, {"date": "2026-04-25", "title": "Strength Apr 25, 2026 8:26 AM", "type": 45, "duration": 35}, {"date": "2026-04-25", "title": "Indoor Run Apr 25, 2026 9:02 AM", "type": 34, "duration": 25}, {"date": "2026-04-25", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 63}, {"date": "2026-04-24", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 64}, {"date": "2026-04-21", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 58}, {"date": "2026-04-21", "title": "Strength Apr 21, 2026 5:46 AM", "type": 45, "duration": 100}, {"date": "2026-04-20", "title": "Monday \u2014 Conquest", "type": 58, "duration": 81}, {"date": "2026-04-20", "title": "Strength Apr 20, 2026 6:09 AM", "type": 45, "duration": 109}, {"date": "2026-04-17", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 73}, {"date": "2026-04-17", "title": "Strength Apr 17, 2026 5:47 AM", "type": 45, "duration": 55}, {"date": "2026-04-17", "title": "Indoor Run Apr 17, 2026 6:43 AM", "type": 34, "duration": 16}, {"date": "2026-04-16", "title": "Strength Apr 16, 2026 5:50 AM", "type": 45, "duration": 75}, {"date": "2026-04-16", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 55}, {"date": "2026-04-15", "title": "Strength Apr 15, 2026 5:53 AM", "type": 45, "duration": 43}, {"date": "2026-04-15", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 85}, {"date": "2026-04-15", "title": "Indoor Run Apr 15, 2026 6:38 AM", "type": 34, "duration": 21}, {"date": "2026-04-14", "title": "Strength Apr 14, 2026 5:38 AM", "type": 45, "duration": 79}, {"date": "2026-04-14", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 56}, {"date": "2026-04-13", "title": "Monday \u2014 Conquest", "type": 58, "duration": 61}, {"date": "2026-04-13", "title": "Strength Apr 13, 2026 5:35 AM", "type": 45, "duration": 67}, {"date": "2026-04-10", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 61}, {"date": "2026-04-10", "title": "Strength Apr 10, 2026 6:14 AM", "type": 45, "duration": 102}, {"date": "2026-04-09", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 67}, {"date": "2026-04-09", "title": "Strength Apr 9, 2026 5:40 AM", "type": 45, "duration": 91}, {"date": "2026-04-08", "title": "Strength Apr 8, 2026 5:38 AM", "type": 45, "duration": 41}, {"date": "2026-04-08", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 39}, {"date": "2026-04-08", "title": "Indoor Run Apr 8, 2026 6:20 AM", "type": 34, "duration": 10}, {"date": "2026-04-07", "title": "Strength Apr 7, 2026 5:26 AM", "type": 45, "duration": 64}, {"date": "2026-04-07", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 59}, {"date": "2026-04-06", "title": "Monday \u2014 Conquest", "type": 58, "duration": 59}, {"date": "2026-04-06", "title": "Strength Apr 6, 2026 6:58 AM", "type": 45, "duration": 56}, {"date": "2026-04-04", "title": "Indoor Run Apr 4, 2026 7:09 AM", "type": 34, "duration": 56}, {"date": "2026-04-03", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 53}, {"date": "2026-04-03", "title": "Strength 6:17 AM Apr 3, 2026", "type": 45, "duration": 57}, {"date": "2026-04-02", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 39}, {"date": "2026-04-02", "title": "Strength 6:10 AM Apr 2, 2026", "type": 45, "duration": 48}], "steps": [{"date": "2026-05-08", "value": 4029}, {"date": "2026-05-07", "value": 14290}, {"date": "2026-05-06", "value": 17623}, {"date": "2026-05-05", "value": 15427}, {"date": "2026-05-04", "value": 11290}, {"date": "2026-05-03", "value": 5213}, {"date": "2026-05-02", "value": 10307}, {"date": "2026-05-01", "value": 25563}, {"date": "2026-04-30", "value": 9669}, {"date": "2026-04-29", "value": 18791}, {"date": "2026-04-28", "value": 12216}, {"date": "2026-04-27", "value": 10693}, {"date": "2026-04-26", "value": 5596}, {"date": "2026-04-25", "value": 23018}, {"date": "2026-04-24", "value": 5766}, {"date": "2026-04-23", "value": 2103}, {"date": "2026-04-22", "value": 4363}, {"date": "2026-04-21", "value": 12514}, {"date": "2026-04-20", "value": 11025}, {"date": "2026-04-19", "value": 13406}, {"date": "2026-04-18", "value": 5407}, {"date": "2026-04-17", "value": 11518}, {"date": "2026-04-16", "value": 10255}, {"date": "2026-04-15", "value": 6443}, {"date": "2026-04-14", "value": 10920}, {"date": "2026-04-13", "value": 10179}, {"date": "2026-04-12", "value": 6211}, {"date": "2026-04-11", "value": 11450}, {"date": "2026-04-10", "value": 14185}, {"date": "2026-04-09", "value": 6814}]};
+const TD = {"yoy_steps": {"2016": [5671, 5640, 6358, 6859, 5911, 3830, 3950, 4584, 4186, 5565, 4651, 5580], "2017": [4596, null, 2907, 662, 3828, 7218, null, null, null, null, null, 4970], "2018": [6387, 5597, 5594, 6719, 7698, 7892, 8076, 11293, 9284, 9290, 10872, 10896], "2019": [11174, 10656, 11770, 12042, 12459, 10342, 9995, 9122, 10092, 9044, 8880, 7732], "2020": [6705, 7065, 4502, 4099, 5378, 6091, 6633, 6343, 6713, 7094, 5607, 6179], "2021": [4171, 4445, 5214, 6380, 5263, 6258, 6025, 5494, 6410, 6152, 4657, 3583], "2022": [3922, 4373, 4547, 6298, 4683, 5729, 4184, 3831, 5196, 5467, 5483, 5516], "2023": [5712, 5192, 4587, 5566, 5245, 4668, 5405, 5656, 4357, 4373, 4234, 4581], "2024": [3841, 3815, 4288, 4831, 6922, 9261, 8115, 15824, 11624, 12579, 9918, 16826], "2025": [14016, 9850, 8311, 7737, 7410, 8212, 4800, 5692, 7325, 6289, 5485, 9332], "2026": [10609, 12318, 13368, 11353, 12968, null, null, null, null, null, null, null]}, "yoy_rhr": {"2016": [null, null, null, null, null, 32.0, 32.0, null, null, null, null, null], "2017": [null, null, null, null, null, null, null, null, null, null, null, 52.0], "2018": [53.5, 52.2, 53.0, 54.7, 52.9, 52.6, 49.0, 50.0, 52.1, 51.7, 51.0, 52.3], "2019": [51.3, 51.8, 51.7, 52.2, 52.6, 51.4, 52.7, 52.7, 52.2, 50.8, 52.7, 52.8], "2020": [47.4, 51.5, 51.2, 53.5, 51.2, 50.7, 50.8, 49.5, 50.1, 48.4, 49.7, 50.7], "2021": [49.5, 51.8, 51.7, 52.7, 53.5, 52.2, 51.4, 53.9, 52.4, 52.5, 52.3, 53.1], "2022": [51.2, 53.1, 53.3, 52.7, 52.7, 51.5, 51.0, 51.0, 50.9, 51.0, 51.6, 51.8], "2023": [51.3, 50.8, 50.1, 47.7, 50.3, 49.8, 48.6, 48.6, 48.9, 49.0, 50.8, 49.8], "2024": [52.1, 51.8, 50.4, 51.4, 50.6, 50.2, 49.5, 49.1, 49.5, 50.0, null, 50.0], "2025": [48.0, 46.0, 46.0, 47.0, 50.0, null, 49.7, null, 49.0, 49.0, null, 52.3], "2026": [53.0, null, 51.0, 51.0, null, null, null, null, null, null, null, null]}, "monthly_series": [{"ym": "2015-12", "steps": 6766, "rhr": null, "active": null}, {"ym": "2016-01", "steps": 5671, "rhr": null, "active": null}, {"ym": "2016-02", "steps": 5640, "rhr": null, "active": null}, {"ym": "2016-03", "steps": 6358, "rhr": null, "active": null}, {"ym": "2016-04", "steps": 6859, "rhr": null, "active": null}, {"ym": "2016-05", "steps": 5911, "rhr": null, "active": null}, {"ym": "2016-06", "steps": 3830, "rhr": 32.0, "active": null}, {"ym": "2016-07", "steps": 3950, "rhr": 32.0, "active": null}, {"ym": "2016-08", "steps": 4584, "rhr": null, "active": null}, {"ym": "2016-09", "steps": 4186, "rhr": null, "active": null}, {"ym": "2016-10", "steps": 5565, "rhr": null, "active": null}, {"ym": "2016-11", "steps": 4651, "rhr": null, "active": null}, {"ym": "2016-12", "steps": 5580, "rhr": null, "active": null}, {"ym": "2017-01", "steps": 4596, "rhr": null, "active": null}, {"ym": "2017-03", "steps": 2907, "rhr": null, "active": null}, {"ym": "2017-04", "steps": 662, "rhr": null, "active": null}, {"ym": "2017-05", "steps": 3828, "rhr": null, "active": null}, {"ym": "2017-06", "steps": 7218, "rhr": null, "active": null}, {"ym": "2017-12", "steps": 4970, "rhr": 52.0, "active": 105}, {"ym": "2018-01", "steps": 6387, "rhr": 53.5, "active": 61}, {"ym": "2018-02", "steps": 5597, "rhr": 52.2, "active": 59}, {"ym": "2018-03", "steps": 5594, "rhr": 53.0, "active": 48}, {"ym": "2018-04", "steps": 6719, "rhr": 54.7, "active": 142}, {"ym": "2018-05", "steps": 7698, "rhr": 52.9, "active": 78}, {"ym": "2018-06", "steps": 7892, "rhr": 52.6, "active": 100}, {"ym": "2018-07", "steps": 8076, "rhr": 49.0, "active": 99}, {"ym": "2018-08", "steps": 11293, "rhr": 50.0, "active": 62}, {"ym": "2018-09", "steps": 9284, "rhr": 52.1, "active": 51}, {"ym": "2018-10", "steps": 9290, "rhr": 51.7, "active": 40}, {"ym": "2018-11", "steps": 10872, "rhr": 51.0, "active": 44}, {"ym": "2018-12", "steps": 10896, "rhr": 52.3, "active": 51}, {"ym": "2019-01", "steps": 11174, "rhr": 51.3, "active": 54}, {"ym": "2019-02", "steps": 10656, "rhr": 51.8, "active": 60}, {"ym": "2019-03", "steps": 11770, "rhr": 51.7, "active": 81}, {"ym": "2019-04", "steps": 12042, "rhr": 52.2, "active": 79}, {"ym": "2019-05", "steps": 12459, "rhr": 52.6, "active": 197}, {"ym": "2019-06", "steps": 10342, "rhr": 51.4, "active": 136}, {"ym": "2019-07", "steps": 9995, "rhr": 52.7, "active": 125}, {"ym": "2019-08", "steps": 9122, "rhr": 52.7, "active": 133}, {"ym": "2019-09", "steps": 10092, "rhr": 52.2, "active": 136}, {"ym": "2019-10", "steps": 9044, "rhr": 50.8, "active": 156}, {"ym": "2019-11", "steps": 8880, "rhr": 52.7, "active": 144}, {"ym": "2019-12", "steps": 7732, "rhr": 52.8, "active": 111}, {"ym": "2020-01", "steps": 6705, "rhr": 47.4, "active": 110}, {"ym": "2020-02", "steps": 7065, "rhr": 51.5, "active": 112}, {"ym": "2020-03", "steps": 4502, "rhr": 51.2, "active": 85}, {"ym": "2020-04", "steps": 4099, "rhr": 53.5, "active": 88}, {"ym": "2020-05", "steps": 5378, "rhr": 51.2, "active": 73}, {"ym": "2020-06", "steps": 6091, "rhr": 50.7, "active": 55}, {"ym": "2020-07", "steps": 6633, "rhr": 50.8, "active": 98}, {"ym": "2020-08", "steps": 6343, "rhr": 49.5, "active": 106}, {"ym": "2020-09", "steps": 6713, "rhr": 50.1, "active": 94}, {"ym": "2020-10", "steps": 7094, "rhr": 48.4, "active": 95}, {"ym": "2020-11", "steps": 5607, "rhr": 49.7, "active": 105}, {"ym": "2020-12", "steps": 6179, "rhr": 50.7, "active": 66}, {"ym": "2021-01", "steps": 4171, "rhr": 49.5, "active": 61}, {"ym": "2021-02", "steps": 4445, "rhr": 51.8, "active": 79}, {"ym": "2021-03", "steps": 5214, "rhr": 51.7, "active": 70}, {"ym": "2021-04", "steps": 6380, "rhr": 52.7, "active": 53}, {"ym": "2021-05", "steps": 5263, "rhr": 53.5, "active": 56}, {"ym": "2021-06", "steps": 6258, "rhr": 52.2, "active": 47}, {"ym": "2021-07", "steps": 6025, "rhr": 51.4, "active": 50}, {"ym": "2021-08", "steps": 5494, "rhr": 53.9, "active": 66}, {"ym": "2021-09", "steps": 6410, "rhr": 52.4, "active": 17}, {"ym": "2021-10", "steps": 6152, "rhr": 52.5, "active": 48}, {"ym": "2021-11", "steps": 4657, "rhr": 52.3, "active": 57}, {"ym": "2021-12", "steps": 3583, "rhr": 53.1, "active": 23}, {"ym": "2022-01", "steps": 3922, "rhr": 51.2, "active": 22}, {"ym": "2022-02", "steps": 4373, "rhr": 53.1, "active": 22}, {"ym": "2022-03", "steps": 4547, "rhr": 53.3, "active": 32}, {"ym": "2022-04", "steps": 6298, "rhr": 52.7, "active": 31}, {"ym": "2022-05", "steps": 4683, "rhr": 52.7, "active": 32}, {"ym": "2022-06", "steps": 5729, "rhr": 51.5, "active": 34}, {"ym": "2022-07", "steps": 4184, "rhr": 51.0, "active": 46}, {"ym": "2022-08", "steps": 3831, "rhr": 51.0, "active": 99}, {"ym": "2022-09", "steps": 5196, "rhr": 50.9, "active": 73}, {"ym": "2022-10", "steps": 5467, "rhr": 51.0, "active": 48}, {"ym": "2022-11", "steps": 5483, "rhr": 51.6, "active": 56}, {"ym": "2022-12", "steps": 5516, "rhr": 51.8, "active": 68}, {"ym": "2023-01", "steps": 5712, "rhr": 51.3, "active": 58}, {"ym": "2023-02", "steps": 5192, "rhr": 50.8, "active": 57}, {"ym": "2023-03", "steps": 4587, "rhr": 50.1, "active": 51}, {"ym": "2023-04", "steps": 5566, "rhr": 47.7, "active": 47}, {"ym": "2023-05", "steps": 5245, "rhr": 50.3, "active": 36}, {"ym": "2023-06", "steps": 4668, "rhr": 49.8, "active": 45}, {"ym": "2023-07", "steps": 5405, "rhr": 48.6, "active": 47}, {"ym": "2023-08", "steps": 5656, "rhr": 48.6, "active": 38}, {"ym": "2023-09", "steps": 4357, "rhr": 48.9, "active": 26}, {"ym": "2023-10", "steps": 4373, "rhr": 49.0, "active": 52}, {"ym": "2023-11", "steps": 4234, "rhr": 50.8, "active": 46}, {"ym": "2023-12", "steps": 4581, "rhr": 49.8, "active": 50}, {"ym": "2024-01", "steps": 3841, "rhr": 52.1, "active": 36}, {"ym": "2024-02", "steps": 3815, "rhr": 51.8, "active": 31}, {"ym": "2024-03", "steps": 4288, "rhr": 50.4, "active": 35}, {"ym": "2024-04", "steps": 4831, "rhr": 51.4, "active": 33}, {"ym": "2024-05", "steps": 6922, "rhr": 50.6, "active": 59}, {"ym": "2024-06", "steps": 9261, "rhr": 50.2, "active": 85}, {"ym": "2024-07", "steps": 8115, "rhr": 49.5, "active": 102}, {"ym": "2024-08", "steps": 15824, "rhr": 49.1, "active": 141}, {"ym": "2024-09", "steps": 11624, "rhr": 49.5, "active": null}, {"ym": "2024-10", "steps": 12579, "rhr": 50.0, "active": null}, {"ym": "2024-11", "steps": 9918, "rhr": null, "active": null}, {"ym": "2024-12", "steps": 16826, "rhr": 50.0, "active": null}, {"ym": "2025-01", "steps": 14016, "rhr": 48.0, "active": null}, {"ym": "2025-02", "steps": 9850, "rhr": 46.0, "active": null}, {"ym": "2025-03", "steps": 8311, "rhr": 46.0, "active": null}, {"ym": "2025-04", "steps": 7737, "rhr": 47.0, "active": null}, {"ym": "2025-05", "steps": 7410, "rhr": 50.0, "active": null}, {"ym": "2025-06", "steps": 8212, "rhr": null, "active": null}, {"ym": "2025-07", "steps": 4800, "rhr": 49.7, "active": null}, {"ym": "2025-08", "steps": 5692, "rhr": null, "active": null}, {"ym": "2025-09", "steps": 7325, "rhr": 49.0, "active": null}, {"ym": "2025-10", "steps": 6289, "rhr": 49.0, "active": null}, {"ym": "2025-11", "steps": 5485, "rhr": null, "active": null}, {"ym": "2025-12", "steps": 9332, "rhr": 52.3, "active": null}, {"ym": "2026-01", "steps": 10609, "rhr": 53.0, "active": null}, {"ym": "2026-02", "steps": 12318, "rhr": null, "active": null}, {"ym": "2026-03", "steps": 13368, "rhr": 51.0, "active": null}, {"ym": "2026-04", "steps": 11353, "rhr": 51.0, "active": null}, {"ym": "2026-05", "steps": 12968, "rhr": null, "active": null}], "month_names": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]};
+const EVENTS = [
+  {
+    "date": "2011-06-18",
+    "label": "Utah Summer Games Triathlon",
+    "type": "triathlon",
+    "time": "1:31:13",
+    "race": true,
+    "year": 2011,
+    "month": 6,
+    "ym": "2011-06"
+  },
+  {
+    "date": "2011-07-16",
+    "label": "Bryce Canyon Half Marathon",
+    "type": "run",
+    "dist_mi": 13.1,
+    "time": "1:50:40",
+    "race": true,
+    "year": 2011,
+    "month": 7,
+    "ym": "2011-07"
+  },
+  {
+    "date": "2011-09-17",
+    "label": "Kokopelli Triathlon",
+    "type": "triathlon",
+    "time": "1:38:38",
+    "race": true,
+    "year": 2011,
+    "month": 9,
+    "ym": "2011-09"
+  },
+  {
+    "date": "2011-10-01",
+    "label": "St. George Marathon",
+    "type": "run",
+    "dist_mi": 26.2,
+    "time": "4:46:04",
+    "race": true,
+    "year": 2011,
+    "month": 10,
+    "ym": "2011-10"
+  },
+  {
+    "date": "2012-02-25",
+    "label": "Dogtown Half Marathon",
+    "type": "run",
+    "dist_mi": 13.1,
+    "time": "1:53:10",
+    "race": true,
+    "year": 2012,
+    "month": 2,
+    "ym": "2012-02"
+  },
+  {
+    "date": "2012-06-16",
+    "label": "Utah Summer Games Triathlon",
+    "type": "triathlon",
+    "time": "1:30:08",
+    "race": true,
+    "year": 2012,
+    "month": 6,
+    "ym": "2012-06"
+  },
+  {
+    "date": "2012-12-13",
+    "label": "Long Swim 1.65mi",
+    "type": "swim",
+    "dist_mi": 1.65,
+    "time": "1:25",
+    "race": false,
+    "year": 2012,
+    "month": 12,
+    "ym": "2012-12"
+  },
+  {
+    "date": "2013-01-08",
+    "label": "Long Swim 1.65mi",
+    "type": "swim",
+    "dist_mi": 1.65,
+    "time": "1:50",
+    "race": false,
+    "year": 2013,
+    "month": 1,
+    "ym": "2013-01"
+  },
+  {
+    "date": "2013-02-23",
+    "label": "Dogtown Half Marathon",
+    "type": "run",
+    "dist_mi": 13.1,
+    "time": "1:55:05",
+    "race": true,
+    "year": 2013,
+    "month": 2,
+    "ym": "2013-02"
+  },
+  {
+    "date": "2013-03-16",
+    "label": "Long Ride 50.7mi",
+    "type": "ride",
+    "dist_mi": 50.7,
+    "time": "3:37",
+    "race": false,
+    "year": 2013,
+    "month": 3,
+    "ym": "2013-03"
+  },
+  {
+    "date": "2013-04-17",
+    "label": "Long Swim 1.75mi",
+    "type": "swim",
+    "dist_mi": 1.75,
+    "time": "1:11",
+    "race": false,
+    "year": 2013,
+    "month": 4,
+    "ym": "2013-04"
+  },
+  {
+    "date": "2013-05-04",
+    "label": "Ironman 70.3 St. George",
+    "type": "triathlon",
+    "dist_mi": 70.3,
+    "time": "6:26:37",
+    "race": true,
+    "year": 2013,
+    "month": 5,
+    "ym": "2013-05"
+  },
+  {
+    "date": "2013-07-06",
+    "label": "Long Ride 54.6mi",
+    "type": "ride",
+    "dist_mi": 54.6,
+    "time": "4:21",
+    "race": false,
+    "year": 2013,
+    "month": 7,
+    "ym": "2013-07"
+  },
+  {
+    "date": "2013-08-03",
+    "label": "Long Ride 67.4mi",
+    "type": "ride",
+    "dist_mi": 67.4,
+    "time": "4:59",
+    "race": false,
+    "year": 2013,
+    "month": 8,
+    "ym": "2013-08"
+  },
+  {
+    "date": "2013-08-10",
+    "label": "Long Ride 51.6mi",
+    "type": "ride",
+    "dist_mi": 51.6,
+    "time": "2:59",
+    "race": false,
+    "year": 2013,
+    "month": 8,
+    "ym": "2013-08"
+  },
+  {
+    "date": "2014-04-12",
+    "label": "Long Ride 53.4mi",
+    "type": "ride",
+    "dist_mi": 53.4,
+    "time": "3:31",
+    "race": false,
+    "year": 2014,
+    "month": 4,
+    "ym": "2014-04"
+  },
+  {
+    "date": "2014-05-26",
+    "label": "Long Ride 60mi",
+    "type": "ride",
+    "dist_mi": 60.0,
+    "time": "4:24",
+    "race": false,
+    "year": 2014,
+    "month": 5,
+    "ym": "2014-05"
+  },
+  {
+    "date": "2014-06-07",
+    "label": "Ironman 70.3 Boise",
+    "type": "triathlon",
+    "dist_mi": 70.3,
+    "time": "6:37:01",
+    "race": true,
+    "year": 2014,
+    "month": 6,
+    "ym": "2014-06"
+  },
+  {
+    "date": "2014-10-09",
+    "label": "Ride to Zion 103.7mi",
+    "type": "ride",
+    "dist_mi": 103.7,
+    "time": "10:26",
+    "race": false,
+    "year": 2014,
+    "month": 10,
+    "ym": "2014-10"
+  },
+  {
+    "date": "2015-01-12",
+    "label": "Long Swim 1.5mi",
+    "type": "swim",
+    "dist_mi": 1.5,
+    "time": "0:45",
+    "race": false,
+    "year": 2015,
+    "month": 1,
+    "ym": "2015-01"
+  },
+  {
+    "date": "2015-01-19",
+    "label": "Long Swim 1.77mi",
+    "type": "swim",
+    "dist_mi": 1.77,
+    "time": "0:47",
+    "race": false,
+    "year": 2015,
+    "month": 1,
+    "ym": "2015-01"
+  },
+  {
+    "date": "2015-10-10",
+    "label": "Long Ride 50.1mi",
+    "type": "ride",
+    "dist_mi": 50.1,
+    "time": "3:10",
+    "race": false,
+    "year": 2015,
+    "month": 10,
+    "ym": "2015-10"
+  },
+  {
+    "date": "2015-10-24",
+    "label": "Century Race 99.2mi",
+    "type": "ride",
+    "dist_mi": 99.2,
+    "time": "6:45",
+    "race": true,
+    "year": 2015,
+    "month": 10,
+    "ym": "2015-10"
+  },
+  {
+    "date": "2017-05-06",
+    "label": "Long Ride 61.9mi",
+    "type": "ride",
+    "dist_mi": 61.9,
+    "time": "3:44",
+    "race": false,
+    "year": 2017,
+    "month": 5,
+    "ym": "2017-05"
+  },
+  {
+    "date": "2017-05-24",
+    "label": "Long Ride 60.1mi",
+    "type": "ride",
+    "dist_mi": 60.1,
+    "time": "3:56",
+    "race": false,
+    "year": 2017,
+    "month": 5,
+    "ym": "2017-05"
+  },
+  {
+    "date": "2019-02-16",
+    "label": "Long Run 15mi",
+    "type": "run",
+    "dist_mi": 15.0,
+    "time": "2:38",
+    "race": false,
+    "year": 2019,
+    "month": 2,
+    "ym": "2019-02"
+  },
+  {
+    "date": "2019-03-29",
+    "label": "Long Run 14.3mi",
+    "type": "run",
+    "dist_mi": 14.3,
+    "time": "3:31",
+    "race": false,
+    "year": 2019,
+    "month": 3,
+    "ym": "2019-03"
+  },
+  {
+    "date": "2019-04-17",
+    "label": "Long Run 15.8mi",
+    "type": "run",
+    "dist_mi": 15.8,
+    "time": "3:14",
+    "race": false,
+    "year": 2019,
+    "month": 4,
+    "ym": "2019-04"
+  },
+  {
+    "date": "2019-05-03",
+    "label": "Long Run 20mi",
+    "type": "run",
+    "dist_mi": 20.0,
+    "time": "3:37",
+    "race": false,
+    "year": 2019,
+    "month": 5,
+    "ym": "2019-05"
+  },
+  {
+    "date": "2019-05-18",
+    "label": "Ogden Marathon",
+    "type": "run",
+    "dist_mi": 26.2,
+    "time": "5:00:20",
+    "race": true,
+    "year": 2019,
+    "month": 5,
+    "ym": "2019-05"
+  },
+  {
+    "date": "2019-09-07",
+    "label": "Long Run 17.9mi",
+    "type": "run",
+    "dist_mi": 17.9,
+    "time": "4:42",
+    "race": false,
+    "year": 2019,
+    "month": 9,
+    "ym": "2019-09"
+  },
+  {
+    "date": "2024-07-13",
+    "label": "Bryce Canyon Half Marathon",
+    "type": "run",
+    "dist_mi": 13.1,
+    "time": "2:06:45",
+    "race": true,
+    "year": 2024,
+    "month": 7,
+    "ym": "2024-07"
+  },
+  {
+    "date": "2024-08-03",
+    "label": "Long Run 14.6mi",
+    "type": "run",
+    "dist_mi": 14.6,
+    "time": "2:51",
+    "race": false,
+    "year": 2024,
+    "month": 8,
+    "ym": "2024-08"
+  },
+  {
+    "date": "2024-08-10",
+    "label": "Long Run ~18mi",
+    "type": "run",
+    "dist_mi": 18.0,
+    "time": "3:18",
+    "race": false,
+    "year": 2024,
+    "month": 8,
+    "ym": "2024-08"
+  },
+  {
+    "date": "2024-08-17",
+    "label": "Long Run ~15mi",
+    "type": "run",
+    "dist_mi": 15.0,
+    "time": "2:33",
+    "race": false,
+    "year": 2024,
+    "month": 8,
+    "ym": "2024-08"
+  },
+  {
+    "date": "2024-08-24",
+    "label": "Long Run ~20mi",
+    "type": "run",
+    "dist_mi": 20.0,
+    "time": "3:46",
+    "race": false,
+    "year": 2024,
+    "month": 8,
+    "ym": "2024-08"
+  },
+  {
+    "date": "2024-09-14",
+    "label": "Long Run 18.4mi",
+    "type": "run",
+    "dist_mi": 18.4,
+    "time": "3:20",
+    "race": false,
+    "year": 2024,
+    "month": 9,
+    "ym": "2024-09"
+  },
+  {
+    "date": "2024-10-05",
+    "label": "St. George Marathon",
+    "type": "run",
+    "dist_mi": 26.2,
+    "time": "5:26:27",
+    "race": true,
+    "year": 2024,
+    "month": 10,
+    "ym": "2024-10"
+  },
+  {
+    "date": "2024-10-26",
+    "label": "Grand Canyon Rim to Rim 27mi",
+    "type": "run",
+    "dist_mi": 27.0,
+    "time": "8:49",
+    "race": true,
+    "year": 2024,
+    "month": 10,
+    "ym": "2024-10"
+  },
+  {
+    "date": "2024-11-02",
+    "label": "Trail Run ~16mi",
+    "type": "run",
+    "dist_mi": 16.0,
+    "time": "3:05",
+    "race": false,
+    "year": 2024,
+    "month": 11,
+    "ym": "2024-11"
+  },
+  {
+    "date": "2024-11-16",
+    "label": "Trail Run ~13.5mi",
+    "type": "run",
+    "dist_mi": 13.5,
+    "time": "1:44",
+    "race": false,
+    "year": 2024,
+    "month": 11,
+    "ym": "2024-11"
+  },
+  {
+    "date": "2024-12-09",
+    "label": "Indoor Long ~13.5mi",
+    "type": "run",
+    "dist_mi": 13.5,
+    "time": "1:41",
+    "race": false,
+    "year": 2024,
+    "month": 12,
+    "ym": "2024-12"
+  },
+  {
+    "date": "2024-12-14",
+    "label": "Treadmill Long 16mi",
+    "type": "run",
+    "dist_mi": 16.0,
+    "time": "2:40",
+    "race": false,
+    "year": 2024,
+    "month": 12,
+    "ym": "2024-12"
+  },
+  {
+    "date": "2024-12-16",
+    "label": "Indoor Long ~13.5mi",
+    "type": "run",
+    "dist_mi": 13.5,
+    "time": "1:39",
+    "race": false,
+    "year": 2024,
+    "month": 12,
+    "ym": "2024-12"
+  },
+  {
+    "date": "2024-12-21",
+    "label": "Treadmill Half Marathon",
+    "type": "run",
+    "dist_mi": 13.1,
+    "time": "2:05",
+    "race": true,
+    "year": 2024,
+    "month": 12,
+    "ym": "2024-12"
+  },
+  {
+    "date": "2024-12-28",
+    "label": "Indoor Long ~13.5mi",
+    "type": "run",
+    "dist_mi": 13.5,
+    "time": "1:42",
+    "race": false,
+    "year": 2024,
+    "month": 12,
+    "ym": "2024-12"
+  },
+  {
+    "date": "2025-01-01",
+    "label": "Treadmill Marathon",
+    "type": "run",
+    "dist_mi": 26.2,
+    "time": "4:14",
+    "race": true,
+    "year": 2025,
+    "month": 1,
+    "ym": "2025-01"
+  },
+  {
+    "date": "2025-01-17",
+    "label": "Indoor Long ~14mi",
+    "type": "run",
+    "dist_mi": 14.0,
+    "time": "2:16",
+    "race": false,
+    "year": 2025,
+    "month": 1,
+    "ym": "2025-01"
+  }
+];
+
+// ── STORAGE ───────────────────────────────────────────────────────
+let S = { dexa:[], prs:[], labs:[], recovery:[] };
+async function loadS() { try { const r=await window.storage.get('signal_bmw'); if(r) S=JSON.parse(r.value); } catch(e){} }
+async function saveS() { try { await window.storage.set('signal_bmw', JSON.stringify(S)); } catch(e){} }
+
+// ── PIN ───────────────────────────────────────────────────────────
+const PIN='0252'; let pinBuf='';
+function pinKey(k) {
+  if(k==='del') pinBuf=pinBuf.slice(0,-1);
+  else if(pinBuf.length<4) pinBuf+=k;
+  for(let i=0;i<4;i++) {
+    const d=document.getElementById('d'+i);
+    d.className='pin-dot'+(i<pinBuf.length?' filled':'');
+  }
+  if(pinBuf.length===4) {
+    if(pinBuf===PIN) { document.getElementById('pin-screen').style.display='none'; }
+    else {
+      const e=document.getElementById('pin-err'); e.style.opacity='1';
+      setTimeout(()=>{ pinBuf=''; for(let i=0;i<4;i++) document.getElementById('d'+i).className='pin-dot'; e.style.opacity='0'; },900);
+    }
+  }
+}
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────
+Chart.defaults.color='#4A4A58';
+Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.borderColor='#2A2A35';
+const charts={};
+function mkChart(id,type,labels,datasets,yOpts={},xOpts={}) {
+  if(charts[id]) charts[id].destroy();
+  const el=document.getElementById(id); if(!el) return;
+  charts[id]=new Chart(el,{type,data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,
+      titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,boxPadding:5,
+      cornerRadius:8
+    }},
+    scales:{
+      x:{grid:{color:'#1E1E26'},ticks:{maxTicksLimit:6,color:'#4A4A58'},...xOpts},
+      y:{grid:{color:'#1E1E26'},ticks:{color:'#4A4A58'},...yOpts}
+    }
+  }});
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+const asc=arr=>[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+const avg=arr=>arr.reduce((s,v)=>s+v,0)/arr.length;
+const movAvg=(vals,w=7)=>vals.map((_,i)=>{const s=vals.slice(Math.max(0,i-w+1),i+1);return avg(s);});
+
+// ── WEIGHT ────────────────────────────────────────────────────────
+let _wtDays=30;
+function renderWeight(days=_wtDays) {
+  const sorted=asc(D.weight);
+  // Slice by actual date, not entry count
+  const latestDate = new Date(sorted[sorted.length-1].date);
+  const cutoff = new Date(latestDate);
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const slice = sorted.filter(d => d.date >= cutoffStr);
+  const labels=slice.map(d=>d.date.slice(5));
+  const vals=slice.map(d=>d.value);
+  const ma=movAvg(vals);
+  
+  // Always show most recent weight as the headline number
+  const allSorted = asc(D.weight);
+  const mostRecent = allSorted[allSorted.length-1].value;
+  const earliest = vals[0];
+  const change = Math.abs(mostRecent - earliest).toFixed(1);
+  const isDown = mostRecent < earliest;
+
+  document.getElementById('wt-display').textContent = mostRecent.toFixed(1);
+  document.getElementById('wt-start-lbl').textContent = slice[0].date.slice(5);
+
+  const deltaEl = document.getElementById('wt-delta');
+  const deltaValEl = document.getElementById('wt-delta-val');
+  deltaValEl.textContent = change + ' lbs';
+  deltaEl.className = isDown ? 'num-delta-pos' : 'num-delta-neg';
+  deltaEl.querySelector('svg path').setAttribute('d', isDown ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7');
+
+  const subEl = document.getElementById('wt-sub');
+  subEl.innerHTML = 'Since ' + slice[0].date.slice(5) + ' · 7-day avg: ' + avg(allSorted.slice(-7).map(d=>d.value)).toFixed(1) + ' lbs';
+
+  mkChart('wt-chart','line',labels,[
+    {data:vals,borderColor:'rgba(28,105,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0.5},
+    {data:ma,borderColor:'#1C69D4',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(28,105,212,0.05)'},tension:0.5}
+  ],{min:Math.min(...vals)-2,max:Math.max(...vals)+2});
+}
+function wtRange(d,btn) {
+  _wtDays=d;
+  btn.closest('.pills').querySelectorAll('.pill').forEach(p=>{p.className='pill';});
+  btn.className='pill pill-on';
+  renderWeight(d);
+}
+
+// ── HRV ───────────────────────────────────────────────────────────
+function renderHRV() {
+  const data=asc(D.hrv);
+  const labels=data.map(d=>d.date.slice(5));
+  const vals=data.map(d=>d.value);
+  mkChart('hrv-chart','line',labels,[
+    {data:vals,borderColor:'#1C69D4',borderWidth:2,pointRadius:4,
+     pointBackgroundColor:vals.map(v=>v>=69&&v<=89?'#1C69D4':v<69?'#F5A623':'#00C878'),
+     fill:false,tension:0.5},
+    {data:vals.map(()=>89),borderColor:'rgba(28,105,212,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false},
+    {data:vals.map(()=>69),borderColor:'rgba(28,105,212,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:'-1',backgroundColor:'rgba(28,105,212,0.04)'}
+  ]);
+}
+
+// ── SLEEP ─────────────────────────────────────────────────────────
+function renderSleep() {
+  const data=asc(D.sleep);
+  const labels=data.map(d=>d.date.slice(5));
+  const vals=data.map(d=>d.value);
+  const a=avg(vals.slice(-14));
+  document.getElementById('sleep-avg').textContent=a.toFixed(1);
+  mkChart('sleep-chart','bar',labels,[{
+    data:vals,borderRadius:3,
+    backgroundColor:vals.map(v=>v>=7.5?'rgba(28,105,212,0.7)':v>=7?'rgba(28,105,212,0.4)':'rgba(233,40,58,0.45)')
+  }],{min:0,max:12});
+}
+
+// ── RHR ───────────────────────────────────────────────────────────
+function renderRHR() {
+  const data=[
+    {date:'2025-07',value:49},{date:'2025-10',value:49},{date:'2025-12',value:52},
+    {date:'2026-01',value:53},{date:'2026-03',value:51},{date:'2026-04',value:51}
+  ];
+  mkChart('rhr-chart','line',data.map(d=>d.date),
+    [{data:data.map(d=>d.value),borderColor:'#E9283A',borderWidth:2,pointRadius:4,pointBackgroundColor:'#E9283A',fill:false,stepped:true}],
+    {min:44,max:58});
+}
+
+// ── TRAINING ──────────────────────────────────────────────────────
+function renderTraining() {
+  const byDate={};
+  D.exercise.forEach(e=>{ if(e.type===45){ byDate[e.date]=(byDate[e.date]||0)+e.duration; }});
+  const entries=Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
+  mkChart('train-chart','bar',entries.map(e=>e[0].slice(5)),
+    [{data:entries.map(e=>e[1]),backgroundColor:'rgba(28,105,212,0.6)',borderRadius:4}]);
+}
+
+// ── WEIGHT FULL ───────────────────────────────────────────────────
+function renderWeightFull() {
+  const sorted=asc(D.weight);
+  const labels=sorted.map(d=>d.date.slice(5));
+  const vals=sorted.map(d=>d.value);
+  const ma=movAvg(vals);
+  mkChart('wt-full-chart','line',labels,[
+    {data:vals,borderColor:'rgba(28,105,212,0.25)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+    {data:ma,borderColor:'#1C69D4',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(28,105,212,0.05)'},tension:0.5}
+  ],{min:155,max:182});
+}
+
+// ── ACTIVITY ──────────────────────────────────────────────────────
+function renderActivity() {
+  const tmap={45:{label:'Strength',color:'#1C69D4'},34:{label:'Run',color:'#00C878'},58:{label:'Program',color:'#F5A623'},53:{label:'Walk',color:'#4A4A58'}};
+  document.getElementById('activity-feed').innerHTML=D.exercise.slice(0,10).map(e=>{
+    const t=tmap[e.type]||{label:'Activity',color:'#4A4A58'};
+    return '<div class="act-item"><div class="act-dot" style="background:'+t.color+'"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray1);">'+e.title+'</div><div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">'+e.date+' · '+t.label+'</div></div><span style="font-size:11px;color:var(--gray3);flex-shrink:0;">'+(e.duration>0?e.duration+'m':'')+'</span></div>';
+  }).join('');
+}
+
+// ── PRs ───────────────────────────────────────────────────────────
+const PR_BASE=[
+  {date:'2026-05-12',lift:'Barbell Bench Press',weight:208.7,note:'e1RM · target 225'},
+  {date:'2026-05-04',lift:'Cable Face Pull',weight:131,note:'Best'},
+  {date:'2026-05-04',lift:'Standing Cable Crunch',weight:133.6,note:'PR'},
+  {date:'2026-05-04',lift:'Cable Rope Hammer Curl',weight:95.4,note:'Climbing'},
+];
+function renderPRs() {
+  const all=[...PR_BASE,...S.prs];
+  document.getElementById('pr-list').innerHTML=all.map((p,i)=>'<div class="lab-row"><div><div style="font-size:13px;color:var(--gray1);">'+p.lift+'</div><div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">'+p.date+(p.note?' · '+p.note:'')+'</div></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;font-size:13px;color:var(--white);">'+p.weight+' <span style="font-weight:400;font-size:10px;color:var(--gray3);">lbs</span></span>'+(i>=PR_BASE.length?'<button class="del-btn" onclick="delPR('+( i-PR_BASE.length)+')">×</button>':'')+'</div></div>').join('');
+}
+function addPR() {
+  const p={date:document.getElementById('pr-date').value,lift:document.getElementById('pr-lift').value,weight:+document.getElementById('pr-weight').value,note:document.getElementById('pr-note').value};
+  if(!p.lift||!p.weight) return;
+  S.prs.push(p); saveS(); renderPRs();
+}
+function delPR(i) { S.prs.splice(i,1); saveS(); renderPRs(); }
+
+// ── LABS ──────────────────────────────────────────────────────────
+const LABS=[
+  {name:'LDL Cholesterol',val:'189',unit:'mg/dL',ref:'<100',s:'red'},
+  {name:'Lp(a)',val:'108.6',unit:'mg/dL',ref:'0–30',s:'red'},
+  {name:'Estradiol (E2)',val:'<5',unit:'pg/mL',ref:'11.3–43.2',s:'red'},
+  {name:'Total Cholesterol',val:'265',unit:'mg/dL',ref:'<200',s:'red'},
+  {name:'ApoB',val:'123',unit:'mg/dL',ref:'66–133',s:'amber'},
+  {name:'Lp-PLA2',val:'234',unit:'U/L',ref:'<225',s:'amber'},
+  {name:'Testosterone Total',val:'446',unit:'ng/dL',ref:'238–1048',s:'amber'},
+  {name:'Hematocrit',val:'48.3',unit:'%',ref:'38.3–48.6',s:'amber'},
+  {name:'Vitamin D',val:'35',unit:'ng/mL',ref:'30–100',s:'amber'},
+  {name:'DHEA-S',val:'118',unit:'µg/dL',ref:'88.9–427',s:'amber'},
+  {name:'HbA1c',val:'5.2',unit:'%',ref:'<5.7',s:'green'},
+  {name:'Fasting Insulin',val:'5.9',unit:'µU/mL',ref:'<10',s:'green'},
+  {name:'Triglycerides',val:'76',unit:'mg/dL',ref:'<150',s:'green'},
+  {name:'HDL',val:'63',unit:'mg/dL',ref:'>60',s:'green'},
+  {name:'PSA',val:'0.423',unit:'ng/mL',ref:'<4.0',s:'green'},
+  {name:'Homocysteine',val:'9.8',unit:'µmol/L',ref:'<15',s:'green'},
+  {name:'Cortisol',val:'16.2',unit:'µg/dL',ref:'6–18.4',s:'green'},
+];
+function labRow(l) {
+  const cols={red:'var(--red)',amber:'var(--amber)',green:'var(--green)'};
+  const bs={red:'badge-red',amber:'badge-amber',green:'badge-green'};
+  const ls={red:'HIGH',amber:'MONITOR',green:'OK'};
+  return '<div class="lab-row"><div><div style="font-size:13px;color:var(--gray1);">'+l.name+'</div><div style="font-size:10px;color:var(--gray3);margin-top:1px;letter-spacing:0.04em;">ref '+l.ref+'</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-weight:600;font-size:13px;color:'+cols[l.s]+';">'+l.val+' <span style="font-weight:400;font-size:10px;color:var(--gray3);">'+l.unit+'</span></span><span class="badge '+bs[l.s]+'">'+ls[l.s]+'</span></div></div>';
+}
+function renderLabs() {
+  const all=[...LABS,...S.labs];
+  ['red','amber','green'].forEach(s=>{ document.getElementById('labs-'+s).innerHTML=all.filter(l=>l.s===s).map(labRow).join(''); });
+  document.getElementById('labs-custom').innerHTML=S.labs.map((l,i)=>'<div class="log-item"><span style="color:var(--gray3);">'+l.date+' · '+l.name+': '+l.val+'</span><button class="del-btn" onclick="delLab('+i+')">×</button></div>').join('');
+}
+function addLab() {
+  const l={date:document.getElementById('lab-date').value,name:document.getElementById('lab-name').value,val:document.getElementById('lab-val').value,ref:document.getElementById('lab-ref').value,unit:'',s:document.getElementById('lab-status').value};
+  if(!l.name||!l.val) return; S.labs.push(l); saveS(); renderLabs();
+}
+function delLab(i) { S.labs.splice(i,1); saveS(); renderLabs(); }
+
+// ── DEXA ──────────────────────────────────────────────────────────
+const DEXA_BASE=[
+  {date:'Dec 1, 2025',weight:184.7,bf:37.0,lean:null,note:'Starting point (est)'},
+  {date:'May 6, 2026',weight:165.0,bf:26.2,lean:116.9,note:'DexaBody SLC'}
+];
+function renderDexa() {
+  const all=[...DEXA_BASE,...S.dexa];
+  document.getElementById('dexa-timeline').innerHTML=all.map((d,i)=>'<div class="dexa-item"><div class="dexa-dot" style="background:'+(i===all.length-1?'var(--blue)':'var(--border2)')+'"></div><div style="flex:1;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><span style="font-size:13px;font-weight:500;color:var(--gray1);">'+d.date+'</span>'+(i>=2?'<button class="del-btn" onclick="delDexa('+( i-2)+')">×</button>':'')+'</div><div style="font-size:11px;color:var(--gray3);margin-top:3px;">'+d.weight+' lbs · '+d.bf+'% BF'+(d.lean?' · '+d.lean+' lbs lean':'')+'</div>'+(d.note?'<div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;">'+d.note+'</div>':'')+'</div></div>').join('');
+}
+function addDexa() {
+  const d={date:document.getElementById('dexa-date').value,weight:+document.getElementById('dexa-wt').value,bf:+document.getElementById('dexa-bf').value,lean:+document.getElementById('dexa-lean').value,note:''};
+  if(!d.date||!d.weight) return; S.dexa.push(d); saveS(); renderDexa();
+}
+function delDexa(i) { S.dexa.splice(i,1); saveS(); renderDexa(); }
+
+// ── RECOVERY NOTES ────────────────────────────────────────────────
+function renderRec() {
+  document.getElementById('rec-list').innerHTML=S.recovery.length
+    ? S.recovery.map((r,i)=>'<div class="log-item"><span style="color:var(--gray3);font-size:10px;letter-spacing:0.04em;">'+r.date+'</span><span style="flex:1;margin:0 10px;font-size:12px;color:var(--gray1);">'+r.note+'</span><button class="del-btn" onclick="delRec('+i+')">×</button></div>').join('')
+    : '<div style="font-size:11px;color:var(--gray3);">No entries yet</div>';
+}
+function addRec() {
+  const r={date:document.getElementById('rec-date').value,note:document.getElementById('rec-note').value};
+  if(!r.note) return; S.recovery.push(r); saveS(); renderRec();
+}
+function delRec(i) { S.recovery.splice(i,1); saveS(); renderRec(); }
+
+// ── TRENDS ────────────────────────────────────────────────────────
+const YEAR_COLORS = {
+  '2016':'#BBBBBB','2017':'#BBBBBB',
+  '2018':'#4477AA','2019':'#228833','2020':'#CCBB44',
+  '2021':'#66CCEE','2022':'#AA3377','2023':'#EE6677',
+  '2024':'#EE7733','2025':'#4477AA','2026':'#FFFFFF'
+};
+let activeStepsYears = new Set(['2019','2022','2024','2025','2026']);
+let showRaces = false;
+let showAllLongRuns = false;
+let selectedEvent = null;
+
+function renderYOYFilters(containerId, years, activeSet, toggleFn) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  years.forEach(y => {
+    const active = activeSet.has(y);
+    const color = YEAR_COLORS[y] || '#8A8A9A';
+    const btn = document.createElement('button');
+    btn.textContent = y;
+    btn.style.cssText = 'padding:3px 10px;border-radius:4px;border:1px solid '+(active?color:'#2A2A35')+';background:'+(active?color+'22':'transparent')+';color:'+(active?color:'#4A4A58')+';font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.06em;font-family:DM Sans,sans-serif;';
+    btn.onclick = () => { toggleFn(y); };
+    container.appendChild(btn);
+  });
+}
+function toggleStepsYear(year) {
+  if (activeStepsYears.has(year)) activeStepsYears.delete(year);
+  else activeStepsYears.add(year);
+  renderTrends();
+}
+
+function renderTrends() {
+  const years = Object.keys(TD.yoy_rhr).sort().filter(y => y >= '2016');
+  const months = TD.month_names;
+  const barColors = years.map(y => YEAR_COLORS[y] || '#BBBBBB');
+
+  // 1. RHR Annual Bar
+  const rhrAnnual = years.map(y => {
+    const vals = (TD.yoy_rhr[y]||[]).filter(v=>v!=null);
+    return vals.length ? parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)) : null;
+  });
+  const baselineYearEl = document.getElementById('rhr-baseline-year');
+  const baselineYear = baselineYearEl ? baselineYearEl.value : '2019';
+  const baseline2019 = rhrAnnual[years.indexOf(baselineYear)];
+
+  if (charts['rhr-bar-chart']) charts['rhr-bar-chart'].destroy();
+  const rhrEl = document.getElementById('rhr-bar-chart');
+  if (rhrEl) {
+    charts['rhr-bar-chart'] = new Chart(rhrEl, {
+      type:'bar', data:{ labels:years, datasets:[{
+        data:rhrAnnual,
+        backgroundColor:barColors.map((c,i)=>rhrAnnual[i]!=null?c+'BB':'transparent'),
+        borderColor:barColors.map((c,i)=>rhrAnnual[i]!=null?c:'transparent'),
+        borderWidth:1.5, borderRadius:5,
+      }]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{
+          backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,
+          titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,cornerRadius:8,
+          callbacks:{ label:ctx=>{ const v=ctx.parsed.y; if(!v) return null; const diff=baseline2019?(v-baseline2019).toFixed(1):null; const sign=diff>0?'+':''; return ' '+v+' bpm'+(diff?' ('+sign+diff+' vs '+baselineYear+')':''); }}
+        }},
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#4A4A58'}},
+          y:{grid:{color:'#1E1E26'},min:44,max:58,ticks:{callback:v=>v+' bpm',color:'#4A4A58'}}
+        }
+      },
+      plugins:[{ id:'baseline', afterDraw(chart) {
+        if(!baseline2019) return;
+        const {ctx,chartArea,scales}=chart;
+        const y=scales.y.getPixelForValue(baseline2019);
+        ctx.save(); ctx.setLineDash([5,4]);
+        ctx.strokeStyle='rgba(28,105,212,0.5)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke();
+        ctx.setLineDash([]); ctx.fillStyle='rgba(28,105,212,0.7)';
+        ctx.font='9px DM Sans'; ctx.fillText(baselineYear+' baseline',chartArea.left+4,y-4);
+        ctx.restore();
+      }}]
+    });
+  }
+
+  // 2. Steps Annual Bar
+  const stepsAnnual = years.map(y => {
+    const vals=(TD.yoy_steps[y]||[]).filter(v=>v!=null);
+    return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null;
+  });
+  if (charts['steps-bar-chart']) charts['steps-bar-chart'].destroy();
+  const stepsEl=document.getElementById('steps-bar-chart');
+  if(stepsEl) {
+    charts['steps-bar-chart']=new Chart(stepsEl,{
+      type:'bar',data:{labels:years,datasets:[{
+        data:stepsAnnual,
+        backgroundColor:barColors.map((c,i)=>stepsAnnual[i]!=null?c+'BB':'transparent'),
+        borderColor:barColors.map((c,i)=>stepsAnnual[i]!=null?c:'transparent'),
+        borderWidth:1.5,borderRadius:5,
+      }]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{
+          backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,
+          titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,cornerRadius:8,
+          callbacks:{label:ctx=>' '+(ctx.parsed.y?.toLocaleString())+' steps/day avg'}
+        }},
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#4A4A58'}},
+          y:{grid:{color:'#1E1E26'},min:0,ticks:{callback:v=>(v/1000).toFixed(0)+'k',color:'#4A4A58'}}
+        }
+      }
+    });
+  }
+
+  // 3. Steps Monthly Grouped
+  renderYOYFilters('steps-month-filters', years, activeStepsYears, toggleStepsYear);
+  const monthDatasets = years.filter(y=>activeStepsYears.has(y)).map(y=>({
+    label:y, data:TD.yoy_steps[y]||[],
+    backgroundColor:(YEAR_COLORS[y]||'#BBBBBB')+'99',
+    borderColor:YEAR_COLORS[y]||'#BBBBBB',
+    borderWidth:1, borderRadius:3,
+  }));
+  if(charts['steps-month-chart']) charts['steps-month-chart'].destroy();
+  const smEl=document.getElementById('steps-month-chart');
+  if(smEl) {
+    charts['steps-month-chart']=new Chart(smEl,{
+      type:'bar',data:{labels:months,datasets:monthDatasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,padding:10,font:{size:10},color:'#8A8A9A'}},
+          tooltip:{backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,cornerRadius:8,
+            callbacks:{label:ctx=>' '+ctx.dataset.label+': '+(ctx.parsed.y?.toLocaleString())+' steps/day'}
+          }
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#4A4A58'}},
+          y:{grid:{color:'#1E1E26'},min:0,ticks:{callback:v=>(v/1000).toFixed(0)+'k',color:'#4A4A58'}}
+        }
+      }
+    });
+  }
+
+  // 4. RHR Full History + race markers extended back to 2011
+  const rhrSeries = TD.monthly_series.filter(m=>m.rhr);
+
+  // Build extended label list from 2011-01 to latest
+  const extLabels = [];
+  let cur = new Date('2016-01-01');
+  const latest = new Date(rhrSeries[rhrSeries.length-1].ym + '-01');
+  while (cur <= latest) {
+    extLabels.push(cur.toISOString().slice(0,7));
+    cur.setMonth(cur.getMonth()+1);
+  }
+
+  // Map RHR data onto extended labels (nulls for pre-2016 gaps)
+  // Build RHR lookup from ALL monthly series including nulls
+  const rhrByYM = {};
+  TD.monthly_series.forEach(m => { if (m.rhr && m.rhr >= 30) rhrByYM[m.ym] = m.rhr; });
+  const extRHR = extLabels.map(ym => rhrByYM[ym] || null);
+
+  const rhrHistDatasets = [{
+    data: extRHR,
+    borderColor: '#1C69D4', borderWidth: 2,
+    pointRadius: 0,
+    fill: { target: 'origin', above: 'rgba(28,105,212,0.05)' },
+    tension: 0.5, spanGaps: false, type: 'line'
+  }];
+
+  // Race/long run markers — 2016+ only where real RHR data exists
+  if (showRaces || showAllLongRuns) {
+    const ymCount = {};
+    const validEvents = EVENTS.filter(ev => {
+      if (Number(ev.year) < 2016) return false;
+      if (ev.race && !showRaces) return false;
+      if (!ev.race && !showAllLongRuns) return false;
+      const rhrVal = rhrByYM[ev.ym];
+      if (!rhrVal || Number(rhrVal) < 30) return false;
+      return true;
+    });
+    validEvents.forEach(ev => {
+      ymCount[ev.ym] = (ymCount[ev.ym] || 0) + 1;
+      const offset = (ymCount[ev.ym] - 1) * 1.5;
+      const baseY = rhrByYM[ev.ym];
+      rhrHistDatasets.push({
+        type: 'line', label: ev.label,
+        data: extLabels.map(ym => ym === ev.ym ? baseY + offset : null),
+        pointRadius: extLabels.map(ym => ym === ev.ym ? (ev.race ? 10 : 7) : 0),
+        pointStyle: ev.race ? 'star' : 'circle',
+        pointBackgroundColor: ev.race ? '#E9283A' : '#00C878',
+        pointBorderColor: '#FFFFFF', pointBorderWidth: 1.5,
+        borderWidth: 0, spanGaps: false, showLine: false,
+        pointRadius: ev.race ? 10 : 7,
+        pointStyle: ev.race ? 'star' : 'circle',
+        pointBackgroundColor: ev.race ? '#E9283A' : '#00C878',
+        pointBorderColor: '#FFFFFF', pointBorderWidth: 1.5,
+        fill: false,
+      });
+    });
+  }
+
+  if (charts['rhr-history-chart']) charts['rhr-history-chart'].destroy();
+  const rhrHEl = document.getElementById('rhr-history-chart');
+  if (rhrHEl) {
+    charts['rhr-history-chart'] = new Chart(rhrHEl, {
+      type: 'line',
+      data: { labels: extLabels, datasets: rhrHistDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#18181F', borderColor: '#2A2A35', borderWidth: 1,
+            titleColor: '#FFFFFF', bodyColor: '#8A8A9A', padding: 12, cornerRadius: 8,
+            callbacks: {
+              title: ctx => ctx[0]?.label || '',
+              label: ctx => {
+                if (ctx.dataset.label) return ' ' + ctx.dataset.label;
+                return ctx.parsed.y ? ' ' + ctx.parsed.y + ' bpm' : ' No RHR data';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#1E1E26' }, ticks: { maxTicksLimit: 10, color: '#4A4A58' }},
+          y: { grid: { color: '#1E1E26' }, min: 44, max: 62, ticks: { callback: v => v+' bpm', color: '#4A4A58' }}
+        }
+      }
+    });
+  }
+
+  // Race History List
+  const raceEl = document.getElementById('race-history-list');
+  if (raceEl) {
+    const races = EVENTS.filter(e => e.race).sort((a,b) => b.date.localeCompare(a.date));
+    const typeIcon = {run:'🏃', ride:'🚴', swim:'🏊', triathlon:'🏅'};
+    raceEl.innerHTML = races.map((r, i) => {
+      const icon = typeIcon[r.type] || '🏁';
+      const hasRHR = rhrByYM[r.ym] && Number(r.year) >= 2016;
+      return '<div id="race-row-'+i+'" onclick="selectRace('+i+')" style="display:flex;justify-content:space-between;align-items:center;padding:12px 10px;border-bottom:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background 0.15s;margin:0 -10px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<span style="font-size:16px;">' + icon + '</span>' +
+          '<div>' +
+            '<div style="font-size:13px;color:var(--gray1);">' + r.label + '</div>' +
+            '<div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">' + r.date + (hasRHR ? ' · RHR: '+rhrByYM[r.ym]+' bpm' : '') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="font-size:12px;font-weight:600;color:var(--blue);">' + (r.time||'') + '</div>' +
+          (hasRHR ? '<div style="width:6px;height:6px;border-radius:50%;background:var(--blue);opacity:0.5;"></div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+} // end renderTrends
+
+
+
+// ── RENDER RHR HISTORY ONLY ───────────────────────────────────────
+function renderRHRHistory() {
+  const rhrSeries = TD.monthly_series.filter(m => m.rhr);
+  const rhrByYM = {};
+  TD.monthly_series.forEach(m => { if (m.rhr && m.rhr >= 30) rhrByYM[m.ym] = m.rhr; });
+
+  const extLabels = [];
+  let cur = new Date('2016-01-01');
+  const latest = new Date(rhrSeries[rhrSeries.length-1].ym + '-01');
+  while (cur <= latest) {
+    extLabels.push(cur.toISOString().slice(0,7));
+    cur.setMonth(cur.getMonth()+1);
+  }
+
+  const extRHR = extLabels.map(ym => rhrByYM[ym] || null);
+
+  const datasets = [{
+    data: extRHR,
+    borderColor: '#1C69D4', borderWidth: 2,
+    pointRadius: 0,
+    fill: { target: 'origin', above: 'rgba(28,105,212,0.05)' },
+    tension: 0.5, spanGaps: false, type: 'line'
+  }];
+
+  // Single selected event marker
+  if (selectedEvent) {
+    const ev = selectedEvent;
+    const rhrVal = rhrByYM[ev.ym];
+    if (rhrVal) {
+      datasets.push({
+        type: 'line', label: ev.label,
+        data: extLabels.map(ym => ym === ev.ym ? rhrVal : null),
+        pointRadius: extLabels.map(ym => ym === ev.ym ? 7 : 0),
+        pointStyle: 'circle',
+        pointBackgroundColor: '#E9283A',
+        pointBorderColor: '#FFFFFF', pointBorderWidth: 2,
+        borderWidth: 0, spanGaps: false, showLine: false, fill: false,
+      });
+    }
+  }
+
+  if (charts['rhr-history-chart']) charts['rhr-history-chart'].destroy();
+  const el = document.getElementById('rhr-history-chart');
+  if (!el) return;
+  charts['rhr-history-chart'] = new Chart(el, {
+    type: 'line',
+    data: { labels: extLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#18181F', borderColor: '#2A2A35', borderWidth: 1,
+          titleColor: '#FFFFFF', bodyColor: '#8A8A9A', padding: 12, cornerRadius: 8,
+          callbacks: {
+            label: ctx => {
+              if (ctx.dataset.label) return ' ' + ctx.dataset.label;
+              return ctx.parsed.y ? ' ' + ctx.parsed.y + ' bpm' : '';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1E1E26' }, ticks: { maxTicksLimit: 10, color: '#4A4A58' }},
+        y: { grid: { color: '#1E1E26' }, min: 44, max: 62, ticks: { callback: v => v+' bpm', color: '#4A4A58' }}
+      }
+    }
+  });
+}
+
+// ── SELECT RACE ───────────────────────────────────────────────────
+function selectRace(idx) {
+  const races = EVENTS.filter(e => e.race).sort((a,b) => b.date.localeCompare(a.date));
+  const ev = races[idx];
+  // Toggle
+  if (selectedEvent && selectedEvent.date === ev.date) {
+    selectedEvent = null;
+    document.getElementById('race-row-'+idx).style.background = 'transparent';
+  } else {
+    // Deselect previous
+    document.querySelectorAll('[id^="race-row-"]').forEach(el => el.style.background = 'transparent');
+    selectedEvent = ev;
+    document.getElementById('race-row-'+idx).style.background = 'rgba(28,105,212,0.1)';
+  }
+  // Re-render just the RHR history chart
+  renderRHRHistory();
+  // Scroll to chart
+  document.getElementById('rhr-history-chart').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+// ── MACROFACTOR DATA ──────────────────────────────────────────────
+const MF = {"avg_30d": {"calories": 1776, "protein": 175, "carbs": 167, "fat": 64}, "dow_avg_calories": {"Mon": 1698, "Tue": 1697, "Wed": 1669, "Thu": 1695, "Fri": 1694, "Sat": 1617, "Sun": 1578}, "last_14_days": [{"Date": "2026-05-11", "Calories (kcal)": 1765, "Protein (g)": 160, "Carbs (g)": 125, "Fat (g)": 76}, {"Date": "2026-05-12", "Calories (kcal)": 1810, "Protein (g)": 194, "Carbs (g)": 165, "Fat (g)": 60}, {"Date": "2026-05-13", "Calories (kcal)": 1812, "Protein (g)": 185, "Carbs (g)": 225, "Fat (g)": 58}, {"Date": "2026-05-14", "Calories (kcal)": 1809, "Protein (g)": 180, "Carbs (g)": 165, "Fat (g)": 74}, {"Date": "2026-05-15", "Calories (kcal)": 1765, "Protein (g)": 168, "Carbs (g)": 174, "Fat (g)": 72}, {"Date": "2026-05-16", "Calories (kcal)": 1767, "Protein (g)": 163, "Carbs (g)": 188, "Fat (g)": 65}, {"Date": "2026-05-17", "Calories (kcal)": 1864, "Protein (g)": 160, "Carbs (g)": 194, "Fat (g)": 66}, {"Date": "2026-05-18", "Calories (kcal)": 1825, "Protein (g)": 157, "Carbs (g)": 192, "Fat (g)": 66}, {"Date": "2026-05-19", "Calories (kcal)": 2118, "Protein (g)": 209, "Carbs (g)": 194, "Fat (g)": 88}, {"Date": "2026-05-20", "Calories (kcal)": 1796, "Protein (g)": 150, "Carbs (g)": 120, "Fat (g)": 79}, {"Date": "2026-05-21", "Calories (kcal)": 1866, "Protein (g)": 162, "Carbs (g)": 158, "Fat (g)": 88}, {"Date": "2026-05-22", "Calories (kcal)": 1831, "Protein (g)": 151, "Carbs (g)": 172, "Fat (g)": 65}, {"Date": "2026-05-23", "Calories (kcal)": 1840, "Protein (g)": 210, "Carbs (g)": 127, "Fat (g)": 64}, {"Date": "2026-05-24", "Calories (kcal)": 900, "Protein (g)": 79, "Carbs (g)": 60, "Fat (g)": 38}], "total_days": 153};
+
+// ── FUEL STATE ────────────────────────────────────────────────────
+const fuelCtx = { trained: null, sleep: null, goal: 'recomp' };
+
+function setCtx(key, val) {
+  fuelCtx[key] = val;
+  // Update button styles
+  const btns = document.querySelectorAll('[id^="ctx-'+key+'-"]');
+  btns.forEach(b => {
+    const isSelected = b.id === 'ctx-'+key+'-'+val;
+    b.style.background = isSelected ? 'rgba(28,105,212,0.15)' : 'transparent';
+    b.style.borderColor = isSelected ? 'var(--blue)' : 'var(--border2)';
+    b.style.color = isSelected ? 'var(--blue)' : 'var(--gray2)';
+  });
+}
+
+function updateFuelProgress() {
+  const cals = +document.getElementById('fuel-cals').value || 0;
+  const protein = +document.getElementById('fuel-protein').value || 0;
+  const carbs = +document.getElementById('fuel-carbs').value || 0;
+  if (!cals && !protein) return;
+  
+  document.getElementById('fuel-progress').style.display = 'block';
+  
+  const calPct = Math.min(100, (cals/1800)*100);
+  const protPct = Math.min(100, (protein/180)*100);
+  const carbPct = Math.min(100, (carbs/150)*100);
+  
+  document.getElementById('fuel-cals-bar').style.width = calPct + '%';
+  document.getElementById('fuel-protein-bar').style.width = protPct + '%';
+  document.getElementById('fuel-carbs-bar').style.width = carbPct + '%';
+  
+  document.getElementById('fuel-cals-label').textContent = cals + ' / 1800';
+  document.getElementById('fuel-protein-label').textContent = protein + 'g / 180g';
+  document.getElementById('fuel-carbs-label').textContent = carbs + 'g / 150g';
+  
+  // Color code
+  document.getElementById('fuel-cals-bar').style.background = calPct > 100 ? 'var(--red)' : calPct > 80 ? 'var(--green)' : 'var(--blue)';
+  document.getElementById('fuel-protein-bar').style.background = protPct > 90 ? 'var(--green)' : 'var(--amber)';
+}
+
+async function analyzeFuel() {
+  const cals = +document.getElementById('fuel-cals').value || 0;
+  const protein = +document.getElementById('fuel-protein').value || 0;
+  const carbs = +document.getElementById('fuel-carbs').value || 0;
+  const fat = +document.getElementById('fuel-fat').value || 0;
+  
+  const btn = document.getElementById('fuel-btn');
+  const result = document.getElementById('fuel-result');
+  
+  btn.textContent = 'ANALYZING...';
+  btn.style.opacity = '0.6';
+  btn.disabled = true;
+  result.textContent = '';
+  
+  // Get latest HC data
+  const latestWeight = D.weight[0]?.value || 162.8;
+  const latestHRV = D.hrv[0]?.value || 65;
+  const latestSleep = D.sleep[0]?.value || 7.5;
+  const latestRHR = D.rhr[0]?.value || 51;
+  
+  // Recent training
+  const recentTraining = D.exercise.slice(0,3).map(e => e.title + ' (' + e.duration + 'min)').join(', ');
+
+  const prompt = `You are Signal, a precision health intelligence advisor. Give a specific, actionable nutrition recommendation.
+
+PAUL'S PROFILE:
+- Goal: Body recomp — reach 155 lbs / 15% body fat by May 2027
+- Current: ${latestWeight} lbs, ~26% body fat, 116.9 lbs lean mass
+- Daily targets: 1,800 kcal, 180g protein, maintain lean mass on TRT (started May 15, 2026)
+- 30-day avg: 1,776 kcal, 175g protein, 167g carbs, 64g fat
+
+TODAY SO FAR:
+- Calories consumed: ${cals} kcal (remaining: ${1800-cals} kcal)
+- Protein: ${protein}g (remaining: ${Math.max(0,180-protein)}g)
+- Carbs: ${carbs}g
+- Fat: ${fat}g
+- Trained today: ${fuelCtx.trained || 'unknown'}
+- Sleep last night: ${latestSleep}h (${fuelCtx.sleep || 'unknown'} quality)
+- HRV: ${latestHRV}ms
+- Recent workouts: ${recentTraining}
+- Today's goal priority: ${fuelCtx.goal}
+
+YOUR TASK:
+Give Paul a specific recommendation for his NEXT meal or eating window. Include:
+1. What to eat (specific foods or meal type)
+2. Approximate macros to hit
+3. When to eat it
+4. One sentence of reasoning based on his data
+
+Keep it under 100 words. Be direct and specific. No generic advice.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    
+    const data = await response.json();
+    const text = data.content?.map(c => c.text || '').join('');
+    
+    result.innerHTML = text.replace(/\n/g, '\u003cbr\u003e');
+  } catch(e) {
+    result.textContent = 'Unable to connect. Check your network and try again.';
+  }
+  
+  btn.textContent = 'ANALYZE';
+  btn.style.opacity = '1';
+  btn.disabled = false;
+}
+
+// ── FUEL HISTORY CHART ────────────────────────────────────────────
+function renderFuel() {
+  const last30 = MF.last_14_days;
+  const labels = last30.map(d => d.Date.slice(5));
+  const cals = last30.map(d => d['Calories (kcal)']);
+  
+  mkChart('fuel-history-chart', 'bar', labels, [{
+    data: cals,
+    backgroundColor: cals.map(v => v >= 1700 && v <= 1900 ? 'rgba(28,105,212,0.7)' : v > 1900 ? 'rgba(233,40,58,0.6)' : 'rgba(245,166,35,0.6)'),
+    borderRadius: 3,
+  }], {
+    min: 0, max: 2400,
+    ticks: { callback: v => v ? v/1000+'k' : '0', color: '#4A4A58' }
+  });
+}
+
+// ── NAV ───────────────────────────────────────────────────────────
+const pageCharts = {
+  recovery: ()=>{ renderHRV(); renderSleep(); renderRHR(); renderRec(); },
+  training: ()=>{ renderTraining(); renderPRs(); renderActivity(); },
+  labs: ()=>{ renderLabs(); },
+  trends: ()=>{ renderTrends(); },
+  fuel: ()=>{ renderFuel(); },
+};
+function showPage(name,el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
+  el.classList.add('active');
+  if(pageCharts[name]) setTimeout(pageCharts[name],60);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+async function init() {
+  await loadS();
+  renderWeight();
+  renderActivity();
+  renderDexa();
+  setTimeout(renderWeightFull, 100);
+}
+init();
+
+if('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
