@@ -2,837 +2,883 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Signal</title>
-<meta name="theme-color" content="#2d3a2d"/>
+<meta name="theme-color" content="#3D5A45"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Signal"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <link rel="manifest" href="manifest.json"/>
-<!-- Inline SVG icon as apple-touch-icon via data URI -->
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%232d3a2d'/%3E%3Cpath d='M80 380 L190 240 L270 310 L380 160 L432 200' stroke='%23F4F1EA' stroke-width='28' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='80' cy='380' r='18' fill='%2384523c'/%3E%3Ccircle cx='190' cy='240' r='18' fill='%2384523c'/%3E%3Ccircle cx='270' cy='310' r='18' fill='%2384523c'/%3E%3Ccircle cx='380' cy='160' r='18' fill='%2384523c'/%3E%3Ccircle cx='432' cy='200' r='18' fill='%2384523c'/%3E%3C/svg%3E"/>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%233D5A45'/%3E%3Ccircle cx='256' cy='340' r='32' fill='%23C26143'/%3E%3Cpath d='M180 280 Q256 200 332 280' stroke='%23F9F6F0' stroke-width='28' stroke-linecap='round' fill='none' opacity='0.7'/%3E%3Cpath d='M130 230 Q256 120 382 230' stroke='%23F9F6F0' stroke-width='28' stroke-linecap='round' fill='none' opacity='0.45'/%3E%3Cpath d='M80 180 Q256 40 432 180' stroke='%23F9F6F0' stroke-width='28' stroke-linecap='round' fill='none' opacity='0.25'/%3E%3C/svg%3E"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root {
-    --parchment: #F4F1EA;
-    --forest: #1e2e1e;
-    --forest-mid: #2d3a2d;
-    --forest-light: #3d4e3d;
-    --terra: #84523c;
-    --terra-light: #a8694f;
-    --cream: #faf8f3;
-    --border: #ddd8cc;
-    --muted: #8a8680;
-    --text: #1a1a18;
-    --surface: #ffffff;
-    --amber: #ec861d;
-  }
-  * { box-sizing: border-box; }
-  body { background: var(--parchment); font-family: 'Manrope', sans-serif; color: var(--text); min-height: 100dvh; }
-  .playfair { font-family: 'Playfair Display', serif; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --bg:      #E6DFD3;
+  --surface: #F9F6F0;
+  --card:    #FFFFFF;
+  --border:  #DDD8CE;
+  --forest:  #3D5A45;
+  --terra:   #C26143;
+  --teal:    #285C69;
+  --charcoal:#2F3136;
+  --muted:   #8E8B85;
+  --text:    #2F3136;
+  --green:   #2E7D52;
+  --amber:   #8A5A20;
+}
 
-  /* Cards */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(45,58,45,0.07);
-  }
+body {
+  background: var(--bg);
+  font-family: 'Manrope', sans-serif;
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
 
-  /* Insight card */
-  .insight-card {
-    background: var(--forest-mid);
-    color: white;
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
-  }
-  .insight-card::before {
-    content: '';
-    position: absolute;
-    width: 240px; height: 240px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.1);
-    bottom: -80px; right: -60px;
-  }
-  .insight-card::after {
-    content: '';
-    position: absolute;
-    width: 160px; height: 160px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.07);
-    bottom: -40px; right: -20px;
-  }
+.pf { font-family: 'Playfair Display', serif; }
 
-  /* Progress bars */
-  .prog-track { height: 6px; background: #ede9e0; border-radius: 99px; overflow: hidden; }
-  .prog-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+/* PIN */
+#pin-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 999; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 28px;
+}
+.pin-logo { text-align: center; }
+.pin-logo svg { display: block; margin: 0 auto 14px; }
+.pin-logo h1 { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 700; color: var(--forest); }
+.pin-logo p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.pin-dots { display: flex; gap: 14px; }
+.pin-dot { width: 13px; height: 13px; border-radius: 50%; background: var(--border); transition: background 0.15s; }
+.pin-dot.filled { background: var(--forest); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; }
+.pin-btn {
+  height: 76px; border-radius: 18px;
+  border: 1px solid var(--border); background: var(--card);
+  font-family: 'Manrope', sans-serif; font-size: 26px; font-weight: 600;
+  color: var(--text); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(61,90,69,0.07);
+  transition: background 0.1s;
+}
+.pin-btn:active { background: #f0ede8; }
+.pin-empty { height: 76px; }
+.pin-error { font-size: 12px; color: var(--terra); height: 16px; transition: opacity 0.2s; opacity: 0; }
 
-  /* Sparkline */
-  .sparkline { width: 90px; height: 36px; }
+/* Header */
+header {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center;
+  padding: 0 20px; height: 62px;
+  background: var(--bg);
+}
 
-  /* Bottom nav */
-  .bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -4px 20px rgba(45,58,45,0.08);
-    z-index: 50;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
+/* Main */
+main {
+  padding: 8px 16px 120px;
+  display: flex; flex-direction: column; gap: 14px;
+  max-width: 640px; margin: 0 auto;
+}
 
-  /* Range pills */
-  .pill { padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s; border: none; }
-  .pill-active { background: var(--forest-mid); color: white; }
-  .pill-inactive { background: transparent; color: var(--muted); }
+/* Page sections */
+.page { display: none; }
+.page.active { display: flex; flex-direction: column; gap: 14px; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.page.active { animation: fadeUp 0.2s ease; }
 
-  /* Nav items */
-  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 16px; cursor: pointer; transition: color 0.15s; color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
-  .nav-item.active { color: var(--forest-mid); }
+/* Page title */
+.page-title { padding: 4px 0 2px; }
+.page-title h2 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: var(--forest); }
+.page-title p { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-  /* Page transitions */
-  .page { display: none; animation: fadeUp 0.25s ease; }
-  .page.active { display: block; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+/* Card */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 1px 12px rgba(61,90,69,0.06);
+}
 
-  /* Lab badges */
-  .badge-red { background: #fff0ef; color: #c0392b; border: 1px solid #fcc; font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 700; letter-spacing: 0.04em; }
-  .badge-yellow { background: #fff8ee; color: #b8620a; border: 1px solid #f5d99a; font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 700; letter-spacing: 0.04em; }
-  .badge-green { background: #f0faf4; color: #1e7a3f; border: 1px solid #b2dfc3; font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 700; letter-spacing: 0.04em; }
+/* Card header */
+.card-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 10px;
+}
 
-  /* Cycle dots */
-  .cycle-dot { width: 10px; height: 10px; border-radius: 50%; }
+/* Insight card */
+.insight-card {
+  background: var(--forest); color: #fff;
+  border-radius: 20px; padding: 24px;
+  position: relative; overflow: hidden;
+}
+.insight-card::before {
+  content: ''; position: absolute;
+  width: 220px; height: 220px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  bottom: -70px; right: -50px;
+}
 
-  /* Input styles */
-  input[type=text], input[type=number], input[type=date], select {
-    background: #faf8f3; border: 1px solid var(--border); border-radius: 10px;
-    padding: 9px 12px; font-family: 'Manrope', sans-serif; font-size: 13px;
-    color: var(--text); outline: none; width: 100%; transition: border-color 0.15s;
-  }
-  input:focus, select:focus { border-color: var(--forest-mid); }
-  .btn-primary { background: var(--forest-mid); color: white; border: none; border-radius: 10px; padding: 10px 18px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: opacity 0.15s; }
-  .btn-primary:hover { opacity: 0.88; }
-  .btn-sm { font-size: 11px; padding: 6px 12px; }
+/* Two col grid */
+.grid-2col { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; }
+.col-stack { display: flex; flex-direction: column; gap: 14px; }
 
-  /* Micro interactions */
-  .card, .pill, .nav-item, .btn-primary { -webkit-tap-highlight-color: transparent; }
+/* Stat display */
+.stat-big { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; color: var(--forest); line-height: 1; }
+.stat-med { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; color: var(--forest); line-height: 1; }
+.stat-unit { font-size: 13px; color: var(--muted); margin-left: 4px; }
+.stat-delta { font-size: 13px; font-weight: 600; color: var(--green); display: flex; align-items: center; gap: 3px; }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
 
-  /* Activity dot */
-  .act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+/* Row layouts */
+.row { display: flex; align-items: center; gap: 8px; }
+.row-sb { display: flex; justify-content: space-between; align-items: flex-start; }
+.row-sb-center { display: flex; justify-content: space-between; align-items: center; }
+
+/* Progress bars */
+.prog-wrap { margin-bottom: 16px; }
+.prog-wrap:last-child { margin-bottom: 0; }
+.prog-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.prog-track { height: 5px; background: #EDE8DF; border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 99px; }
+.prog-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* Sparklines */
+.sparkline { width: 88px; height: 34px; }
+
+/* Badges */
+.badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 3px 9px; border-radius: 99px;
+}
+.badge-green { background: #EDF4EF; color: var(--forest); border: 1px solid #C0D9C8; }
+.badge-amber { background: #FDF5EA; color: var(--amber); border: 1px solid #E8D4A0; }
+.badge-red { background: #FDF0ED; color: var(--terra); border: 1px solid #E8C4B4; }
+
+/* Pills */
+.pills { display: flex; gap: 4px; }
+.pill {
+  padding: 5px 13px; border-radius: 99px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.pill-on { background: var(--forest); color: #fff; }
+.pill-off { background: transparent; color: var(--muted); }
+
+/* Chart container */
+.chart-wrap { position: relative; margin-top: 14px; }
+.chart-dates { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--muted); }
+
+/* Activity feed */
+.activity-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid #F0EDE8;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+/* Cycle tracker */
+.cycles { display: flex; gap: 8px; }
+.cycle-cell {
+  flex: 1; text-align: center; padding: 14px 4px;
+  border-radius: 14px; border: 1.5px solid var(--border);
+}
+.cycle-cell.active { border-color: var(--forest); background: #EDF4EF; }
+
+/* Lab row */
+.lab-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid #F0EDE8;
+}
+.lab-row:last-child { border-bottom: none; }
+
+/* DEXA timeline */
+.dexa-item {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding-bottom: 16px; border-bottom: 1px solid #F0EDE8;
+}
+.dexa-item:last-child { border-bottom: none; padding-bottom: 0; }
+.dexa-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+
+/* Form inputs */
+input, select {
+  background: #F5F2EC; border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 12px;
+  font-family: 'Manrope', sans-serif; font-size: 13px;
+  color: var(--text); outline: none; width: 100%;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: var(--forest); }
+.btn {
+  background: var(--forest); color: #fff; border: none;
+  border-radius: 10px; padding: 9px 16px;
+  font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13px;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.88; }
+.btn-full { width: 100%; padding: 12px; margin-top: 8px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+
+/* Delete button */
+.del-btn { background: none; border: none; color: #C4BFB8; cursor: pointer; font-size: 18px; padding: 0 2px; }
+.del-btn:hover { color: var(--terra); }
+
+/* Log entry */
+.log-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid #F0EDE8; font-size: 12px;
+}
+.log-item:last-child { border-bottom: none; }
+
+/* Bottom nav */
+nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -4px 20px rgba(61,90,69,0.08);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6px; }
+.nav-btn {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 6px 12px; cursor: pointer;
+  color: var(--muted); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.04em; text-decoration: none; border: none;
+  background: none; transition: color 0.15s;
+}
+.nav-btn.active { color: var(--forest); }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<header style="position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:64px;background:var(--parchment);">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" style="flex-shrink:0">
-      <rect width="32" height="32" rx="8" fill="#2d3a2d"/>
-      <polyline points="4,24 10,16 15,20 22,10 28,13" stroke="#F4F1EA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      <circle cx="4" cy="24" r="1.8" fill="#84523c"/>
-      <circle cx="10" cy="16" r="1.8" fill="#84523c"/>
-      <circle cx="15" cy="20" r="1.8" fill="#84523c"/>
-      <circle cx="22" cy="10" r="1.8" fill="#84523c"/>
-      <circle cx="28" cy="13" r="1.8" fill="#84523c"/>
-    </svg>
-    <h1 class="playfair" style="font-size:26px;font-weight:700;color:var(--forest-mid);line-height:1">Signal</h1>
+<!-- PIN -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <svg width="56" height="48" viewBox="0 0 56 48" fill="none" style="display:block;margin:0 auto 14px;">
+    <circle cx="28" cy="40" r="5" fill="#C26143"/>
+    <path d="M16 30 Q28 17 40 30" stroke="#C26143" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <path d="M8 21 Q28 5 48 21" stroke="#C26143" stroke-width="3.2" stroke-linecap="round" fill="none" opacity="0.6"/>
+    <path d="M1 13 Q28 -6 55 13" stroke="#C26143" stroke-width="3.2" stroke-linecap="round" fill="none" opacity="0.3"/>
+  </svg>
+    <h1>Signal</h1>
+    <p>Enter your PIN</p>
   </div>
-  <div id="profileAvatar" style="width:44px;height:44px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--border);"></div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinKey('1')">1</button>
+    <button class="pin-btn" onclick="pinKey('2')">2</button>
+    <button class="pin-btn" onclick="pinKey('3')">3</button>
+    <button class="pin-btn" onclick="pinKey('4')">4</button>
+    <button class="pin-btn" onclick="pinKey('5')">5</button>
+    <button class="pin-btn" onclick="pinKey('6')">6</button>
+    <button class="pin-btn" onclick="pinKey('7')">7</button>
+    <button class="pin-btn" onclick="pinKey('8')">8</button>
+    <button class="pin-btn" onclick="pinKey('9')">9</button>
+    <div class="pin-empty"></div>
+    <button class="pin-btn" onclick="pinKey('0')">0</button>
+    <button class="pin-btn" onclick="pinKey('del')">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-err">Incorrect PIN</div>
+</div>
+
+<!-- Header -->
+<header>
+  <svg width="38" height="32" viewBox="0 0 48 40" fill="none" style="flex-shrink:0;margin-right:10px;">
+    <circle cx="24" cy="32" r="4" fill="#C26143"/>
+    <path d="M14 24 Q24 13 34 24" stroke="#C26143" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    <path d="M7 17 Q24 3 41 17" stroke="#C26143" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="0.6"/>
+    <path d="M1 10 Q24 -7 47 10" stroke="#C26143" stroke-width="2.8" stroke-linecap="round" fill="none" opacity="0.3"/>
+  </svg>
+  <span class="pf" style="font-size:28px;font-weight:700;color:#3D5A45;">Signal</span>
 </header>
 
-<main class="px-4 pb-32 max-w-2xl mx-auto space-y-4">
+<main>
 
-<!-- ══════════════════════════════════════════ -->
-<!-- PROGRESS PAGE -->
-<!-- ══════════════════════════════════════════ -->
-<div id="page-progress" class="page active">
-
-  <div class="mb-4 mt-1">
-    <h2 class="playfair text-2xl font-bold" style="color:var(--forest-mid)">Your Progress</h2>
-    <p class="text-xs mt-0.5" style="color:var(--muted)">Last synced: May 8, 2026</p>
+<!-- ═══════════════ PROGRESS ═══════════════ -->
+<div id="pg-progress" class="page active">
+  <div class="page-title">
+    <h2>Your Progress</h2>
+    <p>Last synced: May 23, 2026</p>
   </div>
 
-  <!-- Weight Card -->
-  <div class="card p-5">
-    <div class="mb-4">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <p class="text-xs font-semibold tracking-widest uppercase" style="color:var(--muted)">Weight</p>
-        <div style="display:flex;gap:4px;">
-          <button class="pill pill-active" onclick="setWtRange(30,this)">30D</button>
-          <button class="pill pill-inactive" onclick="setWtRange(60,this)">60D</button>
-          <button class="pill pill-inactive" onclick="setWtRange(90,this)">90D</button>
-        </div>
-      </div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px;flex-wrap:wrap;">
-        <span class="playfair" style="font-size:40px;font-weight:700;color:var(--forest-mid);line-height:1" id="wtDisplay">162.6</span>
-        <span style="font-size:14px;color:var(--muted)">lbs</span>
-        <span style="font-size:13px;font-weight:600;color:#2e7d52;display:flex;align-items:center;gap:3px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>14.5 lbs
-        </span>
-      </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:4px;">Since Feb 5 · 7-day avg: <span id="avg7">163.0</span> lbs</p>
-    </div>
-    <div style="height:180px;position:relative;">
-      <canvas id="weightChart"></canvas>
-    </div>
-    <div class="flex justify-between mt-2 text-xs" style="color:var(--muted)">
-      <span id="wtDateStart"></span>
-      <span id="wtDateEnd">May 8</span>
-    </div>
-  </div>
-
-  <!-- Body Comp + Vitals Row -->
-  <div class="grid grid-cols-5 gap-3">
-
-    <!-- Body Comp (col 3) -->
-    <div class="card p-4 col-span-3">
-      <p class="text-xs font-semibold tracking-widest uppercase mb-1" style="color:var(--muted)">Body Composition</p>
-      <p class="playfair text-lg font-bold mb-4" style="color:var(--forest-mid)">DEXA Progress</p>
-      <div class="space-y-4">
-        <div>
-          <div class="flex justify-between items-center mb-1.5">
-            <span class="text-sm font-medium">Body Fat</span>
-            <span class="text-sm font-bold" style="color:var(--terra)">26.2%</span>
-          </div>
-          <div class="prog-track"><div class="prog-fill" style="width:26.2%;background:var(--terra)"></div></div>
-          <p class="text-xs mt-1" style="color:var(--muted)">Goal: 15% · 37 was start</p>
-        </div>
-        <div>
-          <div class="flex justify-between items-center mb-1.5">
-            <span class="text-sm font-medium">Lean Mass</span>
-            <span class="text-sm font-bold" style="color:var(--forest-mid)">116.9 lbs</span>
-          </div>
-          <div class="prog-track"><div class="prog-fill" style="width:62%;background:var(--forest-mid)"></div></div>
-          <p class="text-xs mt-1" style="color:var(--muted)">Goal: 132 lbs · +15.1 to go</p>
-        </div>
-        <div>
-          <div class="flex justify-between items-center mb-1.5">
-            <span class="text-sm font-medium">Scale Weight</span>
-            <span class="text-sm font-bold" style="color:var(--forest-mid)">162.6 lbs</span>
-          </div>
-          <div class="prog-track"><div class="prog-fill" style="width:77%;background:var(--forest-light)"></div></div>
-          <p class="text-xs mt-1" style="color:var(--muted)">Goal: 155 lbs · 77% there</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Vitals col (col 2) -->
-    <div class="col-span-2 flex flex-col gap-3">
-      <div class="card p-4 flex justify-between items-center">
-        <div>
-          <p class="text-xs font-semibold tracking-widest uppercase" style="color:var(--muted)">HRV</p>
-          <div class="flex items-baseline gap-1 mt-1">
-            <span class="playfair text-2xl font-bold" style="color:var(--forest-mid)">88</span>
-            <span class="text-xs" style="color:var(--muted)">ms</span>
-          </div>
-          <p class="text-xs mt-0.5" style="color:#2e7d52">In range</p>
-        </div>
-        <svg class="sparkline" viewBox="0 0 90 36">
-          <polyline fill="none" points="0,30 12,25 24,32 36,16 48,20 60,8 72,12 90,10" stroke="#2d3a2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="card p-4 flex justify-between items-center">
-        <div>
-          <p class="text-xs font-semibold tracking-widest uppercase" style="color:var(--muted)">RHR</p>
-          <div class="flex items-baseline gap-1 mt-1">
-            <span class="playfair text-2xl font-bold" style="color:var(--forest-mid)">51</span>
-            <span class="text-xs" style="color:var(--muted)">bpm</span>
-          </div>
-          <p class="text-xs mt-0.5" style="color:#2e7d52">Excellent</p>
-        </div>
-        <svg class="sparkline" viewBox="0 0 90 36">
-          <polyline fill="none" points="0,20 20,22 40,18 60,20 80,18 90,19" stroke="#84523c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="card p-4 flex justify-between items-center">
-        <div>
-          <p class="text-xs font-semibold tracking-widest uppercase" style="color:var(--muted)">Sleep</p>
-          <div class="flex items-baseline gap-1 mt-1">
-            <span class="playfair text-2xl font-bold" style="color:var(--forest-mid)">7.5</span>
-            <span class="text-xs" style="color:var(--muted)">hr avg</span>
-          </div>
-          <p class="text-xs mt-0.5" style="color:#b8620a">Near target</p>
-        </div>
-        <svg class="sparkline" viewBox="0 0 90 36">
-          <polyline fill="none" points="0,14 12,20 24,8 36,16 48,12 60,10 72,18 90,14" stroke="#2d3a2d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-    </div>
-  </div>
-
-  <!-- Signal Insight Card -->
-  <div class="insight-card p-6">
-    <div class="relative z-10">
-      <p class="text-xs font-semibold tracking-widest uppercase" style="color:rgba(255,255,255,0.5)">Signal Insight</p>
-      <h3 class="playfair text-xl font-bold mt-2 leading-snug">Protocol is working.<br/>Stay the course.</h3>
-      <p class="text-sm mt-3 leading-relaxed" style="color:rgba(255,255,255,0.75)">Down 14.5 lbs since Feb with lean mass preserved. TRT is 8 days in — the real building phase begins post-June 11. Don't cut calories before the trip. Arrive at 161–162 and that's a win.</p>
-      <div class="flex gap-2 mt-4">
-        <span class="text-xs font-semibold px-3 py-1.5 rounded-full" style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9)">1,800 kcal ✓</span>
-        <span class="text-xs font-semibold px-3 py-1.5 rounded-full" style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9)">C1 Week 2 ✓</span>
-        <span class="text-xs font-semibold px-3 py-1.5 rounded-full" style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9)">TRT Day 8</span>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ══════════════════════════════════════════ -->
-<!-- RECOVERY PAGE -->
-<!-- ══════════════════════════════════════════ -->
-<div id="page-recovery" class="page">
-  <div class="mb-4 mt-1">
-    <h2 class="playfair text-2xl font-bold" style="color:var(--forest-mid)">Recovery</h2>
-    <p class="text-xs mt-0.5" style="color:var(--muted)">HRV · Sleep · Readiness</p>
-  </div>
-
-  <!-- HRV Full -->
-  <div class="card p-5">
-    <div class="flex justify-between items-start mb-3">
+  <!-- Weight card -->
+  <div class="card">
+    <div class="row-sb" style="margin-bottom:12px;">
       <div>
-        <p class="text-xs font-semibold tracking-widest uppercase" style="color:var(--muted)">Heart Rate Variability</p>
-        <div class="flex items-baseline gap-2 mt-1">
-          <span class="playfair text-3xl font-bold" style="color:var(--forest-mid)">79</span>
-          <span class="text-sm" style="color:var(--muted)">ms · 30-day avg</span>
+        <div class="card-label">Weight</div>
+        <div class="row" style="align-items:baseline;flex-wrap:wrap;gap:6px;margin-top:2px;">
+          <span class="stat-big" id="wt-display">162.8</span>
+          <span class="stat-unit">lbs</span>
+          <span class="stat-delta">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            14.5 lbs
+          </span>
         </div>
-        <p class="text-xs mt-0.5" style="color:var(--muted)">Normal range: 69–89 ms</p>
+        <div class="stat-sub">Since Feb 5 · 7-day avg: <span id="wt-avg7">163.0</span> lbs</div>
       </div>
-      <span class="badge-green">In Range</span>
+      <div class="pills">
+        <button class="pill pill-on" onclick="wtRange(30,this)">30D</button>
+        <button class="pill pill-off" onclick="wtRange(60,this)">60D</button>
+        <button class="pill pill-off" onclick="wtRange(90,this)">90D</button>
+      </div>
     </div>
-    <div style="height:160px"><canvas id="hrvChart"></canvas></div>
+    <div class="chart-wrap" style="height:170px;"><canvas id="wt-chart"></canvas></div>
+    <div class="chart-dates"><span id="wt-start"></span><span>May 23</span></div>
   </div>
 
-  <!-- Sleep -->
-  <div class="card p-5">
-    <div class="flex justify-between items-start mb-3">
+  <!-- Body comp + vitals -->
+  <div class="grid-2col">
+    <div class="card">
+      <div class="card-label">Body Composition</div>
+      <div class="pf" style="font-size:18px;font-weight:700;color:#3D5A45;margin-bottom:16px;">DEXA Progress</div>
+      <div class="prog-wrap">
+        <div class="prog-label">
+          <span style="font-size:13px;font-weight:500;">Body Fat</span>
+          <span style="font-size:13px;font-weight:700;color:#C26143;">26.2%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:26.2%;background:#C26143;"></div></div>
+        <div class="prog-sub">Goal 15% · was 37%</div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-label">
+          <span style="font-size:13px;font-weight:500;">Lean Mass</span>
+          <span style="font-size:13px;font-weight:700;color:#3D5A45;">116.9 lbs</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:62%;background:#3D5A45;"></div></div>
+        <div class="prog-sub">Goal 132 lbs · +15.1 to go</div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-label">
+          <span style="font-size:13px;font-weight:500;">Scale Weight</span>
+          <span style="font-size:13px;font-weight:700;color:#3D5A45;">162.8 lbs</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:77%;background:#3D5A45;"></div></div>
+        <div class="prog-sub">Goal 155 lbs · 77% there</div>
+      </div>
+    </div>
+
+    <div class="col-stack">
+      <div class="card" style="padding:18px;">
+        <div class="card-label">HRV</div>
+        <div class="row-sb-center" style="margin-top:4px;">
+          <div>
+            <div class="row" style="align-items:baseline;gap:3px;">
+              <span class="stat-med">65</span><span class="stat-unit">ms</span>
+            </div>
+            <div style="font-size:11px;color:#C26143;margin-top:2px;">Below range</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 88 34"><polyline fill="none" points="0,28 14,22 28,30 42,14 56,18 70,8 88,10" stroke="#3D5A45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="card" style="padding:18px;">
+        <div class="card-label">RHR</div>
+        <div class="row-sb-center" style="margin-top:4px;">
+          <div>
+            <div class="row" style="align-items:baseline;gap:3px;">
+              <span class="stat-med">51</span><span class="stat-unit">bpm</span>
+            </div>
+            <div style="font-size:11px;color:#2E7D52;margin-top:2px;">Excellent</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 88 34"><polyline fill="none" points="0,18 20,20 40,16 60,18 80,16 88,17" stroke="#C26143" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="card" style="padding:18px;">
+        <div class="card-label">Sleep</div>
+        <div class="row-sb-center" style="margin-top:4px;">
+          <div>
+            <div class="row" style="align-items:baseline;gap:3px;">
+              <span class="stat-med">7.5</span><span class="stat-unit">hr avg</span>
+            </div>
+            <div style="font-size:11px;color:#8A5A20;margin-top:2px;">Near target</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 88 34"><polyline fill="none" points="0,12 14,18 28,8 42,16 56,10 70,8 88,14" stroke="#3D5A45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insight card -->
+  <div class="insight-card">
+    <div style="position:relative;z-index:2;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;">Signal Insight</div>
+      <div class="pf" style="font-size:20px;font-weight:700;line-height:1.3;">Protocol is working.<br/>Stay the course.</div>
+      <p style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:12px;line-height:1.65;">Down 14.5 lbs since Feb with lean mass preserved. TRT is now 8 days in — the real building phase begins post-June 11. Arrive at 161–162 and that's a win.</p>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.14);color:rgba(255,255,255,0.92);">1,800 kcal ✓</span>
+        <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.14);color:rgba(255,255,255,0.92);">C1 Week 2 ✓</span>
+        <span style="font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,0.14);color:rgba(255,255,255,0.92);">TRT Day 8</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ RECOVERY ═══════════════ -->
+<div id="pg-recovery" class="page">
+  <div class="page-title"><h2>Recovery</h2><p>HRV · Sleep · Readiness</p></div>
+
+  <div class="card">
+    <div class="row-sb" style="margin-bottom:12px;">
       <div>
-        <p class="text-xs font-semibold tracking-widest uppercase" style="color:var(--muted)">Sleep Duration</p>
-        <div class="flex items-baseline gap-2 mt-1">
-          <span class="playfair text-3xl font-bold" style="color:var(--forest-mid)" id="sleepAvgDisplay">7.5</span>
-          <span class="text-sm" style="color:var(--muted)">hr · 14-day avg</span>
+        <div class="card-label">Heart Rate Variability</div>
+        <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
+          <span class="stat-med">79</span>
+          <span class="stat-unit">ms · 30-day avg</span>
+        </div>
+        <div class="stat-sub">Normal range: 69–89 ms</div>
+      </div>
+      <span class="badge badge-green">In Range</span>
+    </div>
+    <div style="height:160px;"><canvas id="hrv-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="row-sb" style="margin-bottom:12px;">
+      <div>
+        <div class="card-label">Sleep Duration</div>
+        <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
+          <span class="stat-med" id="sleep-avg">7.5</span>
+          <span class="stat-unit">hr · 14-day avg</span>
         </div>
       </div>
-      <span class="badge-yellow">Near Target</span>
+      <span class="badge badge-amber">Near Target</span>
     </div>
-    <div style="height:130px"><canvas id="sleepChart"></canvas></div>
+    <div style="height:130px;"><canvas id="sleep-chart"></canvas></div>
   </div>
 
-  <!-- RHR -->
-  <div class="card p-5">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-1" style="color:var(--muted)">Resting Heart Rate</p>
-    <div class="flex items-baseline gap-2 mb-3">
-      <span class="playfair text-3xl font-bold" style="color:var(--forest-mid)">51</span>
-      <span class="text-sm" style="color:var(--muted)">bpm</span>
-      <span class="badge-green ml-2">Excellent</span>
+  <div class="card">
+    <div class="card-label">Resting Heart Rate</div>
+    <div class="row" style="align-items:baseline;gap:8px;margin-top:4px;margin-bottom:14px;">
+      <span class="stat-med">51</span>
+      <span class="stat-unit">bpm</span>
+      <span class="badge badge-green" style="margin-left:4px;">Excellent</span>
     </div>
-    <div style="height:80px"><canvas id="rhrChart"></canvas></div>
+    <div style="height:80px;"><canvas id="rhr-chart"></canvas></div>
   </div>
 
-  <!-- Manual recovery note -->
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">Log Recovery Note</p>
-    <div class="flex gap-2">
-      <input type="date" id="recDate" style="max-width:140px"/>
-      <input type="text" id="recNote" placeholder="e.g. 79ms — full recovery"/>
-      <button class="btn-primary btn-sm" onclick="addRecovery()">Add</button>
+  <div class="card">
+    <div class="card-label">Log Recovery Note</div>
+    <div class="form-row" style="margin-top:10px;">
+      <input type="date" id="rec-date" style="max-width:140px;"/>
+      <input type="text" id="rec-note" placeholder="e.g. 79ms — full recovery"/>
+      <button class="btn" onclick="addRec()">Add</button>
     </div>
-    <div id="recoveryList" class="mt-3 space-y-2"></div>
+    <div id="rec-list" style="margin-top:8px;"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════ -->
-<!-- TRAINING PAGE -->
-<!-- ══════════════════════════════════════════ -->
-<div id="page-training" class="page">
-  <div class="mb-4 mt-1">
-    <h2 class="playfair text-2xl font-bold" style="color:var(--forest-mid)">Training</h2>
-    <p class="text-xs mt-0.5" style="color:var(--muted)">Foundation Program · Cycle 1</p>
-  </div>
+<!-- ═══════════════ TRAINING ═══════════════ -->
+<div id="pg-training" class="page">
+  <div class="page-title"><h2>Training</h2><p>Foundation Program · Cycle 1</p></div>
 
-  <!-- Cycle tracker -->
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-4" style="color:var(--muted)">Foundation — 6 Cycles</p>
-    <div style="display:flex;gap:6px;">
-      <div style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;border:1.5px solid #2d3a2d;background:#f0f4f0;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#2d3a2d;">C1 ←</p>
-        <p style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:#2d3a2d;margin:4px 0">3</p>
-        <p style="font-size:10px;color:#84523c;">RIR 3</p>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:14px;">Foundation — 6 Cycles</div>
+    <div class="cycles">
+      <div class="cycle-cell active">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#3D5A45;">C1 ←</div>
+        <div class="pf" style="font-size:22px;font-weight:700;color:#3D5A45;margin:4px 0;">3</div>
+        <div style="font-size:10px;color:#C26143;">RIR 3</div>
       </div>
-      <div style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;border:1.5px solid #ede9e0;background:transparent;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#a09c96;">C2</p>
-        <p style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:#c4bfb8;margin:4px 0">3</p>
-        <p style="font-size:10px;color:#c4bfb8;">RIR 2</p>
+      <div class="cycle-cell">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9a9590;">C2</div>
+        <div class="pf" style="font-size:22px;font-weight:700;color:#C8C4BE;margin:4px 0;">3</div>
+        <div style="font-size:10px;color:#C8C4BE;">RIR 2</div>
       </div>
-      <div style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;border:1.5px solid #ede9e0;background:transparent;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#a09c96;">C3</p>
-        <p style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:#c4bfb8;margin:4px 0">4</p>
-        <p style="font-size:10px;color:#c4bfb8;">RIR 2</p>
+      <div class="cycle-cell">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9a9590;">C3</div>
+        <div class="pf" style="font-size:22px;font-weight:700;color:#C8C4BE;margin:4px 0;">4</div>
+        <div style="font-size:10px;color:#C8C4BE;">RIR 2</div>
       </div>
-      <div style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;border:1.5px solid #ede9e0;background:transparent;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#a09c96;">C4</p>
-        <p style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:#c4bfb8;margin:4px 0">3</p>
-        <p style="font-size:10px;color:#c4bfb8;">RIR 2</p>
+      <div class="cycle-cell">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9a9590;">C4</div>
+        <div class="pf" style="font-size:22px;font-weight:700;color:#C8C4BE;margin:4px 0;">3</div>
+        <div style="font-size:10px;color:#C8C4BE;">RIR 2</div>
       </div>
-      <div style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;border:1.5px solid #ede9e0;background:transparent;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#a09c96;">C5</p>
-        <p style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:#c4bfb8;margin:4px 0">3</p>
-        <p style="font-size:10px;color:#c4bfb8;">RIR 1</p>
+      <div class="cycle-cell">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9a9590;">C5</div>
+        <div class="pf" style="font-size:22px;font-weight:700;color:#C8C4BE;margin:4px 0;">3</div>
+        <div style="font-size:10px;color:#C8C4BE;">RIR 1</div>
       </div>
-      <div style="flex:1;text-align:center;padding:12px 4px;border-radius:12px;border:1.5px solid #ddd8cc;background:transparent;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#a09c96;">C6</p>
-        <p style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;color:#c4bfb8;margin:4px 0">2</p>
-        <p style="font-size:10px;color:#c4bfb8;">RIR 4</p>
+      <div class="cycle-cell">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#9a9590;">C6</div>
+        <div class="pf" style="font-size:22px;font-weight:700;color:#C8C4BE;margin:4px 0;">2</div>
+        <div style="font-size:10px;color:#C8C4BE;">RIR 4</div>
       </div>
     </div>
-    <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--muted);">
-      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#2d3a2d;display:inline-block"></span>Current</span>
-      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#ddd8cc;display:inline-block"></span>Upcoming</span>
-      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#ede9e0;display:inline-block"></span>Deload</span>
+    <div class="row" style="gap:16px;margin-top:14px;font-size:11px;color:#9a9590;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#3D5A45;display:inline-block;"></span>Current</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#DDD8CE;display:inline-block;"></span>Upcoming</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#EDE8DF;display:inline-block;"></span>Deload</span>
     </div>
   </div>
 
-  <!-- Training volume -->
-  <div class="card p-5">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">Strength Volume (min/session)</p>
-    <div style="height:150px"><canvas id="trainingChart"></canvas></div>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:4px;">Strength Volume (min/session)</div>
+    <div style="height:150px;margin-top:12px;"><canvas id="train-chart"></canvas></div>
   </div>
 
-  <!-- PRs -->
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">Strength PRs</p>
-    <div id="prList" class="space-y-2"></div>
-    <div class="mt-4 space-y-2">
-      <div class="grid grid-cols-2 gap-2">
-        <input type="date" id="prDate"/>
-        <input type="text" id="prLift" placeholder="Exercise"/>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">Strength PRs</div>
+    <div id="pr-list"></div>
+    <div style="margin-top:16px;">
+      <div class="form-grid-2">
+        <input type="date" id="pr-date"/>
+        <input type="text" id="pr-lift" placeholder="Exercise"/>
       </div>
-      <div class="flex gap-2">
-        <input type="number" id="prWeight" placeholder="lbs" step="0.5"/>
-        <input type="text" id="prNote" placeholder="Note"/>
-        <button class="btn-primary btn-sm" onclick="addPR()">Add</button>
+      <div class="form-row">
+        <input type="number" id="pr-weight" placeholder="lbs" step="0.5"/>
+        <input type="text" id="pr-note" placeholder="Note"/>
+        <button class="btn" onclick="addPR()">Add</button>
       </div>
     </div>
   </div>
 
-  <!-- Recent sessions -->
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">Recent Sessions</p>
-    <div id="activityFeed" class="space-y-2"></div>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">Recent Sessions</div>
+    <div id="activity-feed"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════ -->
-<!-- LABS PAGE -->
-<!-- ══════════════════════════════════════════ -->
-<div id="page-labs" class="page">
-  <div class="mb-4 mt-1">
-    <h2 class="playfair text-2xl font-bold" style="color:var(--forest-mid)">Labs & Markers</h2>
-    <p class="text-xs mt-0.5" style="color:var(--muted)">Vive Health Panel · May 9, 2026</p>
+<!-- ═══════════════ LABS ═══════════════ -->
+<div id="pg-labs" class="page">
+  <div class="page-title"><h2>Labs & Markers</h2><p>Vive Health Panel · May 9, 2026</p></div>
+
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">🔴 Flagged</div>
+    <div id="labs-red"></div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">⚠️ Monitor</div>
+    <div id="labs-amber"></div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">✓ Optimal</div>
+    <div id="labs-green"></div>
   </div>
 
-  <!-- Critical flags -->
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">🔴 Flagged</p>
-    <div class="space-y-3" id="labsFlagged"></div>
-  </div>
-
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">⚠️ Monitor</p>
-    <div class="space-y-3" id="labsMonitor"></div>
-  </div>
-
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">✓ Optimal</p>
-    <div class="space-y-3" id="labsGood"></div>
-  </div>
-
-  <!-- Add lab -->
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">Add Result</p>
-    <div class="space-y-2">
-      <div class="grid grid-cols-2 gap-2">
-        <input type="date" id="labDate"/>
-        <input type="text" id="labName" placeholder="Marker"/>
-      </div>
-      <div class="grid grid-cols-3 gap-2">
-        <input type="text" id="labVal" placeholder="Value"/>
-        <input type="text" id="labRef" placeholder="Reference"/>
-        <select id="labStatus">
-          <option value="green">✓ Normal</option>
-          <option value="yellow">⚠ Monitor</option>
-          <option value="red">✗ Flagged</option>
-        </select>
-      </div>
-      <button class="btn-primary w-full" onclick="addLab()">Add Lab Result</button>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">Add Result</div>
+    <div class="form-grid-2"><input type="date" id="lab-date"/><input type="text" id="lab-name" placeholder="Marker"/></div>
+    <div class="form-grid-3">
+      <input type="text" id="lab-val" placeholder="Value"/>
+      <input type="text" id="lab-ref" placeholder="Reference"/>
+      <select id="lab-status"><option value="green">✓ Normal</option><option value="amber">⚠ Monitor</option><option value="red">✗ Flagged</option></select>
     </div>
-    <div id="labsCustom" class="mt-3 space-y-2"></div>
+    <button class="btn btn-full" onclick="addLab()">Add Lab Result</button>
+    <div id="labs-custom" style="margin-top:8px;"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════ -->
-<!-- BODY COMP DEXA PAGE -->
-<!-- ══════════════════════════════════════════ -->
-<div id="page-body" class="page">
-  <div class="mb-4 mt-1">
-    <h2 class="playfair text-2xl font-bold" style="color:var(--forest-mid)">Body Composition</h2>
-    <p class="text-xs mt-0.5" style="color:var(--muted)">DEXA Scan History</p>
+<!-- ═══════════════ BODY ═══════════════ -->
+<div id="pg-body" class="page">
+  <div class="page-title"><h2>Body Composition</h2><p>DEXA Scan History</p></div>
+
+  <div class="card">
+    <div class="card-label" style="margin-bottom:16px;">DEXA Timeline</div>
+    <div id="dexa-timeline"></div>
   </div>
 
-  <div class="card p-5">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-4" style="color:var(--muted)">DEXA Timeline</p>
-    <div id="dexaTimeline" class="space-y-4"></div>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:12px;">Add DEXA Scan</div>
+    <div class="form-grid-2"><input type="date" id="dexa-date"/><input type="number" id="dexa-wt" placeholder="Weight (lbs)" step="0.1"/></div>
+    <div class="form-grid-2"><input type="number" id="dexa-bf" placeholder="BF %" step="0.1"/><input type="number" id="dexa-lean" placeholder="Lean mass (lbs)" step="0.1"/></div>
+    <button class="btn btn-full" onclick="addDexa()">Add DEXA Result</button>
   </div>
 
-  <div class="card p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-3" style="color:var(--muted)">Add DEXA Scan</p>
-    <div class="space-y-2">
-      <div class="grid grid-cols-2 gap-2">
-        <input type="date" id="dexaDate"/>
-        <input type="number" id="dexaWeight" placeholder="Weight (lbs)" step="0.1"/>
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <input type="number" id="dexaBF" placeholder="BF %" step="0.1"/>
-        <input type="number" id="dexaLean" placeholder="Lean mass (lbs)" step="0.1"/>
-      </div>
-      <button class="btn-primary w-full" onclick="addDexa()">Add DEXA Result</button>
-    </div>
-  </div>
-
-  <!-- Weight full history -->
-  <div class="card p-5">
-    <p class="text-xs font-semibold tracking-widest uppercase mb-1" style="color:var(--muted)">Weight History — Full</p>
-    <div style="height:200px"><canvas id="weightFullChart"></canvas></div>
+  <div class="card">
+    <div class="card-label" style="margin-bottom:4px;">Weight History — Full</div>
+    <div style="height:200px;margin-top:12px;"><canvas id="wt-full-chart"></canvas></div>
   </div>
 </div>
 
 </main>
 
 <!-- Bottom Nav -->
-<nav class="bottom-nav">
-  <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 8px 6px;">
-    <a class="nav-item active" onclick="showPage('progress',this)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.5l6-6 4 4L22 6.92" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="3.5" cy="18.5" r="1.5"/><circle cx="9.5" cy="12.5" r="1.5"/><circle cx="13.5" cy="16.5" r="1.5"/><circle cx="22" cy="7" r="1.5"/></svg>
-      <span>Progress</span>
-    </a>
-    <a class="nav-item" onclick="showPage('recovery',this)">
+<nav>
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showPage('progress',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3.5 18.5l6-6 4 4L22 6.92" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3.5" cy="18.5" r="1.5" fill="currentColor"/><circle cx="9.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="13.5" cy="16.5" r="1.5" fill="currentColor"/><circle cx="22" cy="7" r="1.5" fill="currentColor"/></svg>
+      Progress
+    </button>
+    <button class="nav-btn" onclick="showPage('recovery',this)">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Recovery</span>
-    </a>
-    <a class="nav-item" onclick="showPage('training',this)">
+      Recovery
+    </button>
+    <button class="nav-btn" onclick="showPage('training',this)">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 4v16M18 4v16M6 12h12M3 8h3M18 8h3M3 16h3M18 16h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>Training</span>
-    </a>
-    <a class="nav-item" onclick="showPage('labs',this)">
+      Training
+    </button>
+    <button class="nav-btn" onclick="showPage('labs',this)">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M9 3v8L4 19a1 1 0 001 1h14a1 1 0 001-1L15 11V3M9 3H6M15 3h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Labs</span>
-    </a>
-    <a class="nav-item" onclick="showPage('body',this)">
+      Labs
+    </button>
+    <button class="nav-btn" onclick="showPage('body',this)">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3" stroke="currentColor" stroke-width="2"/><path d="M5 21v-2a7 7 0 0114 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>Body</span>
-    </a>
+      Body
+    </button>
   </div>
 </nav>
 
 <script>
-// ── DATA ────────────────────────────────────────────────────────────
-const D = {"weight":[{"date":"2026-05-08","value":163.6},{"date":"2026-05-07","value":162.6},{"date":"2026-05-06","value":163.3},{"date":"2026-05-05","value":163.7},{"date":"2026-05-04","value":163.4},{"date":"2026-05-03","value":163.0},{"date":"2026-05-02","value":162.7},{"date":"2026-05-01","value":162.6},{"date":"2026-04-30","value":163.2},{"date":"2026-04-29","value":163.9},{"date":"2026-04-28","value":163.6},{"date":"2026-04-27","value":164.2},{"date":"2026-04-26","value":164.4},{"date":"2026-04-25","value":163.7},{"date":"2026-04-24","value":164.7},{"date":"2026-04-21","value":165.1},{"date":"2026-04-20","value":166.4},{"date":"2026-04-19","value":165.0},{"date":"2026-04-18","value":164.0},{"date":"2026-04-17","value":165.0},{"date":"2026-04-16","value":164.1},{"date":"2026-04-15","value":164.9},{"date":"2026-04-14","value":165.1},{"date":"2026-04-13","value":166.0},{"date":"2026-04-12","value":166.1},{"date":"2026-04-11","value":167.2},{"date":"2026-04-10","value":166.9},{"date":"2026-04-09","value":166.3},{"date":"2026-04-08","value":166.4},{"date":"2026-04-07","value":167.4},{"date":"2026-04-06","value":167.0},{"date":"2026-04-05","value":165.9},{"date":"2026-04-04","value":167.6},{"date":"2026-04-03","value":167.9},{"date":"2026-04-02","value":167.9},{"date":"2026-04-01","value":167.1},{"date":"2026-03-31","value":167.4},{"date":"2026-03-30","value":166.6},{"date":"2026-03-29","value":166.9},{"date":"2026-03-28","value":167.9},{"date":"2026-03-27","value":169.3},{"date":"2026-03-26","value":169.0},{"date":"2026-03-25","value":169.3},{"date":"2026-03-24","value":169.6},{"date":"2026-03-23","value":168.8},{"date":"2026-03-22","value":167.9},{"date":"2026-03-21","value":172.4},{"date":"2026-03-20","value":170.4},{"date":"2026-03-19","value":170.5},{"date":"2026-03-18","value":170.8},{"date":"2026-03-17","value":173.1},{"date":"2026-03-16","value":171.4},{"date":"2026-03-15","value":170.4},{"date":"2026-03-14","value":171.2},{"date":"2026-03-13","value":170.6},{"date":"2026-03-12","value":170.6},{"date":"2026-03-11","value":171.4},{"date":"2026-03-10","value":172.0},{"date":"2026-03-09","value":172.1},{"date":"2026-03-08","value":172.5},{"date":"2026-03-07","value":172.4},{"date":"2026-03-06","value":173.9},{"date":"2026-03-05","value":170.2},{"date":"2026-03-04","value":170.8},{"date":"2026-03-03","value":172.9},{"date":"2026-03-02","value":173.3},{"date":"2026-03-01","value":172.7},{"date":"2026-02-28","value":173.0},{"date":"2026-02-27","value":173.5},{"date":"2026-02-26","value":173.7},{"date":"2026-02-25","value":173.4},{"date":"2026-02-24","value":174.4},{"date":"2026-02-23","value":174.3},{"date":"2026-02-22","value":173.4},{"date":"2026-02-21","value":174.2},{"date":"2026-02-20","value":175.1},{"date":"2026-02-19","value":175.6},{"date":"2026-02-18","value":174.7},{"date":"2026-02-17","value":174.4},{"date":"2026-02-16","value":174.5},{"date":"2026-02-15","value":174.7},{"date":"2026-02-14","value":175.3},{"date":"2026-02-13","value":175.5},{"date":"2026-02-12","value":175.6},{"date":"2026-02-11","value":175.8},{"date":"2026-02-09","value":176.8},{"date":"2026-02-08","value":176.3},{"date":"2026-02-07","value":176.4},{"date":"2026-02-06","value":177.3},{"date":"2026-02-05","value":177.1}],"hrv":[{"date":"2026-04-25","value":131.0},{"date":"2026-04-21","value":88.0},{"date":"2026-04-10","value":60.0},{"date":"2026-04-01","value":71.0},{"date":"2026-03-30","value":60.0},{"date":"2026-03-22","value":106.0},{"date":"2026-01-17","value":44.0},{"date":"2025-12-31","value":39.0},{"date":"2025-12-07","value":33.0},{"date":"2025-10-15","value":64.0},{"date":"2025-10-08","value":31.0},{"date":"2025-10-07","value":38.0}],"sleep":[{"date":"2026-05-07","value":6.9},{"date":"2026-05-06","value":8.1},{"date":"2026-05-05","value":8.8},{"date":"2026-05-04","value":7.4},{"date":"2026-05-03","value":6.4},{"date":"2026-05-02","value":9.4},{"date":"2026-05-01","value":8.7},{"date":"2026-04-30","value":8.0},{"date":"2026-04-29","value":6.6},{"date":"2026-04-28","value":5.7},{"date":"2026-04-27","value":7.8},{"date":"2026-04-26","value":9.0},{"date":"2026-04-25","value":8.7},{"date":"2026-04-24","value":6.8},{"date":"2026-04-21","value":8.6},{"date":"2026-04-20","value":6.5},{"date":"2026-04-19","value":7.6},{"date":"2026-04-18","value":8.8},{"date":"2026-04-17","value":7.2},{"date":"2026-04-16","value":6.0},{"date":"2026-04-15","value":7.2},{"date":"2026-04-14","value":6.2}],"exercise":[{"date":"2026-05-08","title":"Friday — Wild Card","type":58,"duration":30},{"date":"2026-05-08","title":"Strength","type":45,"duration":50},{"date":"2026-05-07","title":"Strength","type":45,"duration":81},{"date":"2026-05-07","title":"Thursday — Legs & Abs","type":58,"duration":88},{"date":"2026-05-06","title":"Strength","type":45,"duration":47},{"date":"2026-05-06","title":"Wednesday — Shoulders & Arms","type":58,"duration":60},{"date":"2026-05-06","title":"Indoor Run","type":34,"duration":19},{"date":"2026-05-05","title":"Tuesday — Push","type":58,"duration":72},{"date":"2026-05-05","title":"Strength","type":45,"duration":92},{"date":"2026-05-04","title":"Monday — Pull","type":58,"duration":58},{"date":"2026-05-04","title":"Strength","type":45,"duration":85},{"date":"2026-05-01","title":"Strength","type":45,"duration":52},{"date":"2026-05-01","title":"Indoor Run","type":34,"duration":41}]};
+// ── DATA ──────────────────────────────────────────────────────────
+const D = {"weight": [{"date": "2026-05-08", "value": 163.6}, {"date": "2026-05-07", "value": 162.6}, {"date": "2026-05-06", "value": 163.3}, {"date": "2026-05-05", "value": 163.7}, {"date": "2026-05-04", "value": 163.4}, {"date": "2026-05-03", "value": 163.0}, {"date": "2026-05-02", "value": 162.7}, {"date": "2026-05-01", "value": 162.6}, {"date": "2026-04-30", "value": 163.2}, {"date": "2026-04-29", "value": 163.9}, {"date": "2026-04-28", "value": 163.6}, {"date": "2026-04-27", "value": 164.2}, {"date": "2026-04-26", "value": 164.4}, {"date": "2026-04-25", "value": 163.7}, {"date": "2026-04-24", "value": 164.7}, {"date": "2026-04-21", "value": 165.1}, {"date": "2026-04-20", "value": 166.4}, {"date": "2026-04-19", "value": 165.0}, {"date": "2026-04-18", "value": 164.0}, {"date": "2026-04-17", "value": 165.0}, {"date": "2026-04-16", "value": 164.1}, {"date": "2026-04-15", "value": 164.9}, {"date": "2026-04-14", "value": 165.1}, {"date": "2026-04-13", "value": 166.0}, {"date": "2026-04-12", "value": 166.1}, {"date": "2026-04-11", "value": 167.2}, {"date": "2026-04-10", "value": 166.9}, {"date": "2026-04-09", "value": 166.3}, {"date": "2026-04-08", "value": 166.4}, {"date": "2026-04-07", "value": 167.4}, {"date": "2026-04-06", "value": 167.0}, {"date": "2026-04-05", "value": 165.9}, {"date": "2026-04-04", "value": 167.6}, {"date": "2026-04-03", "value": 167.9}, {"date": "2026-04-02", "value": 167.9}, {"date": "2026-04-01", "value": 167.1}, {"date": "2026-03-31", "value": 167.4}, {"date": "2026-03-30", "value": 166.6}, {"date": "2026-03-29", "value": 166.9}, {"date": "2026-03-28", "value": 167.9}, {"date": "2026-03-27", "value": 169.3}, {"date": "2026-03-26", "value": 169.0}, {"date": "2026-03-25", "value": 169.3}, {"date": "2026-03-24", "value": 169.6}, {"date": "2026-03-23", "value": 168.8}, {"date": "2026-03-22", "value": 167.9}, {"date": "2026-03-21", "value": 172.4}, {"date": "2026-03-20", "value": 170.4}, {"date": "2026-03-19", "value": 170.5}, {"date": "2026-03-18", "value": 170.8}, {"date": "2026-03-17", "value": 173.1}, {"date": "2026-03-16", "value": 171.4}, {"date": "2026-03-15", "value": 170.4}, {"date": "2026-03-14", "value": 171.2}, {"date": "2026-03-13", "value": 170.6}, {"date": "2026-03-12", "value": 170.6}, {"date": "2026-03-11", "value": 171.4}, {"date": "2026-03-10", "value": 172.0}, {"date": "2026-03-09", "value": 172.1}, {"date": "2026-03-08", "value": 172.5}, {"date": "2026-03-07", "value": 172.4}, {"date": "2026-03-06", "value": 173.9}, {"date": "2026-03-05", "value": 170.2}, {"date": "2026-03-04", "value": 170.8}, {"date": "2026-03-03", "value": 172.9}, {"date": "2026-03-02", "value": 173.3}, {"date": "2026-03-01", "value": 172.7}, {"date": "2026-02-28", "value": 173.0}, {"date": "2026-02-27", "value": 173.5}, {"date": "2026-02-26", "value": 173.7}, {"date": "2026-02-25", "value": 173.4}, {"date": "2026-02-24", "value": 174.4}, {"date": "2026-02-23", "value": 174.3}, {"date": "2026-02-22", "value": 173.4}, {"date": "2026-02-21", "value": 174.2}, {"date": "2026-02-20", "value": 175.1}, {"date": "2026-02-19", "value": 175.6}, {"date": "2026-02-18", "value": 174.7}, {"date": "2026-02-17", "value": 174.4}, {"date": "2026-02-16", "value": 174.5}, {"date": "2026-02-15", "value": 174.7}, {"date": "2026-02-14", "value": 175.3}, {"date": "2026-02-13", "value": 175.5}, {"date": "2026-02-12", "value": 175.6}, {"date": "2026-02-11", "value": 175.8}, {"date": "2026-02-09", "value": 176.8}, {"date": "2026-02-08", "value": 176.3}, {"date": "2026-02-07", "value": 176.4}, {"date": "2026-02-06", "value": 177.3}, {"date": "2026-02-05", "value": 177.1}], "rhr": [{"date": "2026-04-25", "value": 51}, {"date": "2026-04-21", "value": 51}, {"date": "2026-04-10", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-01", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-01-18", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-07", "value": 52}, {"date": "2025-12-07", "value": 52}, {"date": "2025-12-07", "value": 52}], "hrv": [{"date": "2026-04-25", "value": 131.0}, {"date": "2026-04-21", "value": 88.0}, {"date": "2026-04-10", "value": 60.0}, {"date": "2026-04-01", "value": 71.0}, {"date": "2026-03-30", "value": 60.0}, {"date": "2026-03-22", "value": 106.0}, {"date": "2026-01-17", "value": 44.0}, {"date": "2025-12-31", "value": 39.0}, {"date": "2025-12-07", "value": 33.0}, {"date": "2025-10-15", "value": 64.0}, {"date": "2025-10-08", "value": 31.0}, {"date": "2025-10-07", "value": 38.0}, {"date": "2025-09-07", "value": 150.0}, {"date": "2025-07-23", "value": 50.0}, {"date": "2025-07-20", "value": 113.0}, {"date": "2025-07-16", "value": 125.0}, {"date": "2025-05-21", "value": 100.0}, {"date": "2025-04-23", "value": 88.0}, {"date": "2025-04-20", "value": 47.0}, {"date": "2025-03-16", "value": 32.0}, {"date": "2025-03-14", "value": 42.0}, {"date": "2025-03-05", "value": 71.0}, {"date": "2025-03-04", "value": 71.0}, {"date": "2025-02-24", "value": 56.0}, {"date": "2025-02-23", "value": 65.0}, {"date": "2025-02-07", "value": 48.0}, {"date": "2025-01-30", "value": 135.0}, {"date": "2025-01-19", "value": 91.0}, {"date": "2025-01-16", "value": 66.0}, {"date": "2025-01-11", "value": 103.0}, {"date": "2024-12-08", "value": 32.0}, {"date": "2024-10-17", "value": 67.0}, {"date": "2024-09-23", "value": 123.0}, {"date": "2024-09-09", "value": 74.0}, {"date": "2024-08-26", "value": 156.0}, {"date": "2024-08-24", "value": 119.0}], "sleep": [{"date": "2026-05-07", "value": 6.9}, {"date": "2026-05-06", "value": 8.1}, {"date": "2026-05-05", "value": 8.8}, {"date": "2026-05-04", "value": 7.4}, {"date": "2026-05-03", "value": 6.4}, {"date": "2026-05-02", "value": 9.4}, {"date": "2026-05-01", "value": 8.7}, {"date": "2026-04-30", "value": 8.0}, {"date": "2026-04-29", "value": 6.6}, {"date": "2026-04-28", "value": 5.7}, {"date": "2026-04-27", "value": 7.8}, {"date": "2026-04-26", "value": 9.0}, {"date": "2026-04-25", "value": 8.7}, {"date": "2026-04-24", "value": 6.8}, {"date": "2026-04-21", "value": 8.6}, {"date": "2026-04-20", "value": 6.5}, {"date": "2026-04-19", "value": 7.6}, {"date": "2026-04-18", "value": 8.8}, {"date": "2026-04-17", "value": 7.2}, {"date": "2026-04-16", "value": 6.0}, {"date": "2026-04-15", "value": 7.2}, {"date": "2026-04-14", "value": 6.2}, {"date": "2026-04-13", "value": 6.2}, {"date": "2026-04-12", "value": 7.4}, {"date": "2026-04-11", "value": 6.8}, {"date": "2026-04-10", "value": 9.1}, {"date": "2026-04-09", "value": 6.3}, {"date": "2026-04-08", "value": 6.3}, {"date": "2026-04-07", "value": 6.3}, {"date": "2026-04-06", "value": 5.6}, {"date": "2026-04-05", "value": 8.8}, {"date": "2026-04-04", "value": 9.2}, {"date": "2026-04-03", "value": 7.5}, {"date": "2026-04-02", "value": 9.2}, {"date": "2026-04-01", "value": 5.5}, {"date": "2026-03-31", "value": 7.0}, {"date": "2026-03-30", "value": 6.6}, {"date": "2026-03-29", "value": 6.0}, {"date": "2026-03-28", "value": 9.2}, {"date": "2026-03-27", "value": 5.4}, {"date": "2026-03-26", "value": 8.6}, {"date": "2026-03-25", "value": 9.4}, {"date": "2026-03-24", "value": 9.9}, {"date": "2026-03-23", "value": 6.5}, {"date": "2026-03-22", "value": 5.9}, {"date": "2026-03-21", "value": 10.3}, {"date": "2026-03-20", "value": 8.2}, {"date": "2026-03-19", "value": 6.6}, {"date": "2026-03-18", "value": 7.2}, {"date": "2026-03-17", "value": 7.0}, {"date": "2026-03-16", "value": 6.7}, {"date": "2026-03-15", "value": 8.1}, {"date": "2026-03-14", "value": 9.9}, {"date": "2026-03-13", "value": 9.0}, {"date": "2026-03-12", "value": 7.1}, {"date": "2026-03-11", "value": 5.7}, {"date": "2026-03-10", "value": 7.6}, {"date": "2026-03-09", "value": 5.8}, {"date": "2026-03-08", "value": 7.0}, {"date": "2026-03-06", "value": 7.4}], "exercise": [{"date": "2026-05-08", "title": "Friday \u2014 Arsenal", "type": 58, "duration": 30}, {"date": "2026-05-08", "title": "Strength May 8, 2026 8:55 AM", "type": 45, "duration": 50}, {"date": "2026-05-07", "title": "Strength May 7, 2026 6:46 AM", "type": 45, "duration": 81}, {"date": "2026-05-07", "title": "Thursday \u2014 Ground", "type": 58, "duration": 88}, {"date": "2026-05-06", "title": "Strength May 6, 2026 6:39 AM", "type": 45, "duration": 47}, {"date": "2026-05-06", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 60}, {"date": "2026-05-06", "title": "Indoor Run May 6, 2026 7:27 AM", "type": 34, "duration": 19}, {"date": "2026-05-06", "title": "Walk May 6, 2026 5:54 PM", "type": 53, "duration": 21}, {"date": "2026-05-05", "title": "Tuesday \u2014 Pull", "type": 58, "duration": 72}, {"date": "2026-05-05", "title": "Strength May 5, 2026 5:43 AM", "type": 45, "duration": 92}, {"date": "2026-05-04", "title": "Monday \u2014 Strike", "type": 58, "duration": 58}, {"date": "2026-05-04", "title": "Strength May 4, 2026 5:13 AM", "type": 45, "duration": 85}, {"date": "2026-05-04", "title": "Walk May 4, 2026 7:27 PM", "type": 53, "duration": 16}, {"date": "2026-05-01", "title": "Strength May 1, 2026 7:06 AM", "type": 45, "duration": 52}, {"date": "2026-05-01", "title": "Indoor Run May 1, 2026 8:00 AM", "type": 34, "duration": 41}, {"date": "2026-04-30", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 64}, {"date": "2026-04-30", "title": "Strength Apr 30, 2026 5:41 AM", "type": 45, "duration": 96}, {"date": "2026-04-29", "title": "Strength Apr 29, 2026 5:27 AM", "type": 45, "duration": 46}, {"date": "2026-04-29", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 60}, {"date": "2026-04-29", "title": "Indoor Run Apr 29, 2026 6:16 AM", "type": 34, "duration": 23}, {"date": "2026-04-28", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 79}, {"date": "2026-04-28", "title": "Strength Apr 28, 2026 6:01 AM", "type": 45, "duration": 80}, {"date": "2026-04-27", "title": "Monday \u2014 Conquest", "type": 58, "duration": 60}, {"date": "2026-04-27", "title": "Strength Apr 27, 2026 5:29 AM", "type": 45, "duration": 64}, {"date": "2026-04-25", "title": "Strength Apr 25, 2026 8:26 AM", "type": 45, "duration": 35}, {"date": "2026-04-25", "title": "Indoor Run Apr 25, 2026 9:02 AM", "type": 34, "duration": 25}, {"date": "2026-04-25", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 63}, {"date": "2026-04-24", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 64}, {"date": "2026-04-21", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 58}, {"date": "2026-04-21", "title": "Strength Apr 21, 2026 5:46 AM", "type": 45, "duration": 100}, {"date": "2026-04-20", "title": "Monday \u2014 Conquest", "type": 58, "duration": 81}, {"date": "2026-04-20", "title": "Strength Apr 20, 2026 6:09 AM", "type": 45, "duration": 109}, {"date": "2026-04-17", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 73}, {"date": "2026-04-17", "title": "Strength Apr 17, 2026 5:47 AM", "type": 45, "duration": 55}, {"date": "2026-04-17", "title": "Indoor Run Apr 17, 2026 6:43 AM", "type": 34, "duration": 16}, {"date": "2026-04-16", "title": "Strength Apr 16, 2026 5:50 AM", "type": 45, "duration": 75}, {"date": "2026-04-16", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 55}, {"date": "2026-04-15", "title": "Strength Apr 15, 2026 5:53 AM", "type": 45, "duration": 43}, {"date": "2026-04-15", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 85}, {"date": "2026-04-15", "title": "Indoor Run Apr 15, 2026 6:38 AM", "type": 34, "duration": 21}, {"date": "2026-04-14", "title": "Strength Apr 14, 2026 5:38 AM", "type": 45, "duration": 79}, {"date": "2026-04-14", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 56}, {"date": "2026-04-13", "title": "Monday \u2014 Conquest", "type": 58, "duration": 61}, {"date": "2026-04-13", "title": "Strength Apr 13, 2026 5:35 AM", "type": 45, "duration": 67}, {"date": "2026-04-10", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 61}, {"date": "2026-04-10", "title": "Strength Apr 10, 2026 6:14 AM", "type": 45, "duration": 102}, {"date": "2026-04-09", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 67}, {"date": "2026-04-09", "title": "Strength Apr 9, 2026 5:40 AM", "type": 45, "duration": 91}, {"date": "2026-04-08", "title": "Strength Apr 8, 2026 5:38 AM", "type": 45, "duration": 41}, {"date": "2026-04-08", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 39}, {"date": "2026-04-08", "title": "Indoor Run Apr 8, 2026 6:20 AM", "type": 34, "duration": 10}, {"date": "2026-04-07", "title": "Strength Apr 7, 2026 5:26 AM", "type": 45, "duration": 64}, {"date": "2026-04-07", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 59}, {"date": "2026-04-06", "title": "Monday \u2014 Conquest", "type": 58, "duration": 59}, {"date": "2026-04-06", "title": "Strength Apr 6, 2026 6:58 AM", "type": 45, "duration": 56}, {"date": "2026-04-04", "title": "Indoor Run Apr 4, 2026 7:09 AM", "type": 34, "duration": 56}, {"date": "2026-04-03", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 53}, {"date": "2026-04-03", "title": "Strength 6:17 AM Apr 3, 2026", "type": 45, "duration": 57}, {"date": "2026-04-02", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 39}, {"date": "2026-04-02", "title": "Strength 6:10 AM Apr 2, 2026", "type": 45, "duration": 48}], "steps": [{"date": "2026-05-08", "value": 4029}, {"date": "2026-05-07", "value": 14290}, {"date": "2026-05-06", "value": 17623}, {"date": "2026-05-05", "value": 15427}, {"date": "2026-05-04", "value": 11290}, {"date": "2026-05-03", "value": 5213}, {"date": "2026-05-02", "value": 10307}, {"date": "2026-05-01", "value": 25563}, {"date": "2026-04-30", "value": 9669}, {"date": "2026-04-29", "value": 18791}, {"date": "2026-04-28", "value": 12216}, {"date": "2026-04-27", "value": 10693}, {"date": "2026-04-26", "value": 5596}, {"date": "2026-04-25", "value": 23018}, {"date": "2026-04-24", "value": 5766}, {"date": "2026-04-23", "value": 2103}, {"date": "2026-04-22", "value": 4363}, {"date": "2026-04-21", "value": 12514}, {"date": "2026-04-20", "value": 11025}, {"date": "2026-04-19", "value": 13406}, {"date": "2026-04-18", "value": 5407}, {"date": "2026-04-17", "value": 11518}, {"date": "2026-04-16", "value": 10255}, {"date": "2026-04-15", "value": 6443}, {"date": "2026-04-14", "value": 10920}, {"date": "2026-04-13", "value": 10179}, {"date": "2026-04-12", "value": 6211}, {"date": "2026-04-11", "value": 11450}, {"date": "2026-04-10", "value": 14185}, {"date": "2026-04-09", "value": 6814}]};
 
-// ── STORAGE ────────────────────────────────────────────────────────
-let store = { dexa:[], prs:[], labs:[], recovery:[] };
-async function loadStore() { try { const r = await window.storage.get('signal_v1'); if(r) store = JSON.parse(r.value); } catch(e){} }
-async function save() { try { await window.storage.set('signal_v1', JSON.stringify(store)); } catch(e){} }
+// ── STORAGE ───────────────────────────────────────────────────────
+let S = { dexa:[], prs:[], labs:[], recovery:[] };
+async function loadS() { try { const r=await window.storage.get('signal_v2'); if(r) S=JSON.parse(r.value); } catch(e){} }
+async function saveS() { try { await window.storage.set('signal_v2', JSON.stringify(S)); } catch(e){} }
+
+// ── PIN ───────────────────────────────────────────────────────────
+const PIN='0252'; let pinBuf='';
+function pinKey(k) {
+  if(k==='del') { pinBuf=pinBuf.slice(0,-1); }
+  else if(pinBuf.length<4) { pinBuf+=k; }
+  for(let i=0;i<4;i++) {
+    const d=document.getElementById('d'+i);
+    d.className='pin-dot'+(i<pinBuf.length?' filled':'');
+  }
+  if(pinBuf.length===4) {
+    if(pinBuf===PIN) { document.getElementById('pin-screen').style.display='none'; }
+    else {
+      const e=document.getElementById('pin-err'); e.style.opacity='1';
+      setTimeout(()=>{ pinBuf=''; for(let i=0;i<4;i++) document.getElementById('d'+i).className='pin-dot'; e.style.opacity='0'; },800);
+    }
+  }
+}
 
 // ── CHART DEFAULTS ─────────────────────────────────────────────────
-Chart.defaults.color = '#8a8680';
-Chart.defaults.font.family = 'Manrope';
-Chart.defaults.font.size = 11;
-Chart.defaults.borderColor = '#ede9e0';
-const charts = {};
-function mkChart(id, type, labels, datasets, opts={}) {
+Chart.defaults.color='#8E8B85';
+Chart.defaults.font.family="'Manrope',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.borderColor='#EDE8DF';
+const charts={};
+function mkChart(id,type,labels,datasets,yOpts={}) {
   if(charts[id]) charts[id].destroy();
-  const el = document.getElementById(id); if(!el) return;
-  charts[id] = new Chart(el, { type, data:{labels,datasets}, options:{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#fff', borderColor:'#ddd8cc', borderWidth:1, titleColor:'#1e2e1e', bodyColor:'#8a8680', padding:10, boxPadding:4 }},
-    scales:{ x:{grid:{color:'#f0ece4'}, ticks:{maxTicksLimit:6}}, y:{grid:{color:'#f0ece4'}, ...opts.y} },
-    ...opts.chart
+  const el=document.getElementById(id); if(!el) return;
+  charts[id]=new Chart(el,{type,data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#F9F6F0',borderColor:'#DDD8CE',borderWidth:1,titleColor:'#2F3136',bodyColor:'#8E8B85',padding:10,boxPadding:4}},
+    scales:{x:{grid:{color:'#EDE8DF'},ticks:{maxTicksLimit:6}},y:{grid:{color:'#EDE8DF'},...yOpts}}
   }});
 }
 
-// ── HELPERS ────────────────────────────────────────────────────────
-const asc = arr => [...arr].sort((a,b)=>a.date.localeCompare(b.date));
-const avg = arr => arr.reduce((s,v)=>s+v,0)/arr.length;
-function movAvg(vals, w=7) { return vals.map((_,i)=>{ const s=vals.slice(Math.max(0,i-w+1),i+1); return avg(s); }); }
+// ── HELPERS ───────────────────────────────────────────────────────
+const asc=arr=>[...arr].sort((a,b)=>a.date.localeCompare(b.date));
+const avg=arr=>arr.reduce((s,v)=>s+v,0)/arr.length;
+const movAvg=(vals,w=7)=>vals.map((_,i)=>{const s=vals.slice(Math.max(0,i-w+1),i+1);return avg(s);});
 
-// ── WEIGHT CHART ───────────────────────────────────────────────────
-let wtRange = 30;
-function renderWeight(days=wtRange) {
-  const sorted = asc(D.weight);
-  const slice = sorted.slice(-days);
-  const labels = slice.map(d=>d.date.slice(5));
-  const vals = slice.map(d=>d.value);
-  const ma = movAvg(vals);
-
-  document.getElementById('wtDateStart').textContent = labels[0];
-  document.getElementById('avg7').textContent = avg(vals.slice(-7)).toFixed(1);
-
-  mkChart('weightChart','line',labels,[
-    { data:vals, borderColor:'#ddd8cc', borderWidth:1.5, pointRadius:0, fill:false, tension:0.3 },
-    { data:ma, borderColor:'#2d3a2d', borderWidth:2.5, pointRadius:0, fill:{target:'origin',above:'rgba(45,58,45,0.04)'}, tension:0.4 }
-  ], { y:{ min: Math.min(...vals)-2, max: Math.max(...vals)+2 }});
+// ── WEIGHT ────────────────────────────────────────────────────────
+let _wtDays=30;
+function renderWeight(days=_wtDays) {
+  const sorted=asc(D.weight);
+  const slice=sorted.slice(-days);
+  const labels=slice.map(d=>d.date.slice(5));
+  const vals=slice.map(d=>d.value);
+  const ma=movAvg(vals);
+  document.getElementById('wt-start').textContent=labels[0]||'';
+  document.getElementById('wt-avg7').textContent=avg(vals.slice(-7)).toFixed(1);
+  mkChart('wt-chart','line',labels,[
+    {data:vals,borderColor:'#DDD8CE',borderWidth:1.2,pointRadius:0,fill:false,tension:0.6},
+    {data:ma,borderColor:'#3D5A45',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(61,90,69,0.04)'},tension:0.6}
+  ],{min:Math.min(...vals)-2,max:Math.max(...vals)+2});
 }
-
-function setWtRange(d, btn) {
-  wtRange = d;
-  btn.closest('div').querySelectorAll('.pill').forEach(p=>{ p.classList.remove('pill-active'); p.classList.add('pill-inactive'); });
-  btn.classList.remove('pill-inactive'); btn.classList.add('pill-active');
+function wtRange(d,btn) {
+  _wtDays=d;
+  btn.closest('.pills').querySelectorAll('.pill').forEach(p=>{p.className='pill pill-off';});
+  btn.className='pill pill-on';
   renderWeight(d);
 }
 
-// ── HRV CHART ──────────────────────────────────────────────────────
+// ── HRV ───────────────────────────────────────────────────────────
 function renderHRV() {
-  const data = asc(D.hrv);
-  const labels = data.map(d=>d.date.slice(5));
-  const vals = data.map(d=>d.value);
-  mkChart('hrvChart','line',labels,[
-    { data:vals, borderColor:'#2d3a2d', borderWidth:2, pointRadius:4,
-      pointBackgroundColor: vals.map(v=>v>=69&&v<=89?'#2d3a2d':v<69?'#c0392b':'#84523c'),
-      fill:false, tension:0.3 },
-    { data:vals.map(()=>89), borderColor:'rgba(45,58,45,0.2)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false },
-    { data:vals.map(()=>69), borderColor:'rgba(45,58,45,0.2)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:'-1', backgroundColor:'rgba(45,58,45,0.04)' }
+  const data=asc(D.hrv);
+  const labels=data.map(d=>d.date.slice(5));
+  const vals=data.map(d=>d.value);
+  mkChart('hrv-chart','line',labels,[
+    {data:vals,borderColor:'#3D5A45',borderWidth:2,pointRadius:4,
+     pointBackgroundColor:vals.map(v=>v>=69&&v<=89?'#3D5A45':v<69?'#C26143':'#285C69'),
+     fill:false,tension:0.6},
+    {data:vals.map(()=>89),borderColor:'rgba(61,90,69,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false},
+    {data:vals.map(()=>69),borderColor:'rgba(61,90,69,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:'-1',backgroundColor:'rgba(61,90,69,0.04)'}
   ]);
 }
 
-// ── SLEEP CHART ────────────────────────────────────────────────────
+// ── SLEEP ─────────────────────────────────────────────────────────
 function renderSleep() {
-  const data = asc(D.sleep);
-  const labels = data.map(d=>d.date.slice(5));
-  const vals = data.map(d=>d.value);
-  const a = avg(vals.slice(-14)); document.getElementById('sleepAvgDisplay').textContent = a.toFixed(1);
-  mkChart('sleepChart','bar',labels,[{
-    data:vals, borderRadius:4,
-    backgroundColor: vals.map(v=>v>=7.5?'rgba(45,58,45,0.7)':v>=7?'rgba(132,82,60,0.6)':'rgba(192,57,43,0.5)')
-  }],{ y:{min:0,max:12} });
+  const data=asc(D.sleep);
+  const labels=data.map(d=>d.date.slice(5));
+  const vals=data.map(d=>d.value);
+  const a=avg(vals.slice(-14));
+  document.getElementById('sleep-avg').textContent=a.toFixed(1);
+  mkChart('sleep-chart','bar',labels,[{
+    data:vals,borderRadius:4,
+    backgroundColor:vals.map(v=>v>=7.5?'rgba(61,90,69,0.75)':v>=7?'rgba(61,90,69,0.4)':'rgba(194,97,67,0.45)')
+  }],{min:0,max:12});
 }
 
-// ── RHR CHART ──────────────────────────────────────────────────────
+// ── RHR ───────────────────────────────────────────────────────────
 function renderRHR() {
-  const data = [
+  const data=[
     {date:'2025-07',value:49},{date:'2025-10',value:49},{date:'2025-12',value:52},
     {date:'2026-01',value:53},{date:'2026-03',value:51},{date:'2026-04',value:51}
   ];
-  mkChart('rhrChart','line',data.map(d=>d.date),
-    [{data:data.map(d=>d.value),borderColor:'#84523c',borderWidth:2,pointRadius:4,pointBackgroundColor:'#84523c',fill:false,stepped:true}],
-    {y:{min:44,max:58}});
+  mkChart('rhr-chart','line',data.map(d=>d.date),
+    [{data:data.map(d=>d.value),borderColor:'#C26143',borderWidth:2,pointRadius:4,pointBackgroundColor:'#C26143',fill:false,stepped:true}],
+    {min:44,max:58});
 }
 
-// ── TRAINING CHART ─────────────────────────────────────────────────
+// ── TRAINING ──────────────────────────────────────────────────────
 function renderTraining() {
-  const byDate = {};
+  const byDate={};
   D.exercise.forEach(e=>{ if(e.type===45){ byDate[e.date]=(byDate[e.date]||0)+e.duration; }});
-  const entries = Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
-  mkChart('trainingChart','bar',
-    entries.map(e=>e[0].slice(5)),
-    [{data:entries.map(e=>e[1]),backgroundColor:'rgba(45,58,45,0.65)',borderRadius:5}]);
+  const entries=Object.entries(byDate).sort((a,b)=>a[0].localeCompare(b[0]));
+  mkChart('train-chart','bar',entries.map(e=>e[0].slice(5)),
+    [{data:entries.map(e=>e[1]),backgroundColor:'rgba(61,90,69,0.65)',borderRadius:5}]);
 }
 
-// ── WEIGHT FULL ────────────────────────────────────────────────────
+// ── WEIGHT FULL ───────────────────────────────────────────────────
 function renderWeightFull() {
-  const sorted = asc(D.weight);
-  const labels = sorted.map(d=>d.date.slice(5));
-  const vals = sorted.map(d=>d.value);
-  const ma = movAvg(vals);
-  mkChart('weightFullChart','line',labels,[
-    {data:vals,borderColor:'#ddd8cc',borderWidth:1,pointRadius:0,fill:false,tension:0.3},
-    {data:ma,borderColor:'#2d3a2d',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(45,58,45,0.04)'},tension:0.4}
-  ],{y:{min:155,max:182}});
+  const sorted=asc(D.weight);
+  const labels=sorted.map(d=>d.date.slice(5));
+  const vals=sorted.map(d=>d.value);
+  const ma=movAvg(vals);
+  mkChart('wt-full-chart','line',labels,[
+    {data:vals,borderColor:'#DDD8CE',borderWidth:1,pointRadius:0,fill:false,tension:0.6},
+    {data:ma,borderColor:'#3D5A45',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(61,90,69,0.04)'},tension:0.6}
+  ],{min:155,max:182});
 }
 
-// ── ACTIVITY FEED ──────────────────────────────────────────────────
+// ── ACTIVITY ──────────────────────────────────────────────────────
 function renderActivity() {
-  const typeMap = {45:{label:'Strength',color:'#2d3a2d'},34:{label:'Run',color:'#2e7d52'},58:{label:'Program',color:'#84523c'},53:{label:'Walk',color:'#c4bfb8'}};
-  document.getElementById('activityFeed').innerHTML = D.exercise.slice(0,10).map(e=>{
-    const t = typeMap[e.type]||{label:'Activity',color:'#c4bfb8'};
-    return `<div class="flex items-start gap-3 py-2 border-b last:border-0" style="border-color:#f0ece4">
-      <div class="act-dot" style="background:${t.color}"></div>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium truncate">${e.title}</p>
-        <p class="text-xs" style="color:var(--muted)">${e.date} · ${t.label}</p>
-      </div>
-      <span class="text-xs shrink-0" style="color:var(--muted)">${e.duration>0?e.duration+'m':''}</span>
-    </div>`;
+  const tmap={45:{label:'Strength',color:'#3D5A45'},34:{label:'Run',color:'#2E7D52'},58:{label:'Program',color:'#C26143'},53:{label:'Walk',color:'#C8C4BE'}};
+  document.getElementById('activity-feed').innerHTML=D.exercise.slice(0,10).map(e=>{
+    const t=tmap[e.type]||{label:'Activity',color:'#C8C4BE'};
+    return '<div class="activity-item"><div class="activity-dot" style="background:'+t.color+'"></div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+e.title+'</div><div style="font-size:11px;color:#8E8B85;margin-top:2px;">'+e.date+' · '+t.label+'</div></div><span style="font-size:11px;color:#8E8B85;flex-shrink:0;">'+(e.duration>0?e.duration+'m':'')+'</span></div>';
   }).join('');
 }
 
-// ── LABS ───────────────────────────────────────────────────────────
-const LABS = [
-  {name:'LDL Cholesterol',val:'189',unit:'mg/dL',ref:'<100',s:'red'},
-  {name:'Lp(a)',val:'108.6',unit:'mg/dL',ref:'0–30',s:'red'},
-  {name:'Estradiol (E2)',val:'<5',unit:'pg/mL',ref:'11.3–43.2',s:'red'},
-  {name:'Total Cholesterol',val:'265',unit:'mg/dL',ref:'<200',s:'red'},
-  {name:'ApoB',val:'123',unit:'mg/dL',ref:'66–133',s:'yellow'},
-  {name:'Lp-PLA2',val:'234',unit:'U/L',ref:'<225',s:'yellow'},
-  {name:'Testosterone Total',val:'446',unit:'ng/dL',ref:'238–1048',s:'yellow'},
-  {name:'Hematocrit',val:'48.3',unit:'%',ref:'38.3–48.6',s:'yellow'},
-  {name:'Vitamin D',val:'35',unit:'ng/mL',ref:'30–100',s:'yellow'},
-  {name:'DHEA-S',val:'118',unit:'µg/dL',ref:'88.9–427',s:'yellow'},
-  {name:'HbA1c',val:'5.2',unit:'%',ref:'<5.7',s:'green'},
-  {name:'Fasting Insulin',val:'5.9',unit:'µU/mL',ref:'<10',s:'green'},
-  {name:'Triglycerides',val:'76',unit:'mg/dL',ref:'<150',s:'green'},
-  {name:'HDL',val:'63',unit:'mg/dL',ref:'>60',s:'green'},
-  {name:'PSA',val:'0.423',unit:'ng/mL',ref:'<4.0',s:'green'},
-  {name:'HRV (RHR)',val:'54',unit:'bpm',ref:'<60',s:'green'},
-];
-
-function labRow(l) {
-  const badge = l.s==='red'?'<span class="badge-red">HIGH</span>':l.s==='yellow'?'<span class="badge-yellow">MONITOR</span>':'<span class="badge-green">OK</span>';
-  const col = l.s==='red'?'#c0392b':l.s==='yellow'?'#b8620a':'#1e7a3f';
-  return `<div class="flex items-center justify-between py-1">
-    <div><p class="text-sm font-medium">${l.name}</p><p class="text-xs" style="color:var(--muted)">ref ${l.ref}</p></div>
-    <div class="flex items-center gap-3">
-      <span class="font-bold text-sm" style="color:${col}">${l.val} <span class="text-xs font-normal" style="color:var(--muted)">${l.unit}</span></span>
-      ${badge}
-    </div>
-  </div>`;
-}
-
-function renderLabs() {
-  document.getElementById('labsFlagged').innerHTML = [...LABS,...store.labs].filter(l=>l.s==='red').map(labRow).join('');
-  document.getElementById('labsMonitor').innerHTML = [...LABS,...store.labs].filter(l=>l.s==='yellow').map(labRow).join('');
-  document.getElementById('labsGood').innerHTML = [...LABS,...store.labs].filter(l=>l.s==='green').map(labRow).join('');
-  document.getElementById('labsCustom').innerHTML = store.labs.map((l,i)=>`
-    <div class="flex justify-between items-center text-xs py-1 border-t" style="border-color:#f0ece4;color:var(--muted)">
-      <span>${l.date} · ${l.name}: ${l.val}</span>
-      <button onclick="delLab(${i})" style="color:#c4bfb8;background:none;border:none;cursor:pointer;font-size:16px">×</button>
-    </div>`).join('');
-}
-
-function addLab() {
-  const l = {date:document.getElementById('labDate').value,name:document.getElementById('labName').value,val:document.getElementById('labVal').value,ref:document.getElementById('labRef').value,unit:'',s:document.getElementById('labStatus').value};
-  if(!l.name||!l.val) return;
-  store.labs.push(l); save(); renderLabs();
-}
-function delLab(i) { store.labs.splice(i,1); save(); renderLabs(); }
-
-// ── DEXA ───────────────────────────────────────────────────────────
-const DEXA_BASE = [
-  {date:'Dec 1, 2025',weight:184.7,bf:37.0,lean:null,note:'Starting point (est)'},
-  {date:'May 6, 2026',weight:165.0,bf:26.2,lean:116.9,note:'DexaBody SLC'}
-];
-
-function renderDexa() {
-  const all = [...DEXA_BASE,...store.dexa];
-  document.getElementById('dexaTimeline').innerHTML = all.map((d,i)=>`
-    <div class="flex gap-4 items-start ${i<all.length-1?'pb-4 border-b':''}` + `" style="border-color:#f0ece4">
-      <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" style="background:${i===all.length-1?'#2d3a2d':'#ddd8cc'}"></div>
-      <div class="flex-1">
-        <div class="flex justify-between items-start">
-          <p class="text-sm font-semibold">${d.date}</p>
-          ${i>=2?`<button onclick="delDexa(${i-2})" style="color:#c4bfb8;background:none;border:none;cursor:pointer;font-size:16px">×</button>`:''}
-        </div>
-        <p class="text-xs mt-0.5" style="color:var(--muted)">${d.weight} lbs · ${d.bf}% BF${d.lean?` · ${d.lean} lbs lean`:''}</p>
-        ${d.note?`<p class="text-xs mt-0.5" style="color:#a09c96">${d.note}</p>`:''}
-      </div>
-    </div>`).join('');
-}
-
-function addDexa() {
-  const d={date:document.getElementById('dexaDate').value,weight:+document.getElementById('dexaWeight').value,bf:+document.getElementById('dexaBF').value,lean:+document.getElementById('dexaLean').value,note:''};
-  if(!d.date||!d.weight) return;
-  store.dexa.push(d); save(); renderDexa();
-}
-function delDexa(i) { store.dexa.splice(i,1); save(); renderDexa(); }
-
-// ── PRs ────────────────────────────────────────────────────────────
-const PR_BASE = [
+// ── PRs ───────────────────────────────────────────────────────────
+const PR_BASE=[
   {date:'2026-05-12',lift:'Barbell Bench Press',weight:208.7,note:'e1RM · target 225'},
   {date:'2026-05-04',lift:'Cable Face Pull',weight:131,note:'Best'},
   {date:'2026-05-04',lift:'Standing Cable Crunch',weight:133.6,note:'PR'},
   {date:'2026-05-04',lift:'Cable Rope Hammer Curl',weight:95.4,note:'Climbing'},
 ];
-
 function renderPRs() {
-  const all = [...PR_BASE,...store.prs];
-  document.getElementById('prList').innerHTML = all.map((p,i)=>`
-    <div class="flex justify-between items-center py-2 border-b last:border-0" style="border-color:#f0ece4">
-      <div>
-        <p class="text-sm font-medium">${p.lift}</p>
-        <p class="text-xs" style="color:var(--muted)">${p.date}${p.note?' · '+p.note:''}</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-sm" style="color:var(--forest-mid)">${p.weight} <span class="text-xs font-normal" style="color:var(--muted)">lbs</span></span>
-        ${i>=PR_BASE.length?`<button onclick="delPR(${i-PR_BASE.length})" style="color:#c4bfb8;background:none;border:none;cursor:pointer;font-size:16px">×</button>`:''}
-      </div>
-    </div>`).join('');
+  const all=[...PR_BASE,...S.prs];
+  document.getElementById('pr-list').innerHTML=all.map((p,i)=>'<div class="lab-row"><div><div style="font-size:13px;font-weight:500;">'+p.lift+'</div><div style="font-size:11px;color:#8E8B85;margin-top:2px;">'+p.date+(p.note?' · '+p.note:'')+'</div></div><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;font-size:13px;color:#3D5A45;">'+p.weight+' <span style="font-weight:400;font-size:11px;color:#8E8B85;">lbs</span></span>'+(i>=PR_BASE.length?'<button class="del-btn" onclick="delPR('+( i-PR_BASE.length)+')">×</button>':'')+'</div></div>').join('');
 }
-
 function addPR() {
-  const p={date:document.getElementById('prDate').value,lift:document.getElementById('prLift').value,weight:+document.getElementById('prWeight').value,note:document.getElementById('prNote').value};
+  const p={date:document.getElementById('pr-date').value,lift:document.getElementById('pr-lift').value,weight:+document.getElementById('pr-weight').value,note:document.getElementById('pr-note').value};
   if(!p.lift||!p.weight) return;
-  store.prs.push(p); save(); renderPRs();
+  S.prs.push(p); saveS(); renderPRs();
 }
-function delPR(i) { store.prs.splice(i,1); save(); renderPRs(); }
+function delPR(i) { S.prs.splice(i,1); saveS(); renderPRs(); }
 
-// ── RECOVERY NOTES ─────────────────────────────────────────────────
-function renderRecovery() {
-  document.getElementById('recoveryList').innerHTML = store.recovery.length
-    ? store.recovery.map((r,i)=>`<div class="flex justify-between items-center text-sm py-1.5 border-b last:border-0" style="border-color:#f0ece4">
-        <span style="color:var(--muted);font-size:12px">${r.date}</span>
-        <span class="flex-1 mx-3">${r.note}</span>
-        <button onclick="delRec(${i})" style="color:#c4bfb8;background:none;border:none;cursor:pointer;font-size:16px">×</button>
-      </div>`).join('')
-    : '<p class="text-xs" style="color:var(--muted)">No entries yet</p>';
+// ── LABS ──────────────────────────────────────────────────────────
+const LABS=[
+  {name:'LDL Cholesterol',val:'189',unit:'mg/dL',ref:'<100',s:'red'},
+  {name:'Lp(a)',val:'108.6',unit:'mg/dL',ref:'0–30',s:'red'},
+  {name:'Estradiol (E2)',val:'<5',unit:'pg/mL',ref:'11.3–43.2',s:'red'},
+  {name:'Total Cholesterol',val:'265',unit:'mg/dL',ref:'<200',s:'red'},
+  {name:'ApoB',val:'123',unit:'mg/dL',ref:'66–133',s:'amber'},
+  {name:'Lp-PLA2',val:'234',unit:'U/L',ref:'<225',s:'amber'},
+  {name:'Testosterone Total',val:'446',unit:'ng/dL',ref:'238–1048',s:'amber'},
+  {name:'Hematocrit',val:'48.3',unit:'%',ref:'38.3–48.6',s:'amber'},
+  {name:'Vitamin D',val:'35',unit:'ng/mL',ref:'30–100',s:'amber'},
+  {name:'DHEA-S',val:'118',unit:'µg/dL',ref:'88.9–427',s:'amber'},
+  {name:'HbA1c',val:'5.2',unit:'%',ref:'<5.7',s:'green'},
+  {name:'Fasting Insulin',val:'5.9',unit:'µU/mL',ref:'<10',s:'green'},
+  {name:'Triglycerides',val:'76',unit:'mg/dL',ref:'<150',s:'green'},
+  {name:'HDL',val:'63',unit:'mg/dL',ref:'>60',s:'green'},
+  {name:'PSA',val:'0.423',unit:'ng/mL',ref:'<4.0',s:'green'},
+  {name:'Homocysteine',val:'9.8',unit:'µmol/L',ref:'<15',s:'green'},
+  {name:'Cortisol',val:'16.2',unit:'µg/dL',ref:'6–18.4',s:'green'},
+];
+function labRow(l) {
+  const cols={red:'#C26143',amber:'#8A5A20',green:'#3D5A45'};
+  const badges={red:'badge-red',amber:'badge-amber',green:'badge-green'};
+  const labels={red:'HIGH',amber:'MONITOR',green:'OK'};
+  return '<div class="lab-row"><div><div style="font-size:13px;font-weight:500;">'+l.name+'</div><div style="font-size:11px;color:#8E8B85;margin-top:1px;">ref '+l.ref+'</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-weight:700;font-size:13px;color:'+cols[l.s]+';">'+l.val+' <span style="font-weight:400;font-size:11px;color:#8E8B85;">'+l.unit+'</span></span><span class="badge '+badges[l.s]+'">'+labels[l.s]+'</span></div></div>';
 }
-function addRecovery() {
-  const r={date:document.getElementById('recDate').value,note:document.getElementById('recNote').value};
-  if(!r.note) return; store.recovery.push(r); save(); renderRecovery();
+function renderLabs() {
+  const all=[...LABS,...S.labs];
+  ['red','amber','green'].forEach(s=>{
+    document.getElementById('labs-'+s).innerHTML=all.filter(l=>l.s===s).map(labRow).join('');
+  });
+  document.getElementById('labs-custom').innerHTML=S.labs.map((l,i)=>'<div class="log-item"><span style="color:#8E8B85;">'+l.date+' · '+l.name+': '+l.val+'</span><button class="del-btn" onclick="delLab('+i+')">×</button></div>').join('');
 }
-function delRec(i) { store.recovery.splice(i,1); save(); renderRecovery(); }
+function addLab() {
+  const l={date:document.getElementById('lab-date').value,name:document.getElementById('lab-name').value,val:document.getElementById('lab-val').value,ref:document.getElementById('lab-ref').value,unit:'',s:document.getElementById('lab-status').value};
+  if(!l.name||!l.val) return;
+  S.labs.push(l); saveS(); renderLabs();
+}
+function delLab(i) { S.labs.splice(i,1); saveS(); renderLabs(); }
 
-// ── NAVIGATION ─────────────────────────────────────────────────────
-const pageCharts = {
-  recovery: ()=>{ renderHRV(); renderSleep(); renderRHR(); renderRecovery(); },
-  training: ()=>{ renderTraining(); renderPRs(); renderActivity(); },
-  labs: ()=>{ renderLabs(); },
-  body: ()=>{ renderDexa(); setTimeout(renderWeightFull, 50); },
+// ── DEXA ──────────────────────────────────────────────────────────
+const DEXA_BASE=[
+  {date:'Dec 1, 2025',weight:184.7,bf:37.0,lean:null,note:'Starting point (est)'},
+  {date:'May 6, 2026',weight:165.0,bf:26.2,lean:116.9,note:'DexaBody SLC'}
+];
+function renderDexa() {
+  const all=[...DEXA_BASE,...S.dexa];
+  document.getElementById('dexa-timeline').innerHTML=all.map((d,i)=>'<div class="dexa-item"><div class="dexa-dot" style="background:'+(i===all.length-1?'#3D5A45':'#DDD8CE')+'"></div><div style="flex:1;"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><span style="font-size:13px;font-weight:600;">'+d.date+'</span>'+(i>=2?'<button class="del-btn" onclick="delDexa('+(i-2)+')">×</button>':'')+'</div><div style="font-size:11px;color:#8E8B85;margin-top:3px;">'+d.weight+' lbs · '+d.bf+'% BF'+(d.lean?' · '+d.lean+' lbs lean':'')+'</div>'+(d.note?'<div style="font-size:11px;color:#ABA8A2;margin-top:2px;">'+d.note+'</div>':'')+'</div></div>').join('');
+}
+function addDexa() {
+  const d={date:document.getElementById('dexa-date').value,weight:+document.getElementById('dexa-wt').value,bf:+document.getElementById('dexa-bf').value,lean:+document.getElementById('dexa-lean').value,note:''};
+  if(!d.date||!d.weight) return;
+  S.dexa.push(d); saveS(); renderDexa();
+}
+function delDexa(i) { S.dexa.splice(i,1); saveS(); renderDexa(); }
+
+// ── RECOVERY ──────────────────────────────────────────────────────
+function renderRec() {
+  document.getElementById('rec-list').innerHTML=S.recovery.length
+    ? S.recovery.map((r,i)=>'<div class="log-item"><span style="color:#8E8B85;font-size:11px;">'+r.date+'</span><span style="flex:1;margin:0 10px;font-size:12px;">'+r.note+'</span><button class="del-btn" onclick="delRec('+i+')">×</button></div>').join('')
+    : '<div style="font-size:12px;color:#8E8B85;">No entries yet</div>';
+}
+function addRec() {
+  const r={date:document.getElementById('rec-date').value,note:document.getElementById('rec-note').value};
+  if(!r.note) return; S.recovery.push(r); saveS(); renderRec();
+}
+function delRec(i) { S.recovery.splice(i,1); saveS(); renderRec(); }
+
+// ── NAV ───────────────────────────────────────────────────────────
+const pageCharts={
+  recovery:()=>{ renderHRV(); renderSleep(); renderRHR(); renderRec(); },
+  training:()=>{ renderTraining(); renderPRs(); renderActivity(); },
+  labs:()=>{ renderLabs(); },
+  body:()=>{ renderDexa(); setTimeout(renderWeightFull,50); },
 };
-
-function showPage(name, el) {
+function showPage(name,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pg-'+name).classList.add('active');
   el.classList.add('active');
-  if(pageCharts[name]) setTimeout(pageCharts[name], 60);
+  if(pageCharts[name]) setTimeout(pageCharts[name],60);
 }
 
-// ── INIT ───────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────
 async function init() {
-  await loadStore();
+  await loadS();
   renderWeight();
   renderActivity();
-  // Load profile avatar
-  const avatar = document.getElementById('profileAvatar');
-  if (avatar) {
-    const img = document.createElement('img');
-    img.src = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCPvmy0UHfvYqQ_dIPpuNJFp_e9ly-slo9EcYkw6JNReb7d85WqXFm7X7KJGlST1RB-lZTP7viTZPNzj9_f8o18K6Uo1P0HqnBEDlmQEAWZ6RGvn4-45BAUUQPw8WKQ5DaFmbNEev2Q_-jiyc--mrozqcjYcEHKufbZ-ScTZedVA3P8ruTukiDzuSta0Pzt6Be7LK4eelavhBp2KoOFZWoFA8-me2QIhZ4agsKr5ReaC_-wTDN3QF0Imjd8AxyoAn29IpTSzvJckg';
-    img.alt = 'P';
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-    img.onerror = function() {
-      avatar.innerHTML = '<div style="width:100%;height:100%;background:#2d3a2d;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:white">P</div>';
-    };
-    avatar.appendChild(img);
-  }
 }
 init();
 
-// ── SERVICE WORKER ─────────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>
 </body>
