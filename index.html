@@ -605,16 +605,18 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
         <div class="lbl">RHR — Full History</div>
         <div style="font-size:11px;color:var(--gray2);margin-top:2px;">Monthly average with event markers</div>
       </div>
-      <div style="display:flex;gap:10px;">
-        <label style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--gray2);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">
-          <input type="checkbox" id="toggle-races" onchange="showRaces=this.checked;renderTrends();" style="width:auto;accent-color:var(--red);"> 🏁
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--gray2);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">
-          <input type="checkbox" id="toggle-longruns" onchange="showAllLongRuns=this.checked;renderTrends();" style="width:auto;accent-color:var(--green);"> 🏃
-        </label>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-races" onclick="showRaces=!showRaces;this.style.background=showRaces?'rgba(233,40,58,0.2)':'transparent';this.style.borderColor=showRaces?'var(--red)':'var(--border2)';this.style.color=showRaces?'var(--red)':'var(--gray3)';renderTrends();" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--gray3);font-size:10px;font-weight:600;letter-spacing:0.08em;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;text-transform:uppercase;">Races</button>
+        <button id="btn-longruns" onclick="showAllLongRuns=!showAllLongRuns;this.style.background=showAllLongRuns?'rgba(0,200,120,0.15)':'transparent';this.style.borderColor=showAllLongRuns?'var(--green)':'var(--border2)';this.style.color=showAllLongRuns?'var(--green)':'var(--gray3)';renderTrends();" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--gray3);font-size:10px;font-weight:600;letter-spacing:0.08em;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;text-transform:uppercase;">Long Runs</button>
       </div>
     </div>
     <div style="height:180px;"><canvas id="rhr-history-chart"></canvas></div>
+  </div>
+
+  <!-- Race History Timeline -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">Race History — All Years</div>
+    <div id="race-history-list"></div>
   </div>
 
   <div class="insight-card">
@@ -1569,50 +1571,107 @@ function renderTrends() {
     });
   }
 
-  // 4. RHR Full History + race markers
-  const rhrSeries=TD.monthly_series.filter(m=>m.rhr);
-  const rhrHistDatasets=[{
-    data:rhrSeries.map(m=>m.rhr),
-    borderColor:'#1C69D4',borderWidth:2,
-    pointRadius:0,fill:{target:'origin',above:'rgba(28,105,212,0.05)'},
-    tension:0.5,spanGaps:true,type:'line'
+  // 4. RHR Full History + race markers extended back to 2011
+  const rhrSeries = TD.monthly_series.filter(m=>m.rhr);
+
+  // Build extended label list from 2011-01 to latest
+  const extLabels = [];
+  let cur = new Date('2011-01-01');
+  const latest = new Date(rhrSeries[rhrSeries.length-1].ym + '-01');
+  while (cur <= latest) {
+    extLabels.push(cur.toISOString().slice(0,7));
+    cur.setMonth(cur.getMonth()+1);
+  }
+
+  // Map RHR data onto extended labels (nulls for pre-2016 gaps)
+  const rhrByYM = {};
+  rhrSeries.forEach(m => { rhrByYM[m.ym] = m.rhr; });
+  const extRHR = extLabels.map(ym => rhrByYM[ym] || null);
+
+  const rhrHistDatasets = [{
+    data: extRHR,
+    borderColor: '#1C69D4', borderWidth: 2,
+    pointRadius: 0,
+    fill: { target: 'origin', above: 'rgba(28,105,212,0.05)' },
+    tension: 0.5, spanGaps: false, type: 'line'
   }];
-  if(showRaces||showAllLongRuns) {
-    const ymList=rhrSeries.map(m=>m.ym);
-    EVENTS.forEach(ev=>{
-      if(ev.race&&!showRaces) return;
-      if(!ev.race&&!showAllLongRuns) return;
-      const idx=ymList.indexOf(ev.ym);
-      if(idx===-1) return;
+
+  // Race/long run markers — with stagger to prevent stacking
+  if (showRaces || showAllLongRuns) {
+    // Track how many markers already placed per ym to offset y
+    const ymCount = {};
+    EVENTS.forEach(ev => {
+      if (ev.race && !showRaces) return;
+      if (!ev.race && !showAllLongRuns) return;
+      const idx = extLabels.indexOf(ev.ym);
+      if (idx === -1) return;
+      const rhrVal = rhrByYM[ev.ym] || null;
+      if (!rhrVal) return; // no RHR data for this month, skip
+      const baseY = rhrVal;
+      ymCount[ev.ym] = (ymCount[ev.ym] || 0) + 1;
+      const offset = (ymCount[ev.ym] - 1) * 1.8;
+      const markerY = baseY + offset;
       rhrHistDatasets.push({
-        type:'scatter',label:ev.label,
-        data:[{x:idx,y:rhrSeries[idx].rhr}],
-        pointRadius:ev.race?9:6,pointStyle:ev.race?'star':'circle',
-        pointBackgroundColor:ev.race?'#E9283A':'#00C878',
-        pointBorderColor:'#09090E',pointBorderWidth:1.5,showLine:false,
+        type: 'scatter', label: ev.label,
+        data: [{ x: idx, y: markerY }],
+        pointRadius: ev.race ? 10 : 7,
+        pointStyle: ev.race ? 'star' : 'circle',
+        pointBackgroundColor: ev.race ? '#E9283A' : '#00C878',
+        pointBorderColor: '#FFFFFF', pointBorderWidth: 1.5,
+        showLine: false,
       });
     });
   }
-  if(charts['rhr-history-chart']) charts['rhr-history-chart'].destroy();
-  const rhrHEl=document.getElementById('rhr-history-chart');
-  if(rhrHEl) {
-    charts['rhr-history-chart']=new Chart(rhrHEl,{
-      type:'line',data:{labels:rhrSeries.map(m=>m.ym),datasets:rhrHistDatasets},
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{
-          backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,
-          titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,cornerRadius:8,
-          callbacks:{label:ctx=>{ if(ctx.dataset.label) return ' '+ctx.dataset.label; return ' '+ctx.parsed.y+' bpm'; }}
-        }},
-        scales:{
-          x:{grid:{color:'#1E1E26'},ticks:{maxTicksLimit:8,color:'#4A4A58'}},
-          y:{grid:{color:'#1E1E26'},min:44,max:62,ticks:{callback:v=>v+' bpm',color:'#4A4A58'}}
+
+  if (charts['rhr-history-chart']) charts['rhr-history-chart'].destroy();
+  const rhrHEl = document.getElementById('rhr-history-chart');
+  if (rhrHEl) {
+    charts['rhr-history-chart'] = new Chart(rhrHEl, {
+      type: 'line',
+      data: { labels: extLabels, datasets: rhrHistDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#18181F', borderColor: '#2A2A35', borderWidth: 1,
+            titleColor: '#FFFFFF', bodyColor: '#8A8A9A', padding: 12, cornerRadius: 8,
+            callbacks: {
+              title: ctx => ctx[0]?.label || '',
+              label: ctx => {
+                if (ctx.dataset.label) return ' ' + ctx.dataset.label;
+                return ctx.parsed.y ? ' ' + ctx.parsed.y + ' bpm' : ' No RHR data';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#1E1E26' }, ticks: { maxTicksLimit: 10, color: '#4A4A58' }},
+          y: { grid: { color: '#1E1E26' }, min: 44, max: 62, ticks: { callback: v => v+' bpm', color: '#4A4A58' }}
         }
       }
     });
   }
 }
+
+  // Race History List
+  const raceEl = document.getElementById('race-history-list');
+  if (raceEl) {
+    const races = EVENTS.filter(e => e.race).sort((a,b) => b.date.localeCompare(a.date));
+    const typeIcon = {run:'🏃', ride:'🚴', swim:'🏊', triathlon:'🏅'};
+    raceEl.innerHTML = races.map(r => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:16px;">${typeIcon[r.type]||'🏁'}</span>
+          <div>
+            <div style="font-size:13px;color:var(--gray1);">${r.label}</div>
+            <div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">${r.date}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--blue);flex-shrink:0;">${r.time||''}</div>
+      </div>
+    `).join('') + '<div style="height:4px;"></div>';
+  }
 
 // ── NAV ───────────────────────────────────────────────────────────
 const pageCharts = {
