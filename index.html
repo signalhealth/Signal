@@ -1605,8 +1605,9 @@ function renderTrends() {
       if (!ev.race && !showAllLongRuns) return;
       const idx = extLabels.indexOf(ev.ym);
       if (idx === -1) return;
+      if (ev.year < 2016) return; // no RHR data before 2016
       const rhrVal = rhrByYM[ev.ym] || null;
-      if (!rhrVal) return; // no RHR data for this month, skip
+      if (!rhrVal) return;
       const baseY = rhrVal;
       ymCount[ev.ym] = (ymCount[ev.ym] || 0) + 1;
       const offset = (ymCount[ev.ym] - 1) * 1.8;
