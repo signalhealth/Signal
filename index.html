@@ -423,6 +423,24 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     </div>
   </div>
 
+  <!-- DEXA Timeline (moved from Body) -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:16px;">DEXA Timeline</div>
+    <div id="dexa-timeline"></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Add DEXA Scan</div>
+    <div class="form-grid-2"><input type="date" id="dexa-date"/><input type="number" id="dexa-wt" placeholder="Weight (lbs)" step="0.1"/></div>
+    <div class="form-grid-2"><input type="number" id="dexa-bf" placeholder="BF %" step="0.1"/><input type="number" id="dexa-lean" placeholder="Lean mass (lbs)" step="0.1"/></div>
+    <button class="btn btn-full" onclick="addDexa()">Add DEXA Result</button>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:4px;">Weight History — Full</div>
+    <div style="height:200px;margin-top:12px;"><canvas id="wt-full-chart"></canvas></div>
+  </div>
+
   <!-- Insight -->
   <div class="insight-card">
     <div style="position:relative;z-index:2;">
@@ -551,18 +569,6 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   </div>
 </div>
 
-<!-- ═══════════════ BODY ═══════════════ -->
-<div id="pg-body" class="page">
-  <div class="page-title"><h2>Body</h2><p>DEXA Scan History</p></div>
-  <div class="card"><div class="lbl" style="margin-bottom:16px;">DEXA Timeline</div><div id="dexa-timeline"></div></div>
-  <div class="card">
-    <div class="lbl" style="margin-bottom:12px;">Add DEXA Scan</div>
-    <div class="form-grid-2"><input type="date" id="dexa-date"/><input type="number" id="dexa-wt" placeholder="Weight (lbs)" step="0.1"/></div>
-    <div class="form-grid-2"><input type="number" id="dexa-bf" placeholder="BF %" step="0.1"/><input type="number" id="dexa-lean" placeholder="Lean mass (lbs)" step="0.1"/></div>
-    <button class="btn btn-full" onclick="addDexa()">Add DEXA Result</button>
-  </div>
-  <div class="card"><div class="lbl" style="margin-bottom:4px;">Weight History — Full</div><div style="height:200px;margin-top:12px;"><canvas id="wt-full-chart"></canvas></div></div>
-</div>
 
 <!-- ═══════════════ TRENDS ═══════════════ -->
 <div id="pg-trends" class="page">
@@ -625,6 +631,131 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   </div>
 </div>
 
+
+<!-- ═══════════════ FUEL ═══════════════ -->
+<div id="pg-fuel" class="page">
+  <div class="page-title"><h2>Fuel</h2><p>Nutrition Intelligence</p></div>
+
+  <!-- Today's intake entry -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">Today's Intake So Far</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Calories</div>
+        <input type="number" id="fuel-cals" placeholder="e.g. 1200" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Protein (g)</div>
+        <input type="number" id="fuel-protein" placeholder="e.g. 120" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Carbs (g)</div>
+        <input type="number" id="fuel-carbs" placeholder="e.g. 80" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Fat (g)</div>
+        <input type="number" id="fuel-fat" placeholder="e.g. 40" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      </div>
+    </div>
+
+    <!-- Progress bars -->
+    <div id="fuel-progress" style="display:none;">
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Calories</span>
+          <span style="font-size:12px;font-weight:600;" id="fuel-cals-label">0 / 1800</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-cals-bar" style="width:0%;background:var(--blue);"></div></div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Protein</span>
+          <span style="font-size:12px;font-weight:600;" id="fuel-protein-label">0 / 180g</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-protein-bar" style="width:0%;background:var(--green);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-bottom:0;">
+        <div class="prog-row">
+          <span style="font-size:12px;color:var(--gray2);">Carbs</span>
+          <span style="font-size:12px;font-weight:600;" id="fuel-carbs-label">0 / 150g</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-carbs-bar" style="width:0%;background:var(--amber);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Context toggles -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:12px;">Today's Context</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Trained today?</div>
+        <div style="display:flex;gap:6px;">
+          <button id="ctx-trained-yes" onclick="setCtx('trained','yes')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Yes</button>
+          <button id="ctx-trained-no" onclick="setCtx('trained','no')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">No</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Sleep quality</div>
+        <div style="display:flex;gap:6px;">
+          <button id="ctx-sleep-good" onclick="setCtx('sleep','good')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Good</button>
+          <button id="ctx-sleep-poor" onclick="setCtx('sleep','poor')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Poor</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Goal today</div>
+      <div style="display:flex;gap:6px;">
+        <button id="ctx-goal-recomp" onclick="setCtx('goal','recomp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--blue);background:rgba(28,105,212,0.1);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Recomp</button>
+        <button id="ctx-goal-performance" onclick="setCtx('goal','performance')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Performance</button>
+        <button id="ctx-goal-recovery" onclick="setCtx('goal','recovery')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Recovery</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Recommendation -->
+  <div class="card card-blue">
+    <div class="lbl" style="color:rgba(28,105,212,0.7);margin-bottom:12px;">Signal Fuel Advisor</div>
+    <div id="fuel-result" style="font-size:13px;color:var(--gray2);line-height:1.65;min-height:60px;">
+      Enter today's intake and tap Analyze to get a personalized recommendation.
+    </div>
+    <button onclick="analyzeFuel()" id="fuel-btn" style="margin-top:16px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--blue);color:white;font-family:DM Sans,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.04em;">
+      ANALYZE
+    </button>
+  </div>
+
+  <!-- 30-day history chart -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:4px;">Calorie History — 30 Days</div>
+    <div style="font-size:11px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
+    <div style="height:140px;"><canvas id="fuel-history-chart"></canvas></div>
+  </div>
+
+  <!-- Macro averages -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;">30-Day Averages</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;text-align:center;">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);">1,776</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">kcal</div>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);">175</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">protein</div>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);">167</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">carbs</div>
+      </div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);">64</div>
+        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">fat</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 </main>
 
 <!-- Nav -->
@@ -646,13 +777,14 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M9 3v8L4 19a1 1 0 001 1h14a1 1 0 001-1L15 11V3M9 3H6M15 3h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Labs
     </button>
-    <button class="nav-btn" onclick="showPage('body',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3" stroke="currentColor" stroke-width="2"/><path d="M5 21v-2a7 7 0 0114 0v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      Body
-    </button>
+
     <button class="nav-btn" onclick="showPage('trends',this)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 16l4-4 4 4 4-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Trends
+    </button>
+    <button class="nav-btn" onclick="showPage('fuel',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3h18M3 3v14a2 2 0 002 2h14a2 2 0 002-2V3M8 3v4h8V3M12 11v6M9 14h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Fuel
     </button>
   </div>
 </nav>
@@ -1605,204 +1737,4 @@ function renderTrends() {
     const ymCount = {};
     const validEvents = EVENTS.filter(ev => {
       if (Number(ev.year) < 2016) return false;
-      if (ev.race && !showRaces) return false;
-      if (!ev.race && !showAllLongRuns) return false;
-      const rhrVal = rhrByYM[ev.ym];
-      if (!rhrVal || Number(rhrVal) < 30) return false;
-      return true;
-    });
-    validEvents.forEach(ev => {
-      ymCount[ev.ym] = (ymCount[ev.ym] || 0) + 1;
-      const offset = (ymCount[ev.ym] - 1) * 1.5;
-      const baseY = rhrByYM[ev.ym];
-      rhrHistDatasets.push({
-        type: 'line', label: ev.label,
-        data: extLabels.map(ym => ym === ev.ym ? baseY + offset : null),
-        pointRadius: extLabels.map(ym => ym === ev.ym ? (ev.race ? 10 : 7) : 0),
-        pointStyle: ev.race ? 'star' : 'circle',
-        pointBackgroundColor: ev.race ? '#E9283A' : '#00C878',
-        pointBorderColor: '#FFFFFF', pointBorderWidth: 1.5,
-        borderWidth: 0, spanGaps: false, showLine: false,
-        pointRadius: ev.race ? 10 : 7,
-        pointStyle: ev.race ? 'star' : 'circle',
-        pointBackgroundColor: ev.race ? '#E9283A' : '#00C878',
-        pointBorderColor: '#FFFFFF', pointBorderWidth: 1.5,
-        fill: false,
-      });
-    });
-  }
-
-  if (charts['rhr-history-chart']) charts['rhr-history-chart'].destroy();
-  const rhrHEl = document.getElementById('rhr-history-chart');
-  if (rhrHEl) {
-    charts['rhr-history-chart'] = new Chart(rhrHEl, {
-      type: 'line',
-      data: { labels: extLabels, datasets: rhrHistDatasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#18181F', borderColor: '#2A2A35', borderWidth: 1,
-            titleColor: '#FFFFFF', bodyColor: '#8A8A9A', padding: 12, cornerRadius: 8,
-            callbacks: {
-              title: ctx => ctx[0]?.label || '',
-              label: ctx => {
-                if (ctx.dataset.label) return ' ' + ctx.dataset.label;
-                return ctx.parsed.y ? ' ' + ctx.parsed.y + ' bpm' : ' No RHR data';
-              }
-            }
-          }
-        },
-        scales: {
-          x: { grid: { color: '#1E1E26' }, ticks: { maxTicksLimit: 10, color: '#4A4A58' }},
-          y: { grid: { color: '#1E1E26' }, min: 44, max: 62, ticks: { callback: v => v+' bpm', color: '#4A4A58' }}
-        }
-      }
-    });
-  }
-
-  // Race History List
-  const raceEl = document.getElementById('race-history-list');
-  if (raceEl) {
-    const races = EVENTS.filter(e => e.race).sort((a,b) => b.date.localeCompare(a.date));
-    const typeIcon = {run:'🏃', ride:'🚴', swim:'🏊', triathlon:'🏅'};
-    raceEl.innerHTML = races.map((r, i) => {
-      const icon = typeIcon[r.type] || '🏁';
-      const hasRHR = rhrByYM[r.ym] && Number(r.year) >= 2016;
-      return '<div id="race-row-'+i+'" onclick="selectRace('+i+')" style="display:flex;justify-content:space-between;align-items:center;padding:12px 10px;border-bottom:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background 0.15s;margin:0 -10px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;">' +
-          '<span style="font-size:16px;">' + icon + '</span>' +
-          '<div>' +
-            '<div style="font-size:13px;color:var(--gray1);">' + r.label + '</div>' +
-            '<div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">' + r.date + (hasRHR ? ' · RHR: '+rhrByYM[r.ym]+' bpm' : '') + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;">' +
-          '<div style="font-size:12px;font-weight:600;color:var(--blue);">' + (r.time||'') + '</div>' +
-          (hasRHR ? '<div style="width:6px;height:6px;border-radius:50%;background:var(--blue);opacity:0.5;"></div>' : '') +
-        '</div>' +
-      '</div>';
-    }).join('');
-  }
-} // end renderTrends
-
-
-
-// ── RENDER RHR HISTORY ONLY ───────────────────────────────────────
-function renderRHRHistory() {
-  const rhrSeries = TD.monthly_series.filter(m => m.rhr);
-  const rhrByYM = {};
-  TD.monthly_series.forEach(m => { if (m.rhr && m.rhr >= 30) rhrByYM[m.ym] = m.rhr; });
-
-  const extLabels = [];
-  let cur = new Date('2016-01-01');
-  const latest = new Date(rhrSeries[rhrSeries.length-1].ym + '-01');
-  while (cur <= latest) {
-    extLabels.push(cur.toISOString().slice(0,7));
-    cur.setMonth(cur.getMonth()+1);
-  }
-
-  const extRHR = extLabels.map(ym => rhrByYM[ym] || null);
-
-  const datasets = [{
-    data: extRHR,
-    borderColor: '#1C69D4', borderWidth: 2,
-    pointRadius: 0,
-    fill: { target: 'origin', above: 'rgba(28,105,212,0.05)' },
-    tension: 0.5, spanGaps: false, type: 'line'
-  }];
-
-  // Single selected event marker
-  if (selectedEvent) {
-    const ev = selectedEvent;
-    const rhrVal = rhrByYM[ev.ym];
-    if (rhrVal) {
-      datasets.push({
-        type: 'line', label: ev.label,
-        data: extLabels.map(ym => ym === ev.ym ? rhrVal : null),
-        pointRadius: extLabels.map(ym => ym === ev.ym ? 7 : 0),
-        pointStyle: 'circle',
-        pointBackgroundColor: '#E9283A',
-        pointBorderColor: '#FFFFFF', pointBorderWidth: 2,
-        borderWidth: 0, spanGaps: false, showLine: false, fill: false,
-      });
-    }
-  }
-
-  if (charts['rhr-history-chart']) charts['rhr-history-chart'].destroy();
-  const el = document.getElementById('rhr-history-chart');
-  if (!el) return;
-  charts['rhr-history-chart'] = new Chart(el, {
-    type: 'line',
-    data: { labels: extLabels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#18181F', borderColor: '#2A2A35', borderWidth: 1,
-          titleColor: '#FFFFFF', bodyColor: '#8A8A9A', padding: 12, cornerRadius: 8,
-          callbacks: {
-            label: ctx => {
-              if (ctx.dataset.label) return ' ' + ctx.dataset.label;
-              return ctx.parsed.y ? ' ' + ctx.parsed.y + ' bpm' : '';
-            }
-          }
-        }
-      },
-      scales: {
-        x: { grid: { color: '#1E1E26' }, ticks: { maxTicksLimit: 10, color: '#4A4A58' }},
-        y: { grid: { color: '#1E1E26' }, min: 44, max: 62, ticks: { callback: v => v+' bpm', color: '#4A4A58' }}
-      }
-    }
-  });
-}
-
-// ── SELECT RACE ───────────────────────────────────────────────────
-function selectRace(idx) {
-  const races = EVENTS.filter(e => e.race).sort((a,b) => b.date.localeCompare(a.date));
-  const ev = races[idx];
-  // Toggle
-  if (selectedEvent && selectedEvent.date === ev.date) {
-    selectedEvent = null;
-    document.getElementById('race-row-'+idx).style.background = 'transparent';
-  } else {
-    // Deselect previous
-    document.querySelectorAll('[id^="race-row-"]').forEach(el => el.style.background = 'transparent');
-    selectedEvent = ev;
-    document.getElementById('race-row-'+idx).style.background = 'rgba(28,105,212,0.1)';
-  }
-  // Re-render just the RHR history chart
-  renderRHRHistory();
-  // Scroll to chart
-  document.getElementById('rhr-history-chart').scrollIntoView({behavior:'smooth', block:'center'});
-}
-// ── NAV ───────────────────────────────────────────────────────────
-const pageCharts = {
-  recovery: ()=>{ renderHRV(); renderSleep(); renderRHR(); renderRec(); },
-  training: ()=>{ renderTraining(); renderPRs(); renderActivity(); },
-  labs: ()=>{ renderLabs(); },
-  body: ()=>{ renderDexa(); setTimeout(renderWeightFull,50); },
-  trends: ()=>{ renderTrends(); },
-};
-function showPage(name,el) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('pg-'+name).classList.add('active');
-  el.classList.add('active');
-  if(pageCharts[name]) setTimeout(pageCharts[name],60);
-}
-
-// ── INIT ──────────────────────────────────────────────────────────
-async function init() {
-  await loadS();
-  renderWeight();
-  renderActivity();
-}
-init();
-
-if('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
-</script>
-</body>
-</html>
+      if (ev.race &&
