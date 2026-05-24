@@ -2,7 +2,7 @@
   "name": "Signal",
   "short_name": "Signal",
   "description": "Personal health intelligence",
-  "start_url": "/",
+  "start_url": "/signal/",
   "display": "standalone",
   "background_color": "#F4F1EA",
   "theme_color": "#2d3a2d",
