@@ -570,7 +570,20 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
 
   <div class="card">
     <div class="lbl">RHR — Annual Average</div>
-    <div style="font-size:11px;color:var(--gray2);margin-top:2px;margin-bottom:16px;">Lower is better · dashed = 2019 Ironman baseline</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--gray2);">Lower is better · dashed line = baseline year</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <span style="font-size:10px;color:var(--gray3);letter-spacing:0.06em;text-transform:uppercase;">Base</span>
+        <select id="rhr-baseline-year" onchange="renderTrends()" style="width:auto;padding:3px 8px;font-size:11px;background:var(--surface2);border:1px solid var(--border2);color:var(--white);border-radius:6px;">
+          <option value="2013">2013</option>
+          <option value="2014">2014</option>
+          <option value="2018">2018</option>
+          <option value="2019">2019</option>
+          <option value="2024" selected>2024</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+    </div>
     <div style="height:220px;"><canvas id="rhr-bar-chart"></canvas></div>
   </div>
 
@@ -1458,7 +1471,9 @@ function renderTrends() {
     const vals = (TD.yoy_rhr[y]||[]).filter(v=>v!=null);
     return vals.length ? parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)) : null;
   });
-  const baseline2019 = rhrAnnual[years.indexOf('2019')];
+  const baselineYearEl = document.getElementById('rhr-baseline-year');
+  const baselineYear = baselineYearEl ? baselineYearEl.value : '2019';
+  const baseline2019 = rhrAnnual[years.indexOf(baselineYear)];
 
   if (charts['rhr-bar-chart']) charts['rhr-bar-chart'].destroy();
   const rhrEl = document.getElementById('rhr-bar-chart');
@@ -1475,7 +1490,7 @@ function renderTrends() {
         plugins:{ legend:{display:false}, tooltip:{
           backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,
           titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,cornerRadius:8,
-          callbacks:{ label:ctx=>{ const v=ctx.parsed.y; if(!v) return null; const diff=baseline2019?(v-baseline2019).toFixed(1):null; const sign=diff>0?'+':''; return ' '+v+' bpm'+(diff?' ('+sign+diff+' vs 2019)':''); }}
+          callbacks:{ label:ctx=>{ const v=ctx.parsed.y; if(!v) return null; const diff=baseline2019?(v-baseline2019).toFixed(1):null; const sign=diff>0?'+':''; return ' '+v+' bpm'+(diff?' ('+sign+diff+' vs '+baselineYear+')':''); }}
         }},
         scales:{
           x:{grid:{display:false},ticks:{color:'#4A4A58'}},
@@ -1490,7 +1505,7 @@ function renderTrends() {
         ctx.strokeStyle='rgba(28,105,212,0.5)'; ctx.lineWidth=1.5;
         ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke();
         ctx.setLineDash([]); ctx.fillStyle='rgba(28,105,212,0.7)';
-        ctx.font='9px DM Sans'; ctx.fillText('2019 baseline',chartArea.left+4,y-4);
+        ctx.font='9px DM Sans'; ctx.fillText(baselineYear+' baseline',chartArea.left+4,y-4);
         ctx.restore();
       }}]
     });
