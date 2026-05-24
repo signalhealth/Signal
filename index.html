@@ -1246,29 +1246,34 @@ const movAvg=(vals,w=7)=>vals.map((_,i)=>{const s=vals.slice(Math.max(0,i-w+1),i
 let _wtDays=30;
 function renderWeight(days=_wtDays) {
   const sorted=asc(D.weight);
-  const slice=sorted.slice(-days);
+  // Slice by actual date, not entry count
+  const latestDate = new Date(sorted[sorted.length-1].date);
+  const cutoff = new Date(latestDate);
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const slice = sorted.filter(d => d.date >= cutoffStr);
   const labels=slice.map(d=>d.date.slice(5));
   const vals=slice.map(d=>d.value);
   const ma=movAvg(vals);
   
-  // Latest weight
-  const latest=vals[vals.length-1];
-  const earliest=vals[0];
-  const change=Math.abs(latest-earliest).toFixed(1);
-  const isDown=latest<earliest;
-  
-  document.getElementById('wt-display').textContent=latest.toFixed(1);
-  document.getElementById('wt-avg').textContent=avg(vals.slice(-7)).toFixed(1);
-  document.getElementById('wt-start-lbl').textContent=labels[0];
-  
-  const deltaEl=document.getElementById('wt-delta');
-  const deltaValEl=document.getElementById('wt-delta-val');
-  deltaValEl.textContent=change+' lbs';
-  deltaEl.className=isDown?'num-delta-pos':'num-delta-neg';
+  // Always show most recent weight as the headline number
+  const allSorted = asc(D.weight);
+  const mostRecent = allSorted[allSorted.length-1].value;
+  const earliest = vals[0];
+  const change = Math.abs(mostRecent - earliest).toFixed(1);
+  const isDown = mostRecent < earliest;
+
+  document.getElementById('wt-display').textContent = mostRecent.toFixed(1);
+  document.getElementById('wt-start-lbl').textContent = slice[0].date.slice(5);
+
+  const deltaEl = document.getElementById('wt-delta');
+  const deltaValEl = document.getElementById('wt-delta-val');
+  deltaValEl.textContent = change + ' lbs';
+  deltaEl.className = isDown ? 'num-delta-pos' : 'num-delta-neg';
   deltaEl.querySelector('svg path').setAttribute('d', isDown ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7');
 
-  const subEl=document.getElementById('wt-sub');
-  subEl.innerHTML='Since '+slice[0].date.slice(5)+' · 7-day avg: <span id="wt-avg">'+avg(vals.slice(-7)).toFixed(1)+'</span> lbs';
+  const subEl = document.getElementById('wt-sub');
+  subEl.innerHTML = 'Since ' + slice[0].date.slice(5) + ' · 7-day avg: ' + avg(allSorted.slice(-7).map(d=>d.value)).toFixed(1) + ' lbs';
 
   mkChart('wt-chart','line',labels,[
     {data:vals,borderColor:'rgba(28,105,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0.5},
@@ -1653,26 +1658,27 @@ function renderTrends() {
       }
     });
   }
-}
 
   // Race History List
   const raceEl = document.getElementById('race-history-list');
   if (raceEl) {
     const races = EVENTS.filter(e => e.race).sort((a,b) => b.date.localeCompare(a.date));
     const typeIcon = {run:'🏃', ride:'🚴', swim:'🏊', triathlon:'🏅'};
-    raceEl.innerHTML = races.map(r => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:16px;">${typeIcon[r.type]||'🏁'}</span>
-          <div>
-            <div style="font-size:13px;color:var(--gray1);">${r.label}</div>
-            <div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">${r.date}</div>
-          </div>
-        </div>
-        <div style="font-size:12px;font-weight:600;color:var(--blue);flex-shrink:0;">${r.time||''}</div>
-      </div>
-    `).join('') + '<div style="height:4px;"></div>';
+    raceEl.innerHTML = races.map(r => {
+      const icon = typeIcon[r.type] || '🏁';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<span style="font-size:16px;">' + icon + '</span>' +
+          '<div>' +
+            '<div style="font-size:13px;color:var(--gray1);">' + r.label + '</div>' +
+            '<div style="font-size:10px;color:var(--gray3);margin-top:2px;letter-spacing:0.04em;text-transform:uppercase;">' + r.date + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;font-weight:600;color:var(--blue);flex-shrink:0;">' + (r.time||'') + '</div>' +
+      '</div>';
+    }).join('');
   }
+} // end renderTrends
 
 // ── NAV ───────────────────────────────────────────────────────────
 const pageCharts = {
