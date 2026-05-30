@@ -658,7 +658,10 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div class="lbl">Today's Intake</div>
-      <span id="fuel-sync-badge" style="display:none;font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="fuel-sync-badge" style="display:none;font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
+        <button id="fuel-diag-btn" onclick="showNutritionTypeDiagnostic()" style="display:none;font-size:10px;color:var(--gray2);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-family:Space Grotesk,sans-serif;cursor:pointer;">Find types</button>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
       <div style="background:var(--surface2);border-radius:10px;padding:12px;">
@@ -1623,50 +1626,21 @@ async function fetchGoogleHRV() {
   }
 }
 
-async function fetchGoogleNutrition() {
-  // Try Google Fit v1 aggregate API first (same path that works for steps)
+async function showNutritionTypeDiagnostic() {
+  if (!gToken) { alert('Connect Google first, then tap this again.'); return; }
   try {
-    const endMs = Date.now();
-    const startMs = endMs - 35 * 86400000;
-    const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        aggregateBy: [{ dataTypeName: 'com.google.nutrition' }],
-        bucketByTime: { durationMillis: 86400000 },
-        startTimeMillis: startMs,
-        endTimeMillis: endMs
-      })
-    });
-    if (res.ok) {
-      const json = await res.json();
-      const byDate = {};
-      for (const b of (json.bucket || [])) {
-        const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
-        for (const pt of (b.dataset?.[0]?.point || [])) {
-          const map = {};
-          for (const entry of (pt.value?.[0]?.mapVal || [])) {
-            map[entry.key] = entry.value?.fpVal ?? 0;
-          }
-          const cals = map['calories'] ?? map['energy'] ?? 0;
-          if (!cals) continue;
-          if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
-          byDate[date].cals    += cals;
-          byDate[date].protein += map['protein'] ?? 0;
-          byDate[date].carbs   += map['carbs.total'] ?? map['dietary_fiber'] ?? 0;
-          byDate[date].fat     += map['fat.total'] ?? 0;
-        }
-      }
-      const result = Object.entries(byDate)
-        .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
-        .filter(d => d.cals > 0)
-        .sort((a, b) => b.date.localeCompare(a.date));
-      if (result.length > 0) return result;
-    }
-  } catch(e) {}
+    const res = await fetch(`${HEALTH_BASE}/dataTypes`, { headers: { 'Authorization': `Bearer ${gToken}` } });
+    if (!res.ok) { alert('dataTypes API returned ' + res.status); return; }
+    const json = await res.json();
+    const all = (json.dataTypes || []).map(dt => dt.name || '').filter(Boolean).sort();
+    const nutrition = all.filter(t => /nutri|calor|meal|food|diet|macro|protein|carb|fat/i.test(t));
+    alert('NUTRITION TYPES:\n' + (nutrition.length ? nutrition.join('\n') : '(none found)') + '\n\nALL TYPES (' + all.length + '):\n' + all.slice(0, 30).join('\n'));
+  } catch(e) { alert('Error: ' + e.message); }
+}
 
-  // Fallback: try Health API v4 with multiple type names
-  const typeNames = ['nutritionLog', 'nutrition', 'nutritionRecord', 'caloriesConsumed', 'totalCaloriesConsumed', 'meal'];
+async function fetchGoogleNutrition() {
+  // Health API v4 — the real-time source that matches Google Health dashboard
+  const typeNames = ['nutritionLog', 'nutrition', 'nutritionRecord', 'caloriesConsumed', 'totalCaloriesConsumed', 'meal', 'dietaryEnergy'];
   for (const typeName of typeNames) {
     try {
       const data = await healthList(typeName, 35);
@@ -1817,11 +1791,15 @@ async function fetchAndMergeGoogleFitData() {
     if (rhr.status === 'fulfilled' && rhr.value.length > 0) D.rhr = rhr.value;
     if (hrv.status === 'fulfilled' && hrv.value.length > 0) D.hrv = hrv.value;
     if (exercise.status === 'fulfilled' && exercise.value.length > 0) D.exercise = exercise.value;
+    const diagBtn = document.getElementById('fuel-diag-btn');
     if (nutrition.status === 'fulfilled' && nutrition.value.length > 0) {
       D.nutrition = nutrition.value;
+      if (diagBtn) diagBtn.style.display = 'none';
       const badge = document.getElementById('fuel-sync-badge');
       if (badge) { badge.textContent = `MacroFactor ✓ (${nutrition.value.length}d)`; badge.style.display = 'block'; }
       populateFuelFromLive(D.nutrition);
+    } else {
+      if (diagBtn) diagBtn.style.display = 'block';
     }
 
     renderWeight();
