@@ -1440,11 +1440,11 @@ let gToken = null;
 let gTokenClient = null;
 
 function saveToken(token) {
-  try { localStorage.setItem('gfit_auth_v5', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+  try { localStorage.setItem('gfit_auth_v6', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
 }
 function loadToken() {
   try {
-    const s = JSON.parse(localStorage.getItem('gfit_auth_v5') || 'null');
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v6') || 'null');
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
@@ -1465,7 +1465,7 @@ function connectGoogle() {
   btn.textContent = 'Connecting…';
   btn.disabled = true;
   if (gTokenClient) {
-    gTokenClient.requestAccessToken({ prompt: '' });
+    gTokenClient.requestAccessToken({ prompt: 'consent' });
   } else {
     const waitForGIS = () => new Promise(resolve => {
       if (window.google?.accounts?.oauth2) { resolve(true); return; }
@@ -1477,7 +1477,7 @@ function connectGoogle() {
     waitForGIS().then(ready => {
       if (ready) {
         if (!gTokenClient) window.onGoogleLibraryLoad();
-        gTokenClient.requestAccessToken({ prompt: '' });
+        gTokenClient.requestAccessToken({ prompt: 'consent' });
       } else {
         btn.textContent = 'Connect Google Health';
         btn.disabled = false;
@@ -1566,24 +1566,32 @@ async function fetchGoogleWeight() {
 }
 
 async function fetchGoogleSteps() {
-  const cutoff = new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10);
-  // Try :list first; fall back to :dailyRollUp if list returns 404
-  let data = null;
-  try {
-    data = await healthList('steps', 45);
-  } catch(e) {
-    data = await healthDailyRollUp('steps', 45);
+  // Use Google Fit v1 aggregate API — Health API v4 :dailyRollUp is scope-blocked
+  const endMs = Date.now();
+  const startMs = endMs - 45 * 86400000;
+  const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      aggregateBy: [{ dataTypeName: 'com.google.step_count.delta' }],
+      bucketByTime: { durationMillis: 86400000 },
+      startTimeMillis: startMs,
+      endTimeMillis: endMs
+    })
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Fit API ${res.status} (steps): ${body}`);
   }
-  const byDate = {};
-  for (const pt of data.dataPoints || []) {
-    const date = ptDate(pt);
-    if (!date || date < cutoff) continue;
-    const v = ptVal(pt);
-    if (!v || v <= 0) continue;
-    byDate[date] = (byDate[date] || 0) + Math.round(v);
-  }
-  return Object.entries(byDate)
-    .map(([date, value]) => ({ date, value }))
+  const json = await res.json();
+  return (json.bucket || [])
+    .map(b => {
+      const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
+      const pts = b.dataset?.[0]?.point || [];
+      const total = pts.reduce((sum, p) => sum + (p.value?.[0]?.intVal || 0), 0);
+      return total > 0 ? { date, value: total } : null;
+    })
+    .filter(Boolean)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
