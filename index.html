@@ -1426,12 +1426,12 @@ const EVENTS = [
 
 // ── GOOGLE FITNESS API ────────────────────────────────────────────
 const GFIT_CLIENT_ID = '580577187739-mc7gb22ok305k4asbt0ndko89cpdmfh5.apps.googleusercontent.com';
-// Google Health API scopes (replaces legacy Google Fit fitness.* scopes)
 const GFIT_SCOPES = [
   'https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly',
   'https://www.googleapis.com/auth/googlehealth.sleep.readonly',
   'https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly',
   'https://www.googleapis.com/auth/googlehealth.nutrition.readonly',
+  'https://www.googleapis.com/auth/fitness.activity.read',
 ].join(' ');
 
 const HEALTH_BASE = 'https://health.googleapis.com/v4/users/me';
@@ -1440,11 +1440,11 @@ let gToken = null;
 let gTokenClient = null;
 
 function saveToken(token) {
-  try { localStorage.setItem('gfit_auth_v4', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+  try { localStorage.setItem('gfit_auth_v5', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
 }
 function loadToken() {
   try {
-    const s = JSON.parse(localStorage.getItem('gfit_auth_v4') || 'null');
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v5') || 'null');
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
@@ -1566,15 +1566,24 @@ async function fetchGoogleWeight() {
 }
 
 async function fetchGoogleSteps() {
-  const data = await healthDailyRollUp('steps', 45);
   const cutoff = new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10);
-  return (data.dataPoints || [])
-    .map(pt => {
-      const v = ptVal(pt);
-      if (!v || v <= 0) return null;
-      return { date: ptDate(pt), value: Math.round(v) };
-    })
-    .filter(d => d && d.date && d.date >= cutoff)
+  // Try :list first; fall back to :dailyRollUp if list returns 404
+  let data = null;
+  try {
+    data = await healthList('steps', 45);
+  } catch(e) {
+    data = await healthDailyRollUp('steps', 45);
+  }
+  const byDate = {};
+  for (const pt of data.dataPoints || []) {
+    const date = ptDate(pt);
+    if (!date || date < cutoff) continue;
+    const v = ptVal(pt);
+    if (!v || v <= 0) continue;
+    byDate[date] = (byDate[date] || 0) + Math.round(v);
+  }
+  return Object.entries(byDate)
+    .map(([date, value]) => ({ date, value }))
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
