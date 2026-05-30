@@ -1498,13 +1498,9 @@ async function healthList(dataType, daysBack) {
 async function healthDailyRollUp(dataType, daysBack) {
   const end = new Date().toISOString();
   const start = new Date(Date.now() - daysBack * 86400000).toISOString();
-  // dailyRollUp is a POST custom method, not GET with filter param
-  const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:dailyRollUp`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ startTime: start, endTime: end })
-  });
+  const filter = `startTime >= "${start}" AND startTime < "${end}"`;
+  const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:dailyRollUp?filter=${encodeURIComponent(filter)}`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Health API ${res.status} (${dataType}): ${body}`);
@@ -1526,8 +1522,14 @@ function ptVal(pt) {
 }
 
 async function fetchGoogleWeight() {
-  const data = await healthList('bodyWeight', 120);
-  return (data.dataPoints || [])
+  let data = null;
+  for (const typeName of ['weight', 'bodyWeight', 'bodyMass', 'body.weight']) {
+    try {
+      data = await healthList(typeName, 120);
+      if (Array.isArray(data.dataPoints)) break;
+    } catch(e) { data = null; }
+  }
+  return ((data && data.dataPoints) || [])
     .map(pt => {
       const kg = ptVal(pt);
       if (!kg || kg <= 0) return null;
@@ -1550,9 +1552,15 @@ async function fetchGoogleSteps() {
 }
 
 async function fetchGoogleSleep() {
-  const data = await healthList('sleepSession', 75);
+  let data = null;
+  for (const typeName of ['sleepSession', 'sleep', 'sleepData', 'sleep_session']) {
+    try {
+      data = await healthList(typeName, 75);
+      if (Array.isArray(data.dataPoints)) break;
+    } catch(e) { data = null; }
+  }
   const byDate = {};
-  for (const pt of data.dataPoints || []) {
+  for (const pt of (data && data.dataPoints) || []) {
     const s = new Date(pt.interval?.startTime || pt.startTime);
     const e = new Date(pt.interval?.endTime || pt.endTime);
     const hours = (e - s) / 3600000;
@@ -1621,8 +1629,14 @@ async function fetchGoogleNutrition() {
 }
 
 async function fetchGoogleActivities() {
-  const data = await healthList('exerciseSession', 90);
-  return (data.dataPoints || [])
+  let data = null;
+  for (const typeName of ['exerciseSession', 'workout', 'physicalActivity', 'exercise']) {
+    try {
+      data = await healthList(typeName, 90);
+      if (Array.isArray(data.dataPoints)) break;
+    } catch(e) { data = null; }
+  }
+  return ((data && data.dataPoints) || [])
     .map(pt => {
       const s = new Date(pt.interval?.startTime || pt.startTime);
       const e = new Date(pt.interval?.endTime || pt.endTime);
