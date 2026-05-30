@@ -276,8 +276,9 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     </svg>
     <h1>Signal</h1>
   </div>
-  <div style="display:flex;align-items:center;gap:12px;">
-    <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to refresh">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
+    <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
       <span class="header-google-lbl">Google Health</span>
     </div>
@@ -416,13 +417,10 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   <div class="insight-card">
     <div style="position:relative;z-index:2;">
       <div class="lbl" style="color:rgba(28,105,212,0.7);">Signal Insight</div>
-      <div class="serif" style="font-size:22px;line-height:1.3;margin-top:8px;">Protocol is working.<br/>Stay the course.</div>
-      <p style="font-size:13px;color:var(--gray2);margin-top:12px;line-height:1.65;">Down 14.5 lbs since Feb with lean mass preserved. TRT is 8 days in — the real building phase begins post-June 11. Arrive at 161–162 and that's a win.</p>
-      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
-        <span class="badge badge-green">1,800 kcal ✓</span>
-        <span class="badge badge-green">C1 Week 2 ✓</span>
-        <span class="badge badge-blue">TRT Day 8</span>
+      <div id="insight-content" style="margin-top:10px;">
+        <div class="serif" style="font-size:17px;line-height:1.4;color:var(--gray2);">Your personalized coaching insight will appear here.</div>
       </div>
+      <button onclick="getInsight()" id="insight-btn" style="margin-top:16px;width:100%;padding:11px;border-radius:10px;border:1px solid rgba(28,105,212,0.35);background:rgba(28,105,212,0.12);color:rgba(100,170,255,0.9);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
     </div>
   </div>
 </div>
@@ -1304,6 +1302,22 @@ const GFIT_SCOPES = [
 let gToken = null;
 let gTokenClient = null;
 
+function saveToken(token) {
+  try { localStorage.setItem('gfit_auth', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+}
+function loadToken() {
+  try {
+    const s = JSON.parse(localStorage.getItem('gfit_auth') || 'null');
+    if (s && s.token && s.expiry > Date.now()) return s.token;
+  } catch(e) {}
+  return null;
+}
+function showConnected() {
+  document.getElementById('header-google').classList.add('visible');
+  const rb = document.getElementById('refresh-btn');
+  if (rb) rb.style.display = 'inline-block';
+}
+
 window.onGoogleLibraryLoad = function() {
   gTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GFIT_CLIENT_ID,
@@ -1311,8 +1325,8 @@ window.onGoogleLibraryLoad = function() {
     callback: async (resp) => {
       if (resp.error) { console.error('Google auth error:', resp); return; }
       gToken = resp.access_token;
-      try { sessionStorage.setItem('gfit_token', gToken); } catch(e) {}
-      document.getElementById('header-google').classList.add('visible');
+      saveToken(gToken);
+      showConnected();
       await fetchAndMergeGoogleFitData();
     }
   });
@@ -2340,6 +2354,72 @@ function showPage(name,el) {
   if(pageCharts[name]) setTimeout(pageCharts[name],60);
 }
 
+function refreshData() {
+  if (gToken) { fetchAndMergeGoogleFitData(); }
+  else { signInWithGoogle(); }
+}
+
+async function getInsight() {
+  const btn = document.getElementById('insight-btn');
+  const content = document.getElementById('insight-content');
+
+  btn.textContent = 'THINKING...';
+  btn.style.opacity = '0.6';
+  btn.disabled = true;
+  content.innerHTML = '<div class="serif" style="font-size:16px;line-height:1.4;color:var(--gray2);">Analyzing your data…</div>';
+
+  const latestWeight = D.weight[0]?.value || null;
+  const latestHRV = D.hrv[0]?.value || null;
+  const latestSleep = D.sleep[0]?.value || null;
+  const latestSteps = D.steps[0]?.value || null;
+  const todayNutrition = D.nutrition[0] || null;
+
+  // Deduplicate RHR (same logic as renderRHR)
+  const seenRhr = new Map();
+  for (const pt of D.rhr) { if (!seenRhr.has(pt.date)) seenRhr.set(pt.date, pt.value); }
+  const rhrVals = [...seenRhr.values()];
+  const latestRHR = rhrVals[0] || null;
+
+  const prompt = `You are Signal, a precision health intelligence advisor for Paul. Deliver one sharp, personalized coaching insight based on his current data.
+
+PAUL'S PROFILE:
+- Goal: Body recomp — reach 155 lbs / 15% body fat by May 2027
+- Started ~177 lbs in February 2026, cutting with lean mass preserved on TRT (started May 15, 2026)
+- Daily targets: 1,800 kcal, 180g protein, ~4 days/week lifting (C1 program)
+
+TODAY'S DATA:
+- Weight: ${latestWeight ? latestWeight + ' lbs' : 'unavailable'}
+- Calories: ${todayNutrition ? todayNutrition.cals + ' kcal' : 'unavailable'}
+- Protein: ${todayNutrition ? todayNutrition.protein + 'g' : 'unavailable'}
+- Sleep: ${latestSleep ? latestSleep + 'h' : 'unavailable'}
+- Steps: ${latestSteps ? latestSteps.toLocaleString() : 'unavailable'}
+- RHR: ${latestRHR ? latestRHR + ' bpm' : 'unavailable'}
+- HRV: ${latestHRV ? latestHRV + ' ms' : 'unavailable'}
+
+Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the numbers. No generic advice. Focus on what matters most right now.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(c => c.text || '').join('') || '';
+    content.innerHTML = `<p style="font-size:14px;color:var(--gray1);line-height:1.7;margin-top:4px;">${text.replace(/\n/g, '<br>')}</p>`;
+  } catch(e) {
+    content.innerHTML = '<div style="font-size:13px;color:var(--gray2);margin-top:4px;">Unable to connect. Check your network and try again.</div>';
+  }
+
+  btn.textContent = 'REFRESH INSIGHT';
+  btn.style.opacity = '1';
+  btn.disabled = false;
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 async function init() {
   await loadS();
@@ -2351,7 +2431,16 @@ async function init() {
   renderRHR();
   setTimeout(renderWeightFull, 100);
 
-  // If user has an active Google session, request a token silently
+  // Restore from localStorage if token is still valid
+  const stored = loadToken();
+  if (stored) {
+    gToken = stored;
+    showConnected();
+    await fetchAndMergeGoogleFitData();
+    return;
+  }
+
+  // No valid stored token — try GIS silent request
   const waitForGIS = () => new Promise(resolve => {
     if (window.google?.accounts?.oauth2) { resolve(true); return; }
     let tries = 0;
@@ -2362,7 +2451,6 @@ async function init() {
   const ready = await waitForGIS();
   if (ready && !gTokenClient) window.onGoogleLibraryLoad();
   if (gTokenClient) {
-    // Silent token request — skips consent screen if already authorized
     gTokenClient.requestAccessToken({ prompt: '' });
   }
 }
