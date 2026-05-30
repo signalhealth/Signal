@@ -1791,21 +1791,6 @@ async function fetchAndMergeGoogleFitData() {
       fetchGoogleNutrition()
     ]);
 
-    // Show visible sync status so we can diagnose API issues without DevTools
-    const named = [['weight',weight],['steps',steps],['sleep',sleep],['rhr',rhr],['hrv',hrv],['exercise',exercise],['nutrition',nutrition]];
-    const lines = named.map(([name, r]) => {
-      if (r.status === 'fulfilled') return `✅ ${name}: ${r.value.length} pts`;
-      return `❌ ${name}: ${(r.reason?.message || String(r.reason)).slice(0, 120)}`;
-    });
-    let dbg = document.getElementById('sync-debug');
-    if (!dbg) {
-      dbg = document.createElement('div');
-      dbg.id = 'sync-debug';
-      dbg.style.cssText = 'position:fixed;bottom:90px;left:12px;right:12px;z-index:300;background:#0D1117;border:1px solid rgba(28,105,212,0.35);border-radius:12px;padding:12px 14px;font-family:Space Grotesk,sans-serif;font-size:11px;color:#8A8AAA;line-height:1.7;';
-      document.body.appendChild(dbg);
-    }
-    dbg.innerHTML = '<div style="font-weight:700;color:#fff;margin-bottom:4px;">Google Health Sync</div>' + lines.map(l => `<div>${l}</div>`).join('') + '<div style="margin-top:6px;font-size:10px;opacity:0.5;">tap to dismiss</div>';
-    dbg.onclick = () => dbg.remove();
     if (weight.status === 'fulfilled' && weight.value.length > 0) D.weight = weight.value;
     if (steps.status === 'fulfilled' && steps.value.length > 0) D.steps = steps.value;
     if (sleep.status === 'fulfilled' && sleep.value.length > 0) D.sleep = sleep.value;
