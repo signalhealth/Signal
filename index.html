@@ -1540,14 +1540,17 @@ async function fetchGoogleWeight() {
 }
 
 async function fetchGoogleSteps() {
-  const data = await healthDailyRollUp('steps', 45);
-  return (data.dataPoints || [])
-    .map(pt => {
-      const v = ptVal(pt);
-      if (!v || v <= 0) return null;
-      return { date: ptDate(pt), value: Math.round(v) };
-    })
-    .filter(d => d && d.date)
+  const data = await healthList('steps', 45);
+  const byDate = {};
+  for (const pt of data.dataPoints || []) {
+    const date = ptDate(pt);
+    if (!date) continue;
+    const v = ptVal(pt);
+    if (!v || v <= 0) continue;
+    byDate[date] = (byDate[date] || 0) + Math.round(v);
+  }
+  return Object.entries(byDate)
+    .map(([date, value]) => ({ date, value }))
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -1575,27 +1578,47 @@ async function fetchGoogleSleep() {
 }
 
 async function fetchGoogleRHR() {
-  const data = await healthDailyRollUp('dailyRestingHeartRate', 90);
-  return (data.dataPoints || [])
-    .map(pt => {
-      const bpm = ptVal(pt);
-      if (!bpm || bpm < 30 || bpm > 120) return null;
-      return { date: ptDate(pt), value: Math.round(bpm) };
-    })
-    .filter(d => d && d.date)
+  let data = null;
+  for (const typeName of ['restingHeartRate', 'dailyRestingHeartRate', 'resting_heart_rate']) {
+    try {
+      data = await healthList(typeName, 90);
+      if (Array.isArray(data.dataPoints)) break;
+    } catch(e) { data = null; }
+  }
+  const byDate = {};
+  for (const pt of (data && data.dataPoints) || []) {
+    const date = ptDate(pt);
+    if (!date) continue;
+    const bpm = ptVal(pt);
+    if (!bpm || bpm < 30 || bpm > 120) continue;
+    if (!byDate[date]) byDate[date] = [];
+    byDate[date].push(bpm);
+  }
+  return Object.entries(byDate)
+    .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) }))
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 async function fetchGoogleHRV() {
   try {
-    const data = await healthDailyRollUp('dailyHeartRateVariability', 90);
-    return (data.dataPoints || [])
-      .map(pt => {
-        const hrv = ptVal(pt);
-        if (!hrv || hrv <= 0) return null;
-        return { date: ptDate(pt), value: Math.round(hrv * 10) / 10 };
-      })
-      .filter(d => d && d.date)
+    let data = null;
+    for (const typeName of ['heartRateVariability', 'dailyHeartRateVariability', 'hrv']) {
+      try {
+        data = await healthList(typeName, 90);
+        if (Array.isArray(data.dataPoints)) break;
+      } catch(e) { data = null; }
+    }
+    const byDate = {};
+    for (const pt of (data && data.dataPoints) || []) {
+      const date = ptDate(pt);
+      if (!date) continue;
+      const hrv = ptVal(pt);
+      if (!hrv || hrv <= 0) continue;
+      if (!byDate[date]) byDate[date] = [];
+      byDate[date].push(hrv);
+    }
+    return Object.entries(byDate)
+      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch(e) {
     console.warn('HRV fetch failed:', e);
