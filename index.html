@@ -657,11 +657,11 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   <!-- Today's intake — live from MacroFactor -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div class="lbl">Today's Intake</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span id="fuel-sync-badge" style="display:none;font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
-        <button id="fuel-diag-btn" onclick="showNutritionTypeDiagnostic()" style="display:none;font-size:10px;color:var(--gray2);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-family:Space Grotesk,sans-serif;cursor:pointer;">Find types</button>
+      <div>
+        <div class="lbl">Today's Intake</div>
+        <div id="fuel-date-lbl" style="font-size:10px;color:var(--gray3);margin-top:2px;"></div>
       </div>
+      <span id="fuel-sync-badge" style="display:none;font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
       <div style="background:var(--surface2);border-radius:10px;padding:12px;">
@@ -1626,60 +1626,44 @@ async function fetchGoogleHRV() {
   }
 }
 
-async function showNutritionTypeDiagnostic() {
-  if (!gToken) { alert('Connect Google first, then tap this again.'); return; }
-  const candidates = ['nutrition', 'nutritionLog', 'nutritionRecord', 'Nutrition', 'NutritionRecord', 'caloriesConsumed', 'totalCaloriesConsumed', 'meal', 'dietaryEnergy', 'food'];
-  const results = [];
-  for (const t of candidates) {
-    try {
-      const url = `${HEALTH_BASE}/dataTypes/${t}/dataPoints:list?filter=${encodeURIComponent('startTime >= "2026-05-01T00:00:00Z"')}`;
-      const r = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
-      const body = await r.text();
-      let pts = '?';
-      try { pts = (JSON.parse(body).dataPoints || []).length + ' pts'; } catch(e) {}
-      results.push(`${t}: ${r.status} ${pts}`);
-    } catch(e) { results.push(`${t}: ERR`); }
-  }
-  // Also try /dataTypes listing
-  let typesList = '';
-  try {
-    const r2 = await fetch(`${HEALTH_BASE}/dataTypes`, { headers: { 'Authorization': `Bearer ${gToken}` } });
-    if (r2.ok) {
-      const j = await r2.json();
-      const all = (j.dataTypes || []).map(dt => dt.name || '').filter(Boolean);
-      const nut = all.filter(t => /nutri|calor|meal|food|diet/i.test(t));
-      typesList = '\n\nFOUND TYPES:\n' + (nut.length ? nut.join('\n') : '(none)') + '\nTotal: ' + all.length;
-    } else { typesList = '\n\n/dataTypes: ' + r2.status; }
-  } catch(e) {}
-  alert('PROBE RESULTS:\n' + results.join('\n') + typesList);
-}
-
 async function fetchGoogleNutrition() {
-  // Health API v4 — the real-time source that matches Google Health dashboard
-  const typeNames = ['nutritionLog', 'nutrition', 'nutritionRecord', 'caloriesConsumed', 'totalCaloriesConsumed', 'meal', 'dietaryEnergy'];
-  for (const typeName of typeNames) {
-    try {
-      const data = await healthList(typeName, 35);
-      if (!Array.isArray(data.dataPoints) || data.dataPoints.length === 0) continue;
-      const byDate = {};
-      for (const pt of data.dataPoints) {
-        const date = ptDate(pt);
-        const v = pt.value || pt.standardValue || pt.originalValue || {};
-        const cals = v.calories ?? v.energy?.fpVal ?? 0;
+  // Google Fit v1 aggregate API — the only CORS-accessible path for MacroFactor data
+  // (health.googleapis.com/v4 blocks browser CORS requests entirely)
+  try {
+    const endMs = Date.now();
+    const startMs = endMs - 35 * 86400000;
+    const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aggregateBy: [{ dataTypeName: 'com.google.nutrition' }],
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis: startMs,
+        endTimeMillis: endMs
+      })
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const byDate = {};
+    for (const b of (json.bucket || [])) {
+      const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
+      for (const pt of (b.dataset?.[0]?.point || [])) {
+        const map = {};
+        for (const entry of (pt.value?.[0]?.mapVal || [])) map[entry.key] = entry.value?.fpVal ?? 0;
+        const cals = map['calories'] ?? 0;
         if (!cals) continue;
         if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
         byDate[date].cals    += cals;
-        byDate[date].protein += v.protein ?? 0;
-        byDate[date].carbs   += v.totalCarbohydrate ?? v.carbs ?? 0;
-        byDate[date].fat     += v.totalFat ?? v.fat ?? 0;
+        byDate[date].protein += map['protein'] ?? 0;
+        byDate[date].carbs   += map['carbs.total'] ?? 0;
+        byDate[date].fat     += map['fat.total'] ?? 0;
       }
-      return Object.entries(byDate)
-        .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
-        .filter(d => d.cals > 0)
-        .sort((a, b) => b.date.localeCompare(a.date));
-    } catch(e) {}
-  }
-  return [];
+    }
+    return Object.entries(byDate)
+      .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
+      .filter(d => d.cals > 0)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch(e) { return []; }
 }
 
 async function fetchGoogleActivities() {
@@ -1712,13 +1696,17 @@ function populateFuelFromLive(nutrition) {
   if (!nutrition || nutrition.length === 0) return;
   const today = new Date().toISOString().slice(0, 10);
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  const todayData = nutrition.find(n => n.date === today) || nutrition.find(n => n.date === yesterday);
+  const todayData = nutrition.find(n => n.date === today) || nutrition.find(n => n.date === yesterday) || nutrition[0];
   if (todayData) {
     setFuelDisplay(todayData.cals, todayData.protein, todayData.carbs, todayData.fat);
     const badge = document.getElementById('fuel-sync-badge');
     if (badge) { badge.textContent = 'MacroFactor ✓'; badge.style.display = 'block'; }
-    const wrap = document.getElementById('fuel-manual-wrap');
-    if (wrap) wrap.style.display = 'none';
+    const lbl = document.getElementById('fuel-date-lbl');
+    if (lbl) {
+      const d = new Date(todayData.date + 'T12:00:00');
+      const label = todayData.date === today ? 'Today' : todayData.date === yesterday ? 'Yesterday' : todayData.date;
+      lbl.textContent = label + ' · ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
   }
 
   // Update 30-day averages
@@ -1807,15 +1795,9 @@ async function fetchAndMergeGoogleFitData() {
     if (rhr.status === 'fulfilled' && rhr.value.length > 0) D.rhr = rhr.value;
     if (hrv.status === 'fulfilled' && hrv.value.length > 0) D.hrv = hrv.value;
     if (exercise.status === 'fulfilled' && exercise.value.length > 0) D.exercise = exercise.value;
-    const diagBtn = document.getElementById('fuel-diag-btn');
     if (nutrition.status === 'fulfilled' && nutrition.value.length > 0) {
       D.nutrition = nutrition.value;
-      if (diagBtn) diagBtn.style.display = 'none';
-      const badge = document.getElementById('fuel-sync-badge');
-      if (badge) { badge.textContent = `MacroFactor ✓ (${nutrition.value.length}d)`; badge.style.display = 'block'; }
       populateFuelFromLive(D.nutrition);
-    } else {
-      if (diagBtn) diagBtn.style.display = 'block';
     }
 
     renderWeight();
