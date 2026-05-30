@@ -97,7 +97,7 @@ header {
   border-bottom: 1px solid #182030;
 }
 .header-logo { display: flex; align-items: center; gap: 10px; }
-.header-logo h1 { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--white); letter-spacing: -0.3px; }
+.header-logo h1 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--white); letter-spacing: -0.4px; }
 .header-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 6px var(--blue); animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
@@ -130,7 +130,6 @@ main {
   border: 1px solid var(--border2);
   border-radius: 16px;
   padding: 20px;
-  margin-bottom: 12px;
   box-shadow: 0 4px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .card-blue {
@@ -140,16 +139,16 @@ main {
 
 /* ── LABEL ───────────────────────────────────────────────────── */
 .lbl {
-  font-size: 11px; font-weight: 500;
-  letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--gray2); margin-bottom: 10px;
 }
 
 /* ── NUMBERS ─────────────────────────────────────────────────── */
-.num-xl { font-family: 'DM Serif Display', serif; font-size: 52px; color: var(--white); line-height: 1; letter-spacing: -1px; }
-.num-lg { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--white); line-height: 1; letter-spacing: -0.5px; }
-.num-md { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--white); line-height: 1; }
-.num-unit { font-size: 14px; color: var(--gray2); font-weight: 300; margin-left: 6px; }
+.num-xl { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; color: var(--white); line-height: 1; letter-spacing: -1.5px; }
+.num-lg { font-family: 'Space Grotesk', sans-serif; font-size: 40px; font-weight: 700; color: var(--white); line-height: 1; letter-spacing: -0.8px; }
+.num-md { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700; color: var(--white); line-height: 1; }
+.num-unit { font-size: 15px; color: var(--gray2); font-weight: 400; margin-left: 6px; }
 .num-delta-pos { font-size: 13px; font-weight: 500; color: var(--green); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 .num-delta-neg { font-size: 13px; font-weight: 500; color: var(--red); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 .num-sub { font-size: 11px; color: var(--gray2); margin-top: 5px; }
@@ -331,26 +330,33 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
 <!-- ═══════════════ PROGRESS ═══════════════ -->
 <div id="pg-progress" class="page active">
 
-  <!-- Weight Journey Hero -->
+  <!-- Weight -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div>
-        <div class="lbl">Weight Journey</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px;">
-          <span id="wt-total-loss" style="font-family:'Space Grotesk',sans-serif;font-size:62px;font-weight:700;color:var(--blue);line-height:1;letter-spacing:-0.03em;">−14.3</span>
-          <span style="font-size:18px;color:var(--gray2);padding-bottom:6px;">lbs</span>
-        </div>
-        <div style="font-size:12px;color:var(--gray3);margin-top:6px;">177.1 → <span id="wt-display" style="color:var(--gray1);font-weight:600;">162.8</span> lbs · Since Feb 5</div>
-      </div>
-      <div style="text-align:right;padding-top:6px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">7-Day Avg</div>
-        <div style="font-size:26px;font-weight:700;color:var(--gray1);margin-top:4px;" id="wt-avg">163.0</div>
-        <div style="font-size:10px;color:var(--gray3);">lbs</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="lbl" style="margin-bottom:0;">Weight</div>
+      <div class="pills">
+        <button class="pill pill-on" onclick="wtRange(30,this)">30D</button>
+        <button class="pill" onclick="wtRange(60,this)">60D</button>
+        <button class="pill" onclick="wtRange(90,this)">90D</button>
       </div>
     </div>
-    <div style="height:130px;margin-top:20px;"><canvas id="wt-full-chart"></canvas></div>
-    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--gray3);">
-      <span>Feb 5</span><span id="wt-end-lbl">May 30</span>
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;">
+        <span id="wt-display" style="font-size:60px;font-weight:700;color:var(--white);line-height:1;letter-spacing:-0.03em;">162.8</span>
+        <span style="font-size:20px;color:var(--gray2);font-weight:400;padding-bottom:6px;">lbs</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;">
+        <span id="wt-delta" class="num-delta-pos" style="font-size:14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="wt-delta-val">14.3 lbs</span>
+        </span>
+        <span id="wt-sub" style="font-size:13px;color:var(--gray3);">since Feb 5</span>
+      </div>
+      <div style="font-size:13px;color:var(--gray3);margin-top:6px;">7-day avg <span id="wt-avg" style="color:var(--gray2);font-weight:600;">163.0</span> lbs</div>
+    </div>
+    <div style="height:120px;margin-top:12px;"><canvas id="wt-chart"></canvas></div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--gray3);">
+      <span id="wt-start-lbl"></span><span id="wt-end-lbl">May 30</span>
     </div>
   </div>
 
@@ -359,22 +365,22 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <div class="lbl" style="margin-bottom:16px;">Vitals</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
       <div style="border-right:1px solid var(--border);padding-right:16px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">HRV</div>
-        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-hrv-val">65</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">ms</div>
-        <div id="prog-hrv-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">BELOW RANGE</div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">HRV</div>
+        <div style="font-size:34px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-hrv-val">65</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:3px;">ms</div>
+        <div id="prog-hrv-status" style="font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-top:8px;color:var(--amber);">BELOW RANGE</div>
       </div>
       <div style="border-right:1px solid var(--border);padding:0 16px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">RHR</div>
-        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-rhr-val">51</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">bpm</div>
-        <div style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--green);">EXCELLENT</div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">RHR</div>
+        <div style="font-size:34px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-rhr-val">51</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:3px;">bpm</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-top:8px;color:var(--green);">EXCELLENT</div>
       </div>
       <div style="padding-left:16px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">Sleep</div>
-        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-sleep-val">7.5</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">hr</div>
-        <div id="prog-sleep-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">NEAR TARGET</div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">Sleep</div>
+        <div style="font-size:34px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-sleep-val">7.5</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:3px;">hr</div>
+        <div id="prog-sleep-status" style="font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-top:8px;color:var(--amber);">NEAR TARGET</div>
       </div>
     </div>
   </div>
@@ -382,37 +388,43 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
   <!-- Body Composition -->
   <div class="card">
     <div class="lbl">Body Composition</div>
-    <div style="font-size:11px;color:var(--gray3);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;margin-bottom:20px;">DEXA · May 6, 2026</div>
+    <div style="font-size:12px;color:var(--gray3);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;margin-bottom:20px;">DEXA · May 6, 2026</div>
     <div class="prog-wrap">
       <div class="prog-row">
-        <span style="font-size:12px;color:var(--gray2);">Body Fat</span>
-        <span style="font-size:14px;font-weight:700;color:var(--red);">26.2%</span>
+        <span style="font-size:14px;color:var(--gray2);">Body Fat</span>
+        <span style="font-size:16px;font-weight:700;color:var(--red);">26.2%</span>
       </div>
       <div class="prog-track"><div class="prog-fill" style="width:26.2%;background:var(--red);"></div></div>
       <div class="prog-sub">Goal 15% · was 37% · −10.8 pts</div>
     </div>
     <div class="prog-wrap">
       <div class="prog-row">
-        <span style="font-size:12px;color:var(--gray2);">Lean Mass</span>
-        <span style="font-size:14px;font-weight:700;color:var(--blue);">116.9 lbs</span>
+        <span style="font-size:14px;color:var(--gray2);">Lean Mass</span>
+        <span style="font-size:16px;font-weight:700;color:var(--blue);">116.9 lbs</span>
       </div>
       <div class="prog-track"><div class="prog-fill" style="width:62%;background:var(--blue);"></div></div>
       <div class="prog-sub">Goal 132 lbs · +15.1 to go</div>
     </div>
     <div class="prog-wrap">
       <div class="prog-row">
-        <span style="font-size:12px;color:var(--gray2);">Scale Weight</span>
-        <span style="font-size:14px;font-weight:700;color:var(--gray1);">162.8 lbs</span>
+        <span style="font-size:14px;color:var(--gray2);">Scale Weight</span>
+        <span style="font-size:16px;font-weight:700;color:var(--gray1);">162.8 lbs</span>
       </div>
       <div class="prog-track"><div class="prog-fill" style="width:77%;background:rgba(255,255,255,0.55);"></div></div>
       <div class="prog-sub">Goal 155 lbs · −7.8 to go</div>
     </div>
   </div>
 
-  <!-- DEXA Timeline -->
+  <!-- DEXA Timeline + Entry -->
   <div class="card">
     <div class="lbl" style="margin-bottom:16px;">DEXA Timeline</div>
     <div id="dexa-timeline"></div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--gray3);margin-bottom:10px;">Add Scan</div>
+      <div class="form-grid-2"><input type="date" id="dexa-date"/><input type="number" id="dexa-wt" placeholder="Weight (lbs)" step="0.1"/></div>
+      <div class="form-grid-2"><input type="number" id="dexa-bf" placeholder="Body Fat %" step="0.1"/><input type="number" id="dexa-lean" placeholder="Lean mass (lbs)" step="0.1"/></div>
+      <button class="btn btn-full" onclick="addDexa()">Add DEXA Result</button>
+    </div>
   </div>
 
   <!-- Signal Insight -->
@@ -1699,40 +1711,37 @@ const movAvg=(vals,w=7)=>vals.map((_,i)=>{const s=vals.slice(Math.max(0,i-w+1),i
 // ── WEIGHT ────────────────────────────────────────────────────────
 let _wtDays=30;
 function renderWeight(days=_wtDays) {
-  const sorted=asc(D.weight);
-  // Slice by actual date, not entry count
-  const latestDate = new Date(sorted[sorted.length-1].date);
-  const cutoff = new Date(latestDate);
-  cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString().slice(0,10);
-  const slice = sorted.filter(d => d.date >= cutoffStr);
+  const allSorted=asc(D.weight);
+  const latestDate=new Date(allSorted[allSorted.length-1].date);
+  const cutoff=new Date(latestDate); cutoff.setDate(cutoff.getDate()-days);
+  const slice=allSorted.filter(d=>d.date>=cutoff.toISOString().slice(0,10));
   const labels=slice.map(d=>d.date.slice(5));
   const vals=slice.map(d=>d.value);
   const ma=movAvg(vals);
-  
-  // Always show most recent weight as the headline number
-  const allSorted = asc(D.weight);
-  const mostRecent = allSorted[allSorted.length-1].value;
-  const earliest = vals[0];
-  const change = Math.abs(mostRecent - earliest).toFixed(1);
-  const isDown = mostRecent < earliest;
 
-  const setW=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  setW('wt-display', mostRecent.toFixed(1));
-  setW('wt-start-lbl', slice[0].date.slice(5));
+  const mostRecent=allSorted[allSorted.length-1].value;
+  const oldest=allSorted[0].value; // always Feb 5 regardless of range
+  const change=(oldest-mostRecent).toFixed(1);
+  const isDown=mostRecent<oldest;
 
-  const deltaEl = document.getElementById('wt-delta');
-  const deltaValEl = document.getElementById('wt-delta-val');
-  if(deltaValEl) deltaValEl.textContent = change + ' lbs';
-  if(deltaEl) { deltaEl.className = isDown ? 'num-delta-pos' : 'num-delta-neg'; deltaEl.querySelector('svg path').setAttribute('d', isDown ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7'); }
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('wt-display',mostRecent.toFixed(1));
+  set('wt-start-lbl',slice[0].date.slice(5));
+  set('wt-end-lbl',slice[slice.length-1].date.slice(5));
+  set('wt-avg',avg(allSorted.slice(-7).map(d=>d.value)).toFixed(1));
 
-  const subEl = document.getElementById('wt-sub');
-  if(subEl) subEl.innerHTML = 'Since ' + slice[0].date.slice(5) + ' · 7-day avg: ' + avg(allSorted.slice(-7).map(d=>d.value)).toFixed(1) + ' lbs';
+  const deltaEl=document.getElementById('wt-delta');
+  const deltaValEl=document.getElementById('wt-delta-val');
+  if(deltaValEl) deltaValEl.textContent=change+' lbs';
+  if(deltaEl) { deltaEl.className=isDown?'num-delta-pos':'num-delta-neg'; deltaEl.querySelector('svg path').setAttribute('d',isDown?'M12 5v14M5 12l7 7 7-7':'M12 19V5M5 12l7-7 7 7'); }
+
+  const subEl=document.getElementById('wt-sub');
+  if(subEl) subEl.textContent='since '+allSorted[0].date.slice(5);
 
   mkChart('wt-chart','line',labels,[
-    {data:vals,borderColor:'rgba(28,105,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0.5},
-    {data:ma,borderColor:'#1C69D4',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(28,105,212,0.05)'},tension:0.5}
-  ],{min:Math.min(...vals)-2,max:Math.max(...vals)+2});
+    {data:vals,borderColor:'rgba(96,175,255,0.25)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+    {data:ma,borderColor:'#60AFFF',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(0,102,204,0.1)'},tension:0.5}
+  ],{min:Math.min(...vals)-1,max:Math.max(...vals)+1});
 }
 function wtRange(d,btn) {
   _wtDays=d;
@@ -1833,24 +1842,7 @@ function renderTraining() {
 }
 
 // ── WEIGHT FULL ───────────────────────────────────────────────────
-function renderWeightFull() {
-  const sorted=asc(D.weight);
-  const labels=sorted.map(d=>d.date.slice(5));
-  const vals=sorted.map(d=>d.value);
-  const ma=movAvg(vals);
-  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  const current=vals[vals.length-1];
-  const oldest=vals[0];
-  const loss=(oldest-current).toFixed(1);
-  set('wt-display',current.toFixed(1));
-  set('wt-total-loss','−'+loss);
-  set('wt-avg',avg(sorted.slice(-7).map(d=>d.value)).toFixed(1));
-  set('wt-end-lbl',sorted[sorted.length-1].date.slice(5));
-  mkChart('wt-full-chart','line',labels,[
-    {data:vals,borderColor:'rgba(96,175,255,0.25)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
-    {data:ma,borderColor:'#60AFFF',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(0,102,204,0.12)'},tension:0.5}
-  ],{min:155,max:182});
-}
+function renderWeightFull() { renderWeight(); }
 
 // ── ACTIVITY ──────────────────────────────────────────────────────
 function renderActivity() {
