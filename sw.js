@@ -1,7 +1,8 @@
-const CACHE = 'signal-v32';
+const CACHE = 'signal-v33';
 const ASSETS = [
   '/',
   '/index.html',
+  '/splash.png',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Manrope:wght@400;500;600;700&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
