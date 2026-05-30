@@ -1623,15 +1623,32 @@ async function fetchGoogleHRV() {
   }
 }
 
+async function discoverNutritionTypes() {
+  try {
+    const res = await fetch(`${HEALTH_BASE}/dataTypes`, { headers: { 'Authorization': `Bearer ${gToken}` } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const all = (json.dataTypes || []).map(dt => dt.name || dt.dataTypeName || '').filter(Boolean);
+    console.log('[Signal] All Health data types:', all);
+    const nutrition = all.filter(t => /nutri|calor|meal|food|diet|macro|protein|carb/i.test(t));
+    console.log('[Signal] Nutrition-related types:', nutrition);
+    return nutrition;
+  } catch(e) { return []; }
+}
+
 async function fetchGoogleNutrition() {
   try {
+    const discovered = await discoverNutritionTypes();
+    const toTry = [...new Set([...discovered, 'nutritionLog', 'nutrition', 'nutritionRecord', 'caloriesConsumed', 'dietaryEnergy', 'meal', 'totalCaloriesConsumed'])];
     let data = null;
-    for (const typeName of ['nutritionLog', 'nutrition', 'nutritionRecord', 'caloriesConsumed', 'dietaryEnergy', 'meal']) {
+    let usedType = null;
+    for (const typeName of toTry) {
       try {
-        data = await healthList(typeName, 35);
-        if (Array.isArray(data.dataPoints) && data.dataPoints.length > 0) break;
-      } catch(e) { data = null; }
+        const d = await healthList(typeName, 35);
+        if (Array.isArray(d.dataPoints) && d.dataPoints.length > 0) { data = d; usedType = typeName; break; }
+      } catch(e) {}
     }
+    if (usedType) console.log('[Signal] Nutrition data type found:', usedType, data?.dataPoints?.length, 'pts');
     const byDate = {};
     for (const pt of (data?.dataPoints || [])) {
       const date = ptDate(pt);
@@ -1641,7 +1658,7 @@ async function fetchGoogleNutrition() {
       if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
       byDate[date].cals    += cals;
       byDate[date].protein += v.protein ?? v.totalProtein?.fpVal ?? 0;
-      byDate[date].carbs   += v.totalCarbohydrate ?? v.carbs ?? v.dietaryFiber?.fpVal ?? 0;
+      byDate[date].carbs   += v.totalCarbohydrate ?? v.carbs ?? 0;
       byDate[date].fat     += v.totalFat ?? v.fat ?? 0;
     }
     return Object.entries(byDate)

@@ -1,4 +1,4 @@
-const CACHE = 'signal-v24';
+const CACHE = 'signal-v25';
 const ASSETS = [
   '/',
   '/index.html',
