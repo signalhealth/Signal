@@ -466,7 +466,10 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
       <div id="insight-content" style="margin-top:10px;">
         <div class="serif" style="font-size:17px;line-height:1.4;color:var(--gray2);">Your personalized coaching insight will appear here.</div>
       </div>
-      <button onclick="getInsight()" id="insight-btn" style="margin-top:16px;width:100%;padding:11px;border-radius:10px;border:1px solid rgba(28,105,212,0.35);background:rgba(28,105,212,0.12);color:rgba(100,170,255,0.9);font-family:Space Grotesk,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button onclick="getInsight()" id="insight-btn" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(28,105,212,0.35);background:rgba(28,105,212,0.12);color:rgba(100,170,255,0.9);font-family:Space Grotesk,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
+        <button onclick="resetAnthropicKey()" title="Reset API key" style="padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(255,255,255,0.3);font-family:Space Grotesk,sans-serif;font-size:12px;cursor:pointer;">⚙</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2607,6 +2610,7 @@ function refreshData() {
 
 // ── ANTHROPIC API KEY ─────────────────────────────────────────────
 function getAnthropicKey() { return localStorage.getItem('anthropic_key') || null; }
+function resetAnthropicKey() { localStorage.removeItem('anthropic_key'); location.reload(); }
 let _antKeyCb = null;
 function showApiKeyPrompt(el, cb) {
   _antKeyCb = cb;
