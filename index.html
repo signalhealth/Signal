@@ -256,10 +256,11 @@ nav {
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
-nav .nav-inner { display: flex; justify-content: space-evenly; padding: 10px 0 6px; }
+nav .nav-inner { display: flex; padding: 10px 0 6px; }
 .nav-btn {
+  flex: 1;
   display: flex; flex-direction: column; align-items: center;
-  gap: 3px; padding: 6px 10px; cursor: pointer;
+  gap: 3px; padding: 6px 4px; cursor: pointer;
   color: var(--gray3); font-size: 10px; font-weight: 500;
   letter-spacing: 0.06em; text-transform: uppercase;
   border: none; background: none; transition: color 0.15s;
@@ -324,133 +325,100 @@ nav .nav-inner { display: flex; justify-content: space-evenly; padding: 10px 0 6
 
 <!-- ═══════════════ PROGRESS ═══════════════ -->
 <div id="pg-progress" class="page active">
-  <div class="page-title"><h2>Progress</h2><p>Health Intelligence</p></div>
 
-  <!-- Weight -->
-  <div class="card card-blue">
-    <div class="row-sb" style="margin-bottom:14px;">
+  <!-- Weight Journey Hero -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        <div class="lbl">Weight</div>
-        <div class="row" style="align-items:baseline;flex-wrap:wrap;gap:4px;">
-          <span class="num-xl" id="wt-display">162.8</span>
-          <span class="num-unit">lbs</span>
+        <div class="lbl">Weight Journey</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px;">
+          <span id="wt-total-loss" style="font-family:'Playfair Display',serif;font-size:62px;font-weight:700;color:var(--blue);line-height:1;letter-spacing:-0.02em;">−14.3</span>
+          <span style="font-size:18px;color:var(--gray2);padding-bottom:6px;">lbs</span>
         </div>
-        <div class="num-delta-pos" id="wt-delta">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span id="wt-delta-val">14.5 lbs</span>
-        </div>
-        <div class="num-sub" id="wt-sub">Since Feb 5 · 7-day avg: <span id="wt-avg">163.0</span> lbs</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:6px;">177.1 → <span id="wt-display" style="color:var(--gray1);font-weight:600;">162.8</span> lbs · Since Feb 5</div>
       </div>
-      <div class="pills">
-        <button class="pill pill-on" onclick="wtRange(30,this)">30D</button>
-        <button class="pill" onclick="wtRange(60,this)">60D</button>
-        <button class="pill" onclick="wtRange(90,this)">90D</button>
+      <div style="text-align:right;padding-top:6px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">7-Day Avg</div>
+        <div style="font-size:26px;font-weight:700;color:var(--gray1);margin-top:4px;" id="wt-avg">163.0</div>
+        <div style="font-size:10px;color:var(--gray3);">lbs</div>
       </div>
     </div>
-    <div style="height:160px;"><canvas id="wt-chart"></canvas></div>
+    <div style="height:130px;margin-top:20px;"><canvas id="wt-full-chart"></canvas></div>
     <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--gray3);">
-      <span id="wt-start-lbl"></span><span id="wt-end-lbl">May 23</span>
+      <span>Feb 5</span><span id="wt-end-lbl">May 30</span>
     </div>
   </div>
 
-  <!-- Body comp + vitals -->
-  <div class="grid-2col">
-    <div class="card">
-      <div class="lbl">Body Composition</div>
-      <div style="font-size:13px;font-weight:500;color:var(--gray1);margin-bottom:16px;">DEXA Progress</div>
-      <div class="prog-wrap">
-        <div class="prog-row">
-          <span style="font-size:12px;color:var(--gray2);">Body Fat</span>
-          <span style="font-size:13px;font-weight:600;color:var(--red);">26.2%</span>
-        </div>
-        <div class="prog-track"><div class="prog-fill" style="width:26.2%;background:var(--red);"></div></div>
-        <div class="prog-sub">Goal 15% · was 37%</div>
+  <!-- Body Composition -->
+  <div class="card">
+    <div class="lbl">Body Composition</div>
+    <div style="font-size:11px;color:var(--gray3);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;margin-bottom:20px;">DEXA · May 6, 2026</div>
+    <div class="prog-wrap">
+      <div class="prog-row">
+        <span style="font-size:12px;color:var(--gray2);">Body Fat</span>
+        <span style="font-size:14px;font-weight:700;color:var(--red);">26.2%</span>
       </div>
-      <div class="prog-wrap">
-        <div class="prog-row">
-          <span style="font-size:12px;color:var(--gray2);">Lean Mass</span>
-          <span style="font-size:13px;font-weight:600;color:var(--blue);">116.9 lbs</span>
-        </div>
-        <div class="prog-track"><div class="prog-fill" style="width:62%;background:var(--blue);"></div></div>
-        <div class="prog-sub">Goal 132 lbs · +15.1 to go</div>
-      </div>
-      <div class="prog-wrap">
-        <div class="prog-row">
-          <span style="font-size:12px;color:var(--gray2);">Scale Weight</span>
-          <span style="font-size:13px;font-weight:600;color:var(--white);">162.8 lbs</span>
-        </div>
-        <div class="prog-track"><div class="prog-fill" style="width:77%;background:var(--gray2);"></div></div>
-        <div class="prog-sub">Goal 155 lbs · 77% there</div>
-      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:26.2%;background:var(--red);"></div></div>
+      <div class="prog-sub">Goal 15% · was 37% · −10.8 pts</div>
     </div>
+    <div class="prog-wrap">
+      <div class="prog-row">
+        <span style="font-size:12px;color:var(--gray2);">Lean Mass</span>
+        <span style="font-size:14px;font-weight:700;color:var(--blue);">116.9 lbs</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:62%;background:var(--blue);"></div></div>
+      <div class="prog-sub">Goal 132 lbs · +15.1 to go</div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-row">
+        <span style="font-size:12px;color:var(--gray2);">Scale Weight</span>
+        <span style="font-size:14px;font-weight:700;color:var(--gray1);">162.8 lbs</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:77%;background:var(--gray2);"></div></div>
+      <div class="prog-sub">Goal 155 lbs · −7.8 to go</div>
+    </div>
+  </div>
 
-    <div class="col-stack">
-      <div class="card" style="padding:16px;">
-        <div class="lbl">HRV</div>
-        <div class="row-sb-c" style="margin-top:2px;">
-          <div>
-            <div class="row" style="align-items:baseline;gap:3px;">
-              <span class="num-md" id="prog-hrv-val">65</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">ms</span>
-            </div>
-            <div id="prog-hrv-status" style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">BELOW RANGE</div>
-          </div>
-          <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,26 12,20 24,27 36,12 48,16 62,6 80,8" stroke="#1C69D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
+  <!-- Vitals -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:16px;">Vitals</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
+      <div style="border-right:1px solid var(--border);padding-right:16px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">HRV</div>
+        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-hrv-val">65</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">ms</div>
+        <div id="prog-hrv-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">BELOW RANGE</div>
       </div>
-      <div class="card" style="padding:16px;">
-        <div class="lbl">RHR</div>
-        <div class="row-sb-c" style="margin-top:2px;">
-          <div>
-            <div class="row" style="align-items:baseline;gap:3px;">
-              <span class="num-md" id="prog-rhr-val">51</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">bpm</span>
-            </div>
-            <div style="font-size:10px;color:var(--green);margin-top:2px;letter-spacing:0.04em;">EXCELLENT</div>
-          </div>
-          <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,16 18,18 36,14 54,16 72,14 80,15" stroke="#E9283A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
+      <div style="border-right:1px solid var(--border);padding:0 16px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">RHR</div>
+        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-rhr-val">51</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">bpm</div>
+        <div style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--green);">EXCELLENT</div>
       </div>
-      <div class="card" style="padding:16px;">
-        <div class="lbl">Sleep</div>
-        <div class="row-sb-c" style="margin-top:2px;">
-          <div>
-            <div class="row" style="align-items:baseline;gap:3px;">
-              <span class="num-md" id="prog-sleep-val">7.5</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">hr</span>
-            </div>
-            <div id="prog-sleep-status" style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">NEAR TARGET</div>
-          </div>
-          <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,10 12,16 24,6 36,14 48,8 62,6 80,12" stroke="#1C69D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
+      <div style="padding-left:16px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">Sleep</div>
+        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-sleep-val">7.5</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">hr</div>
+        <div id="prog-sleep-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">NEAR TARGET</div>
       </div>
     </div>
   </div>
 
-  <!-- DEXA Timeline (moved from Body) -->
+  <!-- DEXA Timeline -->
   <div class="card">
     <div class="lbl" style="margin-bottom:16px;">DEXA Timeline</div>
     <div id="dexa-timeline"></div>
   </div>
 
-  <div class="card">
-    <div class="lbl" style="margin-bottom:12px;">Add DEXA Scan</div>
-    <div class="form-grid-2"><input type="date" id="dexa-date"/><input type="number" id="dexa-wt" placeholder="Weight (lbs)" step="0.1"/></div>
-    <div class="form-grid-2"><input type="number" id="dexa-bf" placeholder="BF %" step="0.1"/><input type="number" id="dexa-lean" placeholder="Lean mass (lbs)" step="0.1"/></div>
-    <button class="btn btn-full" onclick="addDexa()">Add DEXA Result</button>
-  </div>
-
-  <div class="card">
-    <div class="lbl" style="margin-bottom:4px;">Weight History — Full</div>
-    <div style="height:200px;margin-top:12px;"><canvas id="wt-full-chart"></canvas></div>
-  </div>
-
-  <!-- Insight -->
+  <!-- Signal Insight -->
   <div class="insight-card">
     <div style="position:relative;z-index:2;">
-      <div class="lbl" style="color:rgba(28,105,212,0.7);">Signal Insight</div>
+      <div class="lbl" style="color:rgba(0,102,204,0.7);">Signal Insight</div>
       <div id="insight-content" style="margin-top:10px;">
         <div class="serif" style="font-size:17px;line-height:1.4;color:var(--gray2);">Your personalized coaching insight will appear here.</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
-        <button onclick="getInsight()" id="insight-btn" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(28,105,212,0.35);background:rgba(28,105,212,0.12);color:rgba(100,170,255,0.9);font-family:Space Grotesk,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
+        <button onclick="getInsight()" id="insight-btn" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(0,102,204,0.35);background:rgba(0,102,204,0.12);color:rgba(100,170,255,0.9);font-family:Space Grotesk,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
         <button onclick="resetAnthropicKey()" title="Reset API key" style="padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:rgba(255,255,255,0.3);font-family:Space Grotesk,sans-serif;font-size:12px;cursor:pointer;">⚙</button>
       </div>
     </div>
@@ -1744,17 +1712,17 @@ function renderWeight(days=_wtDays) {
   const change = Math.abs(mostRecent - earliest).toFixed(1);
   const isDown = mostRecent < earliest;
 
-  document.getElementById('wt-display').textContent = mostRecent.toFixed(1);
-  document.getElementById('wt-start-lbl').textContent = slice[0].date.slice(5);
+  const setW=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setW('wt-display', mostRecent.toFixed(1));
+  setW('wt-start-lbl', slice[0].date.slice(5));
 
   const deltaEl = document.getElementById('wt-delta');
   const deltaValEl = document.getElementById('wt-delta-val');
-  deltaValEl.textContent = change + ' lbs';
-  deltaEl.className = isDown ? 'num-delta-pos' : 'num-delta-neg';
-  deltaEl.querySelector('svg path').setAttribute('d', isDown ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7');
+  if(deltaValEl) deltaValEl.textContent = change + ' lbs';
+  if(deltaEl) { deltaEl.className = isDown ? 'num-delta-pos' : 'num-delta-neg'; deltaEl.querySelector('svg path').setAttribute('d', isDown ? 'M12 5v14M5 12l7 7 7-7' : 'M12 19V5M5 12l7-7 7 7'); }
 
   const subEl = document.getElementById('wt-sub');
-  subEl.innerHTML = 'Since ' + slice[0].date.slice(5) + ' · 7-day avg: ' + avg(allSorted.slice(-7).map(d=>d.value)).toFixed(1) + ' lbs';
+  if(subEl) subEl.innerHTML = 'Since ' + slice[0].date.slice(5) + ' · 7-day avg: ' + avg(allSorted.slice(-7).map(d=>d.value)).toFixed(1) + ' lbs';
 
   mkChart('wt-chart','line',labels,[
     {data:vals,borderColor:'rgba(28,105,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0.5},
@@ -1865,9 +1833,17 @@ function renderWeightFull() {
   const labels=sorted.map(d=>d.date.slice(5));
   const vals=sorted.map(d=>d.value);
   const ma=movAvg(vals);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const current=vals[vals.length-1];
+  const oldest=vals[0];
+  const loss=(oldest-current).toFixed(1);
+  set('wt-display',current.toFixed(1));
+  set('wt-total-loss','−'+loss);
+  set('wt-avg',avg(sorted.slice(-7).map(d=>d.value)).toFixed(1));
+  set('wt-end-lbl',sorted[sorted.length-1].date.slice(5));
   mkChart('wt-full-chart','line',labels,[
-    {data:vals,borderColor:'rgba(28,105,212,0.25)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
-    {data:ma,borderColor:'#1C69D4',borderWidth:2,pointRadius:0,fill:{target:'origin',above:'rgba(28,105,212,0.05)'},tension:0.5}
+    {data:vals,borderColor:'rgba(0,102,204,0.2)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+    {data:ma,borderColor:'#0066CC',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(0,102,204,0.06)'},tension:0.5}
   ],{min:155,max:182});
 }
 
