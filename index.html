@@ -1607,6 +1607,14 @@ async function fetchAndMergeGoogleFitData() {
       fetchGoogleActivities(),
       fetchGoogleNutrition()
     ]);
+
+    // Debug: log raw results so we can inspect the actual API responses
+    console.group('Signal — Google Health API fetch results');
+    [['weight',weight],['steps',steps],['sleep',sleep],['rhr',rhr],['hrv',hrv],['exercise',exercise],['nutrition',nutrition]].forEach(([name, r]) => {
+      if (r.status === 'fulfilled') console.log(`✅ ${name}:`, r.value);
+      else console.warn(`❌ ${name}:`, r.reason?.message || r.reason);
+    });
+    console.groupEnd();
     if (weight.status === 'fulfilled' && weight.value.length > 0) D.weight = weight.value;
     if (steps.status === 'fulfilled' && steps.value.length > 0) D.steps = steps.value;
     if (sleep.status === 'fulfilled' && sleep.value.length > 0) D.sleep = sleep.value;
