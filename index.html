@@ -1440,11 +1440,11 @@ let gToken = null;
 let gTokenClient = null;
 
 function saveToken(token) {
-  try { localStorage.setItem('gfit_auth_v3', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+  try { localStorage.setItem('gfit_auth_v4', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
 }
 function loadToken() {
   try {
-    const s = JSON.parse(localStorage.getItem('gfit_auth_v3') || 'null');
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v4') || 'null');
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
