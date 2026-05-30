@@ -11,6 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -89,6 +90,35 @@ body::before {
 .pin-btn:active { background: var(--surface3); border-color: var(--blue); }
 .pin-empty { height: 72px; }
 .pin-error { font-size: 11px; color: var(--red); height: 16px; transition: opacity 0.2s; opacity: 0; letter-spacing: 0.08em; text-transform: uppercase; position: relative; z-index: 1; }
+
+/* ── GOOGLE AUTH ─────────────────────────────────────────────── */
+.pin-or { display: flex; align-items: center; gap: 12px; width: 236px; position: relative; z-index: 1; }
+.pin-or::before, .pin-or::after { content: ''; flex: 1; height: 1px; background: var(--border2); }
+.pin-or span { font-size: 10px; color: var(--gray3); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+.google-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  width: 236px; padding: 12px 16px;
+  background: transparent; border: 1px solid var(--border2);
+  border-radius: 12px; color: var(--gray1);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.01em;
+  position: relative; z-index: 1;
+}
+.google-btn:hover { background: var(--surface2); border-color: var(--blue); color: var(--white); }
+.google-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.header-google { display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0; transition: opacity 0.3s; }
+.header-google.visible { opacity: 1; }
+.header-google-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.header-google-lbl { font-size: 10px; color: var(--green); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.gfit-loading {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(3,3,8,0.75); backdrop-filter: blur(6px);
+  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+.gfit-loading.show { display: flex; }
+.gfit-spinner { width: 30px; height: 30px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.gfit-loading-text { font-size: 12px; color: var(--gray2); letter-spacing: 0.1em; text-transform: uppercase; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── HEADER ──────────────────────────────────────────────────── */
 header {
@@ -303,6 +333,16 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     <button class="pin-btn" onclick="pinKey('del')">⌫</button>
   </div>
   <div class="pin-error" id="pin-err">Incorrect PIN</div>
+  <div class="pin-or"><span>or</span></div>
+  <button class="google-btn" id="google-btn" onclick="signInWithGoogle()">
+    <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    Connect Google Health
+  </button>
 </div>
 
 <!-- Header -->
@@ -316,8 +356,19 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     </svg>
     <h1>Signal</h1>
   </div>
-  <div class="header-dot"></div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to refresh">
+      <div class="header-google-dot"></div>
+      <span class="header-google-lbl">Google Health</span>
+    </div>
+    <div class="header-dot"></div>
+  </div>
 </header>
+
+<div class="gfit-loading" id="gfit-loading">
+  <div class="gfit-spinner"></div>
+  <div class="gfit-loading-text">Syncing Google Health data…</div>
+</div>
 
 <main>
 
@@ -1320,6 +1371,225 @@ const EVENTS = [
   }
 ];
 
+// ── GOOGLE FITNESS API ────────────────────────────────────────────
+const GFIT_CLIENT_ID = '580577187739-mc7gb22ok305k4asbt0ndko89cpdmfh5.apps.googleusercontent.com';
+const GFIT_SCOPES = [
+  'https://www.googleapis.com/auth/fitness.body.read',
+  'https://www.googleapis.com/auth/fitness.sleep.read',
+  'https://www.googleapis.com/auth/fitness.activity.read',
+  'https://www.googleapis.com/auth/fitness.heart_rate.read',
+].join(' ');
+
+let gToken = null;
+let gTokenClient = null;
+
+window.onGoogleLibraryLoad = function() {
+  gTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GFIT_CLIENT_ID,
+    scope: GFIT_SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { console.error('Google auth error:', resp); return; }
+      gToken = resp.access_token;
+      try { sessionStorage.setItem('gfit_token', gToken); } catch(e) {}
+      document.getElementById('pin-screen').style.display = 'none';
+      document.getElementById('header-google').classList.add('visible');
+      await fetchAndMergeGoogleFitData();
+    }
+  });
+};
+
+function signInWithGoogle() {
+  if (!gTokenClient) {
+    const btn = document.getElementById('google-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+    setTimeout(() => {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Connect Google Health'; }
+    }, 3000);
+    return;
+  }
+  gTokenClient.requestAccessToken({ prompt: '' });
+}
+
+function msToDate(ms) {
+  return new Date(Number(ms)).toISOString().slice(0, 10);
+}
+
+async function gfitAggregate(dataTypeName, daysBack) {
+  const endMs = Date.now();
+  const startMs = endMs - daysBack * 86400000;
+  const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      aggregateBy: [{ dataTypeName }],
+      bucketByTime: { durationMillis: 86400000 },
+      startTimeMillis: startMs.toString(),
+      endTimeMillis: endMs.toString()
+    })
+  });
+  if (!res.ok) throw new Error(`Fit API ${res.status} for ${dataTypeName}`);
+  return res.json();
+}
+
+async function fetchGoogleWeight() {
+  const data = await gfitAggregate('com.google.weight', 120);
+  const result = [];
+  for (const bucket of data.bucket || []) {
+    const date = msToDate(bucket.startTimeMillis);
+    for (const ds of bucket.dataset || []) {
+      for (const pt of ds.point || []) {
+        const kg = pt.value?.[0]?.fpVal;
+        if (kg > 0) result.push({ date, value: Math.round(kg * 2.20462 * 10) / 10 });
+      }
+    }
+  }
+  return result.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+async function fetchGoogleSteps() {
+  const data = await gfitAggregate('com.google.step_count.delta', 45);
+  const result = [];
+  for (const bucket of data.bucket || []) {
+    const date = msToDate(bucket.startTimeMillis);
+    let total = 0;
+    for (const ds of bucket.dataset || []) {
+      for (const pt of ds.point || []) total += pt.value?.[0]?.intVal || 0;
+    }
+    if (total > 0) result.push({ date, value: total });
+  }
+  return result.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+async function fetchGoogleSleep() {
+  const data = await gfitAggregate('com.google.sleep.segment', 75);
+  const byDate = {};
+  for (const bucket of data.bucket || []) {
+    for (const ds of bucket.dataset || []) {
+      for (const pt of ds.point || []) {
+        const sleepType = pt.value?.[0]?.intVal;
+        // 2=generic sleep, 4=light, 5=deep, 6=REM — all count toward sleep duration
+        if (sleepType === 2 || sleepType === 4 || sleepType === 5 || sleepType === 6) {
+          const startMs = Math.floor(parseInt(pt.startTimeNanos) / 1e6);
+          const endMs = Math.floor(parseInt(pt.endTimeNanos) / 1e6);
+          const durationMs = endMs - startMs;
+          const date = new Date(endMs).toISOString().slice(0, 10);
+          byDate[date] = (byDate[date] || 0) + durationMs;
+        }
+      }
+    }
+  }
+  return Object.entries(byDate)
+    .map(([date, ms]) => ({ date, value: Math.round(ms / 3600000 * 10) / 10 }))
+    .filter(r => r.value >= 1)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 75);
+}
+
+async function fetchGoogleRHR() {
+  const data = await gfitAggregate('com.google.heart_rate.bpm', 365);
+  const byDate = {};
+  for (const bucket of data.bucket || []) {
+    const date = msToDate(bucket.startTimeMillis);
+    for (const ds of bucket.dataset || []) {
+      for (const pt of ds.point || []) {
+        // Use minimum BPM per day as resting heart rate proxy
+        const bpm = pt.value?.[0]?.fpVal;
+        if (bpm && bpm > 30 && bpm < 120) {
+          if (!byDate[date] || bpm < byDate[date]) byDate[date] = bpm;
+        }
+      }
+    }
+  }
+  return Object.entries(byDate)
+    .map(([date, value]) => ({ date, value: Math.round(value) }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+async function fetchGoogleHRV() {
+  try {
+    const data = await gfitAggregate('com.google.heart_rate.variability.rmssd.ms', 365);
+    const result = [];
+    for (const bucket of data.bucket || []) {
+      const date = msToDate(bucket.startTimeMillis);
+      for (const ds of bucket.dataset || []) {
+        for (const pt of ds.point || []) {
+          const hrv = pt.value?.[0]?.fpVal;
+          if (hrv && hrv > 0) result.push({ date, value: Math.round(hrv * 10) / 10 });
+        }
+      }
+    }
+    return result.sort((a, b) => b.date.localeCompare(a.date));
+  } catch(e) {
+    return [];
+  }
+}
+
+async function fetchGoogleActivities() {
+  const endMs = Date.now();
+  const startMs = endMs - 90 * 86400000;
+  const startISO = new Date(startMs).toISOString();
+  const endISO = new Date(endMs).toISOString();
+  const res = await fetch(
+    `https://www.googleapis.com/fitness/v1/users/me/sessions?startTime=${encodeURIComponent(startISO)}&endTime=${encodeURIComponent(endISO)}`,
+    { headers: { 'Authorization': `Bearer ${gToken}` } }
+  );
+  if (!res.ok) throw new Error(`Sessions API ${res.status}`);
+  const data = await res.json();
+
+  // Map Google Fit activity types to Signal internal types
+  const TYPE_MAP = {
+    55: 34, 56: 34, 57: 34, 58: 34,  // running variants → Run
+    78: 45, 95: 45, 40: 45,           // strength/weightlifting/kettlebell → Strength
+    90: 53, 91: 53, 92: 53, 93: 53,  // walking variants → Walk
+  };
+
+  return (data.session || [])
+    .filter(s => s.activityType !== 72 && s.activityType !== 69 && s.activityType !== 77)
+    .map(s => {
+      const start = Number(s.startTimeMillis);
+      const durMin = Math.round((Number(s.endTimeMillis) - start) / 60000);
+      const date = new Date(start).toISOString().slice(0, 10);
+      return {
+        date,
+        title: s.name || `Activity ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+        type: TYPE_MAP[s.activityType] ?? 58,
+        duration: durMin
+      };
+    })
+    .filter(a => a.duration > 0)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+async function fetchAndMergeGoogleFitData() {
+  const loadEl = document.getElementById('gfit-loading');
+  loadEl.classList.add('show');
+  try {
+    const [weight, steps, sleep, rhr, hrv, exercise] = await Promise.allSettled([
+      fetchGoogleWeight(),
+      fetchGoogleSteps(),
+      fetchGoogleSleep(),
+      fetchGoogleRHR(),
+      fetchGoogleHRV(),
+      fetchGoogleActivities()
+    ]);
+    if (weight.status === 'fulfilled' && weight.value.length > 0) D.weight = weight.value;
+    if (steps.status === 'fulfilled' && steps.value.length > 0) D.steps = steps.value;
+    if (sleep.status === 'fulfilled' && sleep.value.length > 0) D.sleep = sleep.value;
+    if (rhr.status === 'fulfilled' && rhr.value.length > 0) D.rhr = rhr.value;
+    if (hrv.status === 'fulfilled' && hrv.value.length > 0) D.hrv = hrv.value;
+    if (exercise.status === 'fulfilled' && exercise.value.length > 0) D.exercise = exercise.value;
+
+    renderWeight();
+    renderActivity();
+    renderDexa();
+    setTimeout(renderWeightFull, 100);
+  } catch(e) {
+    console.error('Google Fit sync error:', e);
+  } finally {
+    loadEl.classList.remove('show');
+  }
+}
+
 // ── STORAGE ───────────────────────────────────────────────────────
 let S = { dexa:[], prs:[], labs:[], recovery:[] };
 async function loadS() { try { const r=await window.storage.get('signal_bmw'); if(r) S=JSON.parse(r.value); } catch(e){} }
@@ -2068,6 +2338,21 @@ async function init() {
   renderActivity();
   renderDexa();
   setTimeout(renderWeightFull, 100);
+
+  // If user has an active Google session, request a token silently
+  const waitForGIS = () => new Promise(resolve => {
+    if (window.google?.accounts?.oauth2) { resolve(true); return; }
+    let tries = 0;
+    const t = setInterval(() => {
+      if (window.google?.accounts?.oauth2 || ++tries > 40) { clearInterval(t); resolve(!!window.google?.accounts?.oauth2); }
+    }, 250);
+  });
+  const ready = await waitForGIS();
+  if (ready && !gTokenClient) window.onGoogleLibraryLoad();
+  if (gTokenClient) {
+    // Silent token request — skips consent screen if already authorized
+    gTokenClient.requestAccessToken({ prompt: '' });
+  }
 }
 init();
 
