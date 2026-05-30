@@ -116,6 +116,7 @@ main {
 @keyframes signal-w1 { 0%,8%,100%{opacity:0} 22%,38%{opacity:0.9} 65%{opacity:0} }
 @keyframes signal-w2 { 0%,22%,100%{opacity:0} 38%,52%{opacity:0.75} 80%{opacity:0} }
 @keyframes signal-w3 { 0%,38%,100%{opacity:0} 55%,68%{opacity:0.55} 94%{opacity:0} }
+@keyframes orb-bg-breathe { 0%,100%{opacity:0.07} 50%{opacity:0.14} }
 
 /* ── PAGE TITLE ──────────────────────────────────────────────── */
 .page-title { padding: 6px 0 2px; }
@@ -311,23 +312,23 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     </svg>
   </div>
 
-  <!-- Animated Signal icon — centered in the orb glow -->
-  <div style="position:absolute;top:26%;left:50%;transform:translateX(-50%);pointer-events:none;animation:orb-breathe 4s ease-in-out infinite;">
-    <svg width="120" height="98" viewBox="0 0 56 44" fill="none">
+  <!-- Animated Signal icon — full-screen background, top-right, rotated 45° -->
+  <div style="position:absolute;top:-25%;right:-35%;width:170vw;pointer-events:none;transform:rotate(45deg);transform-origin:70% 30%;animation:orb-bg-breathe 5s ease-in-out infinite;">
+    <svg width="100%" viewBox="0 0 56 44" fill="none">
       <circle cx="28" cy="36" r="4" fill="#fff" style="animation:signal-dot 4s ease-in-out infinite;"/>
-      <path d="M17 27 Q28 15 39 27" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" style="animation:signal-w1 4s ease-in-out infinite;"/>
-      <path d="M10 19 Q28 4 46 19" stroke="#fff" stroke-width="1.5" stroke-linecap="round" fill="none" style="animation:signal-w2 4s ease-in-out infinite;"/>
-      <path d="M3 12 Q28 -6 53 12" stroke="#fff" stroke-width="1.5" stroke-linecap="round" fill="none" style="animation:signal-w3 4s ease-in-out infinite;"/>
+      <path d="M17 27 Q28 15 39 27" stroke="#fff" stroke-width="0.7" stroke-linecap="round" fill="none" style="animation:signal-w1 4s ease-in-out infinite;"/>
+      <path d="M10 19 Q28 4 46 19" stroke="#fff" stroke-width="0.6" stroke-linecap="round" fill="none" style="animation:signal-w2 4s ease-in-out infinite;"/>
+      <path d="M3 12 Q28 -6 53 12" stroke="#fff" stroke-width="0.5" stroke-linecap="round" fill="none" style="animation:signal-w3 4s ease-in-out infinite;"/>
     </svg>
   </div>
 
   <!-- Text + button — pinned to bottom, left-aligned -->
   <div style="position:absolute;bottom:0;left:0;right:0;padding:0 30px 54px;">
 
-    <h1 style="font-family:Space Grotesk,sans-serif;font-size:50px;line-height:1.06;color:#fff;letter-spacing:-1.8px;margin:0 0 14px;text-align:left;">
-      <span style="font-weight:300;">Your health.</span><br>
-      <span style="font-weight:300;">Your data.</span><br>
-      <span style="font-weight:700;">Your signal.</span>
+    <h1 style="font-family:Space Grotesk,sans-serif;line-height:1.08;color:#fff;margin:0 0 14px;text-align:left;">
+      <span style="font-size:32px;font-weight:300;letter-spacing:-0.8px;">Your health.</span><br>
+      <span style="font-size:32px;font-weight:300;letter-spacing:-0.8px;">Your data.</span><br>
+      <span style="font-size:50px;font-weight:700;letter-spacing:-1.8px;">Your Signal.</span>
     </h1>
 
     <p style="font-size:13px;color:rgba(255,255,255,0.3);margin:0 0 38px;line-height:1.55;letter-spacing:0.01em;text-align:left;">
