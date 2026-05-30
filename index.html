@@ -287,21 +287,50 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
 </header>
 
 <!-- ═══════════════ LANDING PAGE ═══════════════ -->
-<div id="pg-landing" style="position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;">
-  <div style="text-align:center;max-width:320px;width:100%;">
-    <svg width="56" height="48" viewBox="0 0 56 44" fill="none" style="margin-bottom:20px;">
-      <circle cx="28" cy="36" r="5" fill="#1C69D4"/>
-      <path d="M17 27 Q28 15 39 27" stroke="#1C69D4" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <path d="M10 19 Q28 4 46 19" stroke="#1C69D4" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55"/>
-      <path d="M3 12 Q28 -6 53 12" stroke="#1C69D4" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.25"/>
+<div id="pg-landing" style="position:fixed;inset:0;z-index:100;background:#000;overflow:hidden;">
+
+  <!-- Atmospheric orb — offset upper-right, large ambient glow -->
+  <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
+    <!-- Outer diffuse halo -->
+    <div style="position:absolute;top:-35%;left:-5%;width:110%;height:100%;
+      background:radial-gradient(ellipse at 62% 48%, #1C69D4 0%, #0A1628 42%, transparent 70%);
+      filter:blur(70px);opacity:0.75;"></div>
+    <!-- Bright inner core -->
+    <div style="position:absolute;top:-20%;left:15%;width:90%;height:85%;
+      background:radial-gradient(ellipse at 58% 42%, #4DA3FF 0%, #1C69D4 18%, transparent 52%);
+      filter:blur(32px);opacity:0.65;"></div>
+    <!-- Deep base layer -->
+    <div style="position:absolute;top:0;left:0;width:100%;height:65%;
+      background:radial-gradient(ellipse at 65% 35%, #0A1628 0%, transparent 65%);
+      filter:blur(10px);opacity:0.9;"></div>
+    <!-- Horizon curve — two strokes for depth -->
+    <svg style="position:absolute;top:51%;left:0;width:100%;height:90px;opacity:1;" viewBox="0 0 390 90" preserveAspectRatio="none" fill="none">
+      <path d="M-30 68 C40 28, 160 8, 270 34 S360 60 420 48" stroke="rgba(120,195,255,0.22)" stroke-width="0.8"/>
+      <path d="M-30 78 C40 38, 160 18, 270 44 S360 70 420 58" stroke="rgba(120,195,255,0.07)" stroke-width="1.5"/>
     </svg>
-    <h1 style="font-family:'DM Serif Display',serif;font-size:40px;letter-spacing:-0.5px;margin-bottom:10px;">Signal</h1>
-    <p style="font-size:14px;color:var(--gray2);line-height:1.6;margin-bottom:48px;">Your personal health intelligence dashboard. Body composition, recovery, training, and nutrition — all in one place.</p>
-    <button id="landing-connect-btn" onclick="connectGoogle()" style="width:100%;padding:16px;border-radius:12px;border:none;background:var(--blue);color:white;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:0.03em;display:flex;align-items:center;justify-content:center;gap:10px;">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.616z" fill="#fff" opacity=".9"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#fff" opacity=".8"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#fff" opacity=".7"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#fff" opacity=".6"/></svg>
-      Connect Google Health
-    </button>
-    <p style="font-size:11px;color:var(--gray3);margin-top:20px;line-height:1.5;">Reads fitness, sleep, heart rate,<br/>and nutrition data from Google Health.</p>
+  </div>
+
+  <!-- Text + buttons — pinned to bottom, left-aligned -->
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:0 30px 54px;">
+
+    <h1 style="font-family:'DM Sans',sans-serif;font-size:50px;font-weight:700;line-height:1.06;color:#fff;letter-spacing:-1.8px;margin:0 0 14px;text-align:left;">
+      Your health.<br>Your data.<br>Your signal.
+    </h1>
+
+    <p style="font-size:13px;color:rgba(255,255,255,0.3);margin:0 0 38px;line-height:1.55;letter-spacing:0.01em;text-align:left;">
+      Precision health intelligence from your wearables.
+    </p>
+
+    <!-- Two pill buttons — ghost left, white-filled right -->
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button onclick="" style="flex:0 0 auto;padding:16px 24px;border-radius:60px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.4);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;letter-spacing:0.02em;white-space:nowrap;">
+        About
+      </button>
+      <button id="landing-connect-btn" onclick="connectGoogle()" style="flex:1;padding:17px 20px;border-radius:60px;border:none;background:#fff;color:#0A0F1E;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.01em;white-space:nowrap;text-align:center;">
+        Connect Google Health
+      </button>
+    </div>
+
   </div>
 </div>
 
