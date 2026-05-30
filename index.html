@@ -1485,7 +1485,7 @@ function signInWithGoogle() {
 async function healthList(dataType, daysBack) {
   const end = new Date().toISOString();
   const start = new Date(Date.now() - daysBack * 86400000).toISOString();
-  const filter = `${dataType}.interval.start_time >= "${start}" AND ${dataType}.interval.start_time < "${end}"`;
+  const filter = `startTime >= "${start}" AND startTime < "${end}"`;
   const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:list?filter=${encodeURIComponent(filter)}`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
   if (!res.ok) {
@@ -1498,9 +1498,13 @@ async function healthList(dataType, daysBack) {
 async function healthDailyRollUp(dataType, daysBack) {
   const end = new Date().toISOString();
   const start = new Date(Date.now() - daysBack * 86400000).toISOString();
-  const filter = `${dataType}.interval.start_time >= "${start}" AND ${dataType}.interval.start_time < "${end}"`;
-  const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:dailyRollUp?filter=${encodeURIComponent(filter)}`;
-  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
+  // dailyRollUp is a POST custom method, not GET with filter param
+  const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:dailyRollUp`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ startTime: start, endTime: end })
+  });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`Health API ${res.status} (${dataType}): ${body}`);
@@ -1508,23 +1512,28 @@ async function healthDailyRollUp(dataType, daysBack) {
   return res.json();
 }
 
+function ptDate(pt) {
+  // Handle both nested interval.startTime and flat startTime
+  return (pt.interval?.startTime || pt.startTime || '').slice(0, 10);
+}
+
 function ptVal(pt) {
-  // Defensive accessor — try common field paths across data types
   return pt.value?.fpVal ?? pt.value?.intVal
       ?? pt.standardValue?.fpVal ?? pt.standardValue?.intVal
       ?? pt.originalValue?.fpVal ?? pt.originalValue?.intVal
+      ?? (typeof pt.value === 'number' ? pt.value : null)
       ?? null;
 }
 
 async function fetchGoogleWeight() {
-  const data = await healthList('weight', 120);
+  const data = await healthList('bodyWeight', 120);
   return (data.dataPoints || [])
     .map(pt => {
       const kg = ptVal(pt);
       if (!kg || kg <= 0) return null;
-      return { date: pt.interval.startTime.slice(0, 10), value: Math.round(kg * 2.20462 * 10) / 10 };
+      return { date: ptDate(pt), value: Math.round(kg * 2.20462 * 10) / 10 };
     })
-    .filter(Boolean)
+    .filter(d => d && d.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -1534,22 +1543,21 @@ async function fetchGoogleSteps() {
     .map(pt => {
       const v = ptVal(pt);
       if (!v || v <= 0) return null;
-      return { date: pt.interval.startTime.slice(0, 10), value: Math.round(v) };
+      return { date: ptDate(pt), value: Math.round(v) };
     })
-    .filter(Boolean)
+    .filter(d => d && d.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 async function fetchGoogleSleep() {
-  const data = await healthList('sleep', 75);
-  // Each data point is a sleep session; use end-time date as the "sleep night" key
+  const data = await healthList('sleepSession', 75);
   const byDate = {};
   for (const pt of data.dataPoints || []) {
-    const start = new Date(pt.interval.startTime);
-    const end = new Date(pt.interval.endTime);
-    const hours = (end - start) / 3600000;
+    const s = new Date(pt.interval?.startTime || pt.startTime);
+    const e = new Date(pt.interval?.endTime || pt.endTime);
+    const hours = (e - s) / 3600000;
     if (hours < 1) continue;
-    const date = end.toISOString().slice(0, 10);
+    const date = e.toISOString().slice(0, 10);
     if (!byDate[date] || hours > byDate[date]) byDate[date] = hours;
   }
   return Object.entries(byDate)
@@ -1564,9 +1572,9 @@ async function fetchGoogleRHR() {
     .map(pt => {
       const bpm = ptVal(pt);
       if (!bpm || bpm < 30 || bpm > 120) return null;
-      return { date: pt.interval.startTime.slice(0, 10), value: Math.round(bpm) };
+      return { date: ptDate(pt), value: Math.round(bpm) };
     })
-    .filter(Boolean)
+    .filter(d => d && d.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -1577,9 +1585,9 @@ async function fetchGoogleHRV() {
       .map(pt => {
         const hrv = ptVal(pt);
         if (!hrv || hrv <= 0) return null;
-        return { date: pt.interval.startTime.slice(0, 10), value: Math.round(hrv * 10) / 10 };
+        return { date: ptDate(pt), value: Math.round(hrv * 10) / 10 };
       })
-      .filter(Boolean)
+      .filter(d => d && d.date)
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch(e) {
     console.warn('HRV fetch failed:', e);
@@ -1592,7 +1600,7 @@ async function fetchGoogleNutrition() {
     const data = await healthList('nutritionLog', 35);
     const byDate = {};
     for (const pt of data.dataPoints || []) {
-      const date = pt.interval.startTime.slice(0, 10);
+      const date = ptDate(pt);
       // Nutrition values may be top-level fields or nested in a nutrients map
       const v = pt.value || pt.standardValue || pt.originalValue || {};
       const cals = v.calories ?? v.energy?.fpVal ?? 0;
@@ -1613,22 +1621,22 @@ async function fetchGoogleNutrition() {
 }
 
 async function fetchGoogleActivities() {
-  const data = await healthList('exercise', 90);
+  const data = await healthList('exerciseSession', 90);
   return (data.dataPoints || [])
     .map(pt => {
-      const start = new Date(pt.interval.startTime);
-      const end = new Date(pt.interval.endTime);
-      const durMin = Math.round((end - start) / 60000);
+      const s = new Date(pt.interval?.startTime || pt.startTime);
+      const e = new Date(pt.interval?.endTime || pt.endTime);
+      const durMin = Math.round((e - s) / 60000);
       const v = pt.value || pt.standardValue || pt.originalValue || {};
       const name = v.exerciseType?.stringVal || v.activityName?.stringVal || pt.dataPointId || 'Workout';
       return {
-        date: pt.interval.startTime.slice(0, 10),
+        date: ptDate(pt),
         title: name,
         type: 58,
         duration: durMin
       };
     })
-    .filter(a => a.duration > 0)
+    .filter(a => a.duration > 0 && a.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
@@ -2388,15 +2396,18 @@ function updateFuelProgress() {
 }
 
 async function analyzeFuel() {
+  const btn = document.getElementById('fuel-btn');
+  const result = document.getElementById('fuel-result');
+
+  const apiKey = getAnthropicKey();
+  if (!apiKey) { showApiKeyPrompt(result, analyzeFuel); return; }
+
   // Prefer live nutrition data; fall back to hidden inputs
   const liveToday = D.nutrition?.[0];
   const cals = liveToday?.cals || +document.getElementById('fuel-cals').value || 0;
   const protein = liveToday?.protein || +document.getElementById('fuel-protein').value || 0;
   const carbs = liveToday?.carbs || +document.getElementById('fuel-carbs').value || 0;
   const fat = liveToday?.fat || +document.getElementById('fuel-fat').value || 0;
-  
-  const btn = document.getElementById('fuel-btn');
-  const result = document.getElementById('fuel-result');
   
   btn.textContent = 'ANALYZING...';
   btn.style.opacity = '0.6';
@@ -2443,7 +2454,7 @@ Keep it under 100 words. Be direct and specific. No generic advice.`;
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-opus-4-8',
         max_tokens: 1000,
@@ -2510,9 +2521,29 @@ function refreshData() {
   else { signInWithGoogle(); }
 }
 
+// ── ANTHROPIC API KEY ─────────────────────────────────────────────
+function getAnthropicKey() { return localStorage.getItem('anthropic_key') || null; }
+let _antKeyCb = null;
+function showApiKeyPrompt(el, cb) {
+  _antKeyCb = cb;
+  el.innerHTML = `<div style="font-size:13px;color:var(--gray2);line-height:1.6;margin-bottom:10px;">Enter your Anthropic API key to enable AI insights. Stored only on this device.</div>
+    <input id="ant-key-input" type="password" placeholder="sk-ant-api03-…" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid rgba(28,105,212,0.35);background:rgba(255,255,255,0.05);color:#fff;font-family:Space Grotesk,sans-serif;font-size:13px;margin-bottom:8px;display:block;"/>
+    <button onclick="antKeySave()" style="width:100%;padding:10px;border-radius:8px;border:none;background:rgba(28,105,212,0.85);color:#fff;font-family:Space Grotesk,sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Save &amp; Continue</button>
+    <div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,0.25);">Get your key at console.anthropic.com &nbsp;·&nbsp; <a href="#" onclick="localStorage.removeItem('anthropic_key');location.reload();return false;" style="color:rgba(100,160,255,0.45);">Reset</a></div>`;
+}
+function antKeySave() {
+  const k = (document.getElementById('ant-key-input')?.value || '').trim();
+  if (!k) return;
+  localStorage.setItem('anthropic_key', k);
+  if (_antKeyCb) { const cb = _antKeyCb; _antKeyCb = null; cb(); }
+}
+
 async function getInsight() {
   const btn = document.getElementById('insight-btn');
   const content = document.getElementById('insight-content');
+
+  const apiKey = getAnthropicKey();
+  if (!apiKey) { showApiKeyPrompt(content, getInsight); return; }
 
   btn.textContent = 'THINKING...';
   btn.style.opacity = '0.6';
@@ -2552,7 +2583,7 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-opus-4-8',
         max_tokens: 200,
