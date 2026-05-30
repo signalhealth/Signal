@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="Signal"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -38,7 +38,7 @@
 
 body {
   background: var(--bg);
-  font-family: 'DM Sans', sans-serif;
+  font-family: Space Grotesk, sans-serif;
   color: var(--white);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
@@ -65,7 +65,7 @@ body::before {
   width: 236px; padding: 12px 16px;
   background: transparent; border: 1px solid var(--border2);
   border-radius: 12px; color: var(--gray1);
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  font-family: Space Grotesk, sans-serif; font-size: 13px; font-weight: 500;
   cursor: pointer; transition: all 0.15s; letter-spacing: 0.01em;
   position: relative; z-index: 1;
 }
@@ -111,6 +111,11 @@ main {
 .page { display: none; flex-direction: column; gap: 12px; }
 .page.active { display: flex; animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes orb-breathe { 0%,100%{opacity:0.13} 50%{opacity:0.22} }
+@keyframes signal-dot { 0%,100%{opacity:0.5} 50%{opacity:0.95} }
+@keyframes signal-w1 { 0%,8%,100%{opacity:0} 22%,38%{opacity:0.9} 65%{opacity:0} }
+@keyframes signal-w2 { 0%,22%,100%{opacity:0} 38%,52%{opacity:0.75} 80%{opacity:0} }
+@keyframes signal-w3 { 0%,38%,100%{opacity:0} 55%,68%{opacity:0.55} 94%{opacity:0} }
 
 /* ── PAGE TITLE ──────────────────────────────────────────────── */
 .page-title { padding: 6px 0 2px; }
@@ -219,7 +224,7 @@ main {
 input, select {
   background: #0A1628; border: 1px solid #1A3A5C;
   border-radius: 8px; padding: 9px 12px;
-  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  font-family: Space Grotesk, sans-serif; font-size: 13px;
   color: var(--white); outline: none; width: 100%;
   transition: border-color 0.15s;
 }
@@ -229,7 +234,7 @@ select option { background: var(--surface2); }
 .btn {
   background: var(--blue); color: var(--white); border: none;
   border-radius: 8px; padding: 9px 16px;
-  font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px;
+  font-family: Space Grotesk, sans-serif; font-weight: 500; font-size: 13px;
   cursor: pointer; white-space: nowrap; transition: background 0.15s;
 }
 .btn:hover { background: var(--blue-dim); }
@@ -277,7 +282,7 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
+    <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
       <span class="header-google-lbl">Google Health</span>
@@ -289,47 +294,49 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
 <!-- ═══════════════ LANDING PAGE ═══════════════ -->
 <div id="pg-landing" style="position:fixed;inset:0;z-index:100;background:#000;overflow:hidden;">
 
-  <!-- Atmospheric orb — offset upper-right, large ambient glow -->
+  <!-- Atmospheric orb -->
   <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
-    <!-- Outer diffuse halo -->
     <div style="position:absolute;top:-35%;left:-5%;width:110%;height:100%;
       background:radial-gradient(ellipse at 62% 48%, #1C69D4 0%, #0A1628 42%, transparent 70%);
       filter:blur(70px);opacity:0.75;"></div>
-    <!-- Bright inner core -->
     <div style="position:absolute;top:-20%;left:15%;width:90%;height:85%;
       background:radial-gradient(ellipse at 58% 42%, #4DA3FF 0%, #1C69D4 18%, transparent 52%);
       filter:blur(32px);opacity:0.65;"></div>
-    <!-- Deep base layer -->
     <div style="position:absolute;top:0;left:0;width:100%;height:65%;
       background:radial-gradient(ellipse at 65% 35%, #0A1628 0%, transparent 65%);
       filter:blur(10px);opacity:0.9;"></div>
-    <!-- Horizon curve — two strokes for depth -->
-    <svg style="position:absolute;top:51%;left:0;width:100%;height:90px;opacity:1;" viewBox="0 0 390 90" preserveAspectRatio="none" fill="none">
+    <svg style="position:absolute;top:51%;left:0;width:100%;height:90px;" viewBox="0 0 390 90" preserveAspectRatio="none" fill="none">
       <path d="M-30 68 C40 28, 160 8, 270 34 S360 60 420 48" stroke="rgba(120,195,255,0.22)" stroke-width="0.8"/>
       <path d="M-30 78 C40 38, 160 18, 270 44 S360 70 420 58" stroke="rgba(120,195,255,0.07)" stroke-width="1.5"/>
     </svg>
   </div>
 
-  <!-- Text + buttons — pinned to bottom, left-aligned -->
+  <!-- Animated Signal icon — centered in the orb glow -->
+  <div style="position:absolute;top:26%;left:50%;transform:translateX(-50%);pointer-events:none;animation:orb-breathe 4s ease-in-out infinite;">
+    <svg width="120" height="98" viewBox="0 0 56 44" fill="none">
+      <circle cx="28" cy="36" r="4" fill="#fff" style="animation:signal-dot 4s ease-in-out infinite;"/>
+      <path d="M17 27 Q28 15 39 27" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" style="animation:signal-w1 4s ease-in-out infinite;"/>
+      <path d="M10 19 Q28 4 46 19" stroke="#fff" stroke-width="1.5" stroke-linecap="round" fill="none" style="animation:signal-w2 4s ease-in-out infinite;"/>
+      <path d="M3 12 Q28 -6 53 12" stroke="#fff" stroke-width="1.5" stroke-linecap="round" fill="none" style="animation:signal-w3 4s ease-in-out infinite;"/>
+    </svg>
+  </div>
+
+  <!-- Text + button — pinned to bottom, left-aligned -->
   <div style="position:absolute;bottom:0;left:0;right:0;padding:0 30px 54px;">
 
-    <h1 style="font-family:'DM Sans',sans-serif;font-size:50px;font-weight:700;line-height:1.06;color:#fff;letter-spacing:-1.8px;margin:0 0 14px;text-align:left;">
-      Your health.<br>Your data.<br>Your signal.
+    <h1 style="font-family:Space Grotesk,sans-serif;font-size:50px;line-height:1.06;color:#fff;letter-spacing:-1.8px;margin:0 0 14px;text-align:left;">
+      <span style="font-weight:300;">Your health.</span><br>
+      <span style="font-weight:300;">Your data.</span><br>
+      <span style="font-weight:700;">Your signal.</span>
     </h1>
 
     <p style="font-size:13px;color:rgba(255,255,255,0.3);margin:0 0 38px;line-height:1.55;letter-spacing:0.01em;text-align:left;">
       Precision health intelligence from your wearables.
     </p>
 
-    <!-- Two pill buttons — ghost left, white-filled right -->
-    <div style="display:flex;gap:10px;align-items:center;">
-      <button onclick="" style="flex:0 0 auto;padding:16px 24px;border-radius:60px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.4);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;letter-spacing:0.02em;white-space:nowrap;">
-        About
-      </button>
-      <button id="landing-connect-btn" onclick="connectGoogle()" style="flex:1;padding:17px 20px;border-radius:60px;border:none;background:#fff;color:#0A0F1E;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.01em;white-space:nowrap;text-align:center;">
-        Connect Google Health
-      </button>
-    </div>
+    <button id="landing-connect-btn" onclick="connectGoogle()" style="width:100%;padding:18px 20px;border-radius:60px;border:none;background:#fff;color:#0A0F1E;font-family:Space Grotesk,sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.01em;text-align:center;">
+      Connect Google Health
+    </button>
 
   </div>
 </div>
@@ -468,7 +475,7 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
       <div id="insight-content" style="margin-top:10px;">
         <div class="serif" style="font-size:17px;line-height:1.4;color:var(--gray2);">Your personalized coaching insight will appear here.</div>
       </div>
-      <button onclick="getInsight()" id="insight-btn" style="margin-top:16px;width:100%;padding:11px;border-radius:10px;border:1px solid rgba(28,105,212,0.35);background:rgba(28,105,212,0.12);color:rgba(100,170,255,0.9);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
+      <button onclick="getInsight()" id="insight-btn" style="margin-top:16px;width:100%;padding:11px;border-radius:10px;border:1px solid rgba(28,105,212,0.35);background:rgba(28,105,212,0.12);color:rgba(100,170,255,0.9);font-family:Space Grotesk,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.08em;">GET INSIGHT</button>
     </div>
   </div>
 </div>
@@ -720,24 +727,24 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
       <div>
         <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Trained today?</div>
         <div style="display:flex;gap:6px;">
-          <button id="ctx-trained-yes" onclick="setCtx('trained','yes')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Yes</button>
-          <button id="ctx-trained-no" onclick="setCtx('trained','no')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">No</button>
+          <button id="ctx-trained-yes" onclick="setCtx('trained','yes')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Yes</button>
+          <button id="ctx-trained-no" onclick="setCtx('trained','no')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">No</button>
         </div>
       </div>
       <div>
         <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Sleep quality</div>
         <div style="display:flex;gap:6px;">
-          <button id="ctx-sleep-good" onclick="setCtx('sleep','good')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Good</button>
-          <button id="ctx-sleep-poor" onclick="setCtx('sleep','poor')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Poor</button>
+          <button id="ctx-sleep-good" onclick="setCtx('sleep','good')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Good</button>
+          <button id="ctx-sleep-poor" onclick="setCtx('sleep','poor')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Poor</button>
         </div>
       </div>
     </div>
     <div>
       <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Goal today</div>
       <div style="display:flex;gap:6px;">
-        <button id="ctx-goal-recomp" onclick="setCtx('goal','recomp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--blue);background:rgba(28,105,212,0.1);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Recomp</button>
-        <button id="ctx-goal-performance" onclick="setCtx('goal','performance')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Performance</button>
-        <button id="ctx-goal-recovery" onclick="setCtx('goal','recovery')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;transition:all 0.15s;">Recovery</button>
+        <button id="ctx-goal-recomp" onclick="setCtx('goal','recomp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--blue);background:rgba(28,105,212,0.1);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Recomp</button>
+        <button id="ctx-goal-performance" onclick="setCtx('goal','performance')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Performance</button>
+        <button id="ctx-goal-recovery" onclick="setCtx('goal','recovery')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Recovery</button>
       </div>
     </div>
   </div>
@@ -748,7 +755,7 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     <div id="fuel-result" style="font-size:13px;color:var(--gray2);line-height:1.65;min-height:60px;">
       Enter today's intake and tap Analyze to get a personalized recommendation.
     </div>
-    <button onclick="analyzeFuel()" id="fuel-btn" style="margin-top:16px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--blue);color:white;font-family:DM Sans,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.04em;">
+    <button onclick="analyzeFuel()" id="fuel-btn" style="margin-top:16px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--blue);color:white;font-family:Space Grotesk,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.04em;">
       ANALYZE
     </button>
   </div>
@@ -1679,7 +1686,7 @@ async function saveS() { try { await window.storage.set('signal_bmw', JSON.strin
 
 // ── CHART DEFAULTS ────────────────────────────────────────────────
 Chart.defaults.color='#4A4A58';
-Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.family="Space Grotesk,sans-serif";
 Chart.defaults.font.size=11;
 Chart.defaults.borderColor='#2A2A35';
 const charts={};
@@ -1965,7 +1972,7 @@ function renderYOYFilters(containerId, years, activeSet, toggleFn) {
     const color = YEAR_COLORS[y] || '#8A8A9A';
     const btn = document.createElement('button');
     btn.textContent = y;
-    btn.style.cssText = 'padding:3px 10px;border-radius:4px;border:1px solid '+(active?color:'#2A2A35')+';background:'+(active?color+'22':'transparent')+';color:'+(active?color:'#4A4A58')+';font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.06em;font-family:DM Sans,sans-serif;';
+    btn.style.cssText = 'padding:3px 10px;border-radius:4px;border:1px solid '+(active?color:'#2A2A35')+';background:'+(active?color+'22':'transparent')+';color:'+(active?color:'#4A4A58')+';font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.06em;font-family:Space Grotesk,sans-serif;';
     btn.onclick = () => { toggleFn(y); };
     container.appendChild(btn);
   });
