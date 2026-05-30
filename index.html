@@ -1628,14 +1628,30 @@ async function fetchGoogleHRV() {
 
 async function showNutritionTypeDiagnostic() {
   if (!gToken) { alert('Connect Google first, then tap this again.'); return; }
+  const candidates = ['nutrition', 'nutritionLog', 'nutritionRecord', 'Nutrition', 'NutritionRecord', 'caloriesConsumed', 'totalCaloriesConsumed', 'meal', 'dietaryEnergy', 'food'];
+  const results = [];
+  for (const t of candidates) {
+    try {
+      const url = `${HEALTH_BASE}/dataTypes/${t}/dataPoints:list?filter=${encodeURIComponent('startTime >= "2026-05-01T00:00:00Z"')}`;
+      const r = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
+      const body = await r.text();
+      let pts = '?';
+      try { pts = (JSON.parse(body).dataPoints || []).length + ' pts'; } catch(e) {}
+      results.push(`${t}: ${r.status} ${pts}`);
+    } catch(e) { results.push(`${t}: ERR`); }
+  }
+  // Also try /dataTypes listing
+  let typesList = '';
   try {
-    const res = await fetch(`${HEALTH_BASE}/dataTypes`, { headers: { 'Authorization': `Bearer ${gToken}` } });
-    if (!res.ok) { alert('dataTypes API returned ' + res.status); return; }
-    const json = await res.json();
-    const all = (json.dataTypes || []).map(dt => dt.name || '').filter(Boolean).sort();
-    const nutrition = all.filter(t => /nutri|calor|meal|food|diet|macro|protein|carb|fat/i.test(t));
-    alert('NUTRITION TYPES:\n' + (nutrition.length ? nutrition.join('\n') : '(none found)') + '\n\nALL TYPES (' + all.length + '):\n' + all.slice(0, 30).join('\n'));
-  } catch(e) { alert('Error: ' + e.message); }
+    const r2 = await fetch(`${HEALTH_BASE}/dataTypes`, { headers: { 'Authorization': `Bearer ${gToken}` } });
+    if (r2.ok) {
+      const j = await r2.json();
+      const all = (j.dataTypes || []).map(dt => dt.name || '').filter(Boolean);
+      const nut = all.filter(t => /nutri|calor|meal|food|diet/i.test(t));
+      typesList = '\n\nFOUND TYPES:\n' + (nut.length ? nut.join('\n') : '(none)') + '\nTotal: ' + all.length;
+    } else { typesList = '\n\n/dataTypes: ' + r2.status; }
+  } catch(e) {}
+  alert('PROBE RESULTS:\n' + results.join('\n') + typesList);
 }
 
 async function fetchGoogleNutrition() {
