@@ -2328,13 +2328,16 @@ Keep it under 100 words. Be direct and specific. No generic advice.`;
     });
     
     const data = await response.json();
-    const text = data.content?.map(c => c.text || '').join('');
-    
-    result.innerHTML = text.replace(/\n/g, '\u003cbr\u003e');
+    if (!response.ok) {
+      result.textContent = data.error?.message || `API error ${response.status}`;
+    } else {
+      const text = data.content?.map(c => c.text || '').join('') || '';
+      result.innerHTML = text.replace(/\n/g, '<br>');
+    }
   } catch(e) {
     result.textContent = 'Unable to connect. Check your network and try again.';
   }
-  
+
   btn.textContent = 'ANALYZE';
   btn.style.opacity = '1';
   btn.disabled = false;
@@ -2433,8 +2436,13 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
       })
     });
     const data = await response.json();
-    const text = data.content?.map(c => c.text || '').join('') || '';
-    content.innerHTML = `<p style="font-size:14px;color:var(--gray1);line-height:1.7;margin-top:4px;">${text.replace(/\n/g, '<br>')}</p>`;
+    if (!response.ok) {
+      const msg = data.error?.message || `API error ${response.status}`;
+      content.innerHTML = `<div style="font-size:13px;color:var(--gray2);margin-top:4px;">${msg}</div>`;
+    } else {
+      const text = data.content?.map(c => c.text || '').join('') || '';
+      content.innerHTML = `<p style="font-size:14px;color:var(--gray1);line-height:1.7;margin-top:4px;">${text.replace(/\n/g, '<br>')}</p>`;
+    }
   } catch(e) {
     content.innerHTML = '<div style="font-size:13px;color:var(--gray2);margin-top:4px;">Unable to connect. Check your network and try again.</div>';
   }
