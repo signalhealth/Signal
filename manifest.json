@@ -2,22 +2,22 @@
   "name": "Signal",
   "short_name": "Signal",
   "description": "Personal health intelligence",
-  "start_url": "/signal/",
-  "scope": "/signal/",
+  "start_url": "/Signal/",
+  "scope": "/Signal/",
   "display": "standalone",
-  "background_color": "#F4F1EA",
-  "theme_color": "#2d3a2d",
+  "background_color": "#0A0A0F",
+  "theme_color": "#0066CC",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%232d3a2d'/%3E%3Cpath d='M80 380 L190 240 L270 310 L380 160 L432 200' stroke='%23F4F1EA' stroke-width='28' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='80' cy='380' r='18' fill='%2384523c'/%3E%3Ccircle cx='190' cy='240' r='18' fill='%2384523c'/%3E%3Ccircle cx='270' cy='310' r='18' fill='%2384523c'/%3E%3Ccircle cx='380' cy='160' r='18' fill='%2384523c'/%3E%3Ccircle cx='432' cy='200' r='18' fill='%2384523c'/%3E%3C/svg%3E",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%232d3a2d'/%3E%3Cpath d='M80 380 L190 240 L270 310 L380 160 L432 200' stroke='%23F4F1EA' stroke-width='28' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='80' cy='380' r='18' fill='%2384523c'/%3E%3Ccircle cx='190' cy='240' r='18' fill='%2384523c'/%3E%3Ccircle cx='270' cy='310' r='18' fill='%2384523c'/%3E%3Ccircle cx='380' cy='160' r='18' fill='%2384523c'/%3E%3Ccircle cx='432' cy='200' r='18' fill='%2384523c'/%3E%3C/svg%3E",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Signal</title>
 <meta name="theme-color" content="#0A0A0F"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Signal"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
@@ -16,23 +18,23 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #030308;
-  --surface:   #0D1117;
-  --surface2:  #111820;
-  --surface3:  #222230;
-  --border:    #182030;
-  --border2:   #1E3048;
+  --bg:        #07070D;
+  --surface:   #0D1B36;
+  --surface2:  #0F2040;
+  --surface3:  #1A3060;
+  --border:    rgba(0,102,204,0.25);
+  --border2:   rgba(0,102,204,0.4);
   --blue:      #0066CC;
   --blue-dim:  #0052A3;
-  --blue-glow: rgba(0,102,204,0.18);
-  --red:       #CC0000;
-  --red-dim:   rgba(204,0,0,0.12);
+  --blue-glow: rgba(0,102,204,0.2);
+  --red:       #FF3B30;
+  --red-dim:   rgba(255,59,48,0.15);
   --white:     #FFFFFF;
-  --gray1:     #F0F0F8;
-  --gray2:     #AAAABB;
-  --gray3:     #6A6A7E;
-  --green:     #00A86B;
-  --green-dim: rgba(0,168,107,0.12);
+  --gray1:     #FFFFFF;
+  --gray2:     rgba(255,255,255,0.6);
+  --gray3:     rgba(255,255,255,0.35);
+  --green:     #00D084;
+  --green-dim: rgba(0,208,132,0.15);
   --amber:     #F5A623;
 }
 
@@ -128,10 +130,12 @@ main {
   border: 1px solid var(--border2);
   border-radius: 16px;
   padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .card-blue {
   background: linear-gradient(135deg, #0D1F3C 0%, #111118 60%);
-  border-color: rgba(28,105,212,0.3);
+  border-color: rgba(0,102,204,0.4);
 }
 
 /* ── LABEL ───────────────────────────────────────────────────── */
@@ -166,7 +170,7 @@ main {
 .prog-wrap { margin-bottom: 16px; }
 .prog-wrap:last-child { margin-bottom: 0; }
 .prog-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
-.prog-track { height: 3px; background: var(--border2); border-radius: 99px; overflow: hidden; }
+.prog-track { height: 4px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
 .prog-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
 .prog-sub { font-size: 10px; color: var(--gray3); margin-top: 5px; letter-spacing: 0.04em; }
 
@@ -187,8 +191,9 @@ main {
 
 /* ── INSIGHT CARD ────────────────────────────────────────────── */
 .insight-card {
-  background: linear-gradient(135deg, #001F4D 0%, #0A0F1E 100%);
-  border: 1px solid rgba(28,105,212,0.25);
+  background: linear-gradient(135deg, #0A2050 0%, #071228 100%);
+  border: 1px solid rgba(0,102,204,0.4);
+  box-shadow: 0 4px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
   border-radius: 16px; padding: 24px;
   position: relative; overflow: hidden;
 }
@@ -349,6 +354,31 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     </div>
   </div>
 
+  <!-- Vitals -->
+  <div class="card">
+    <div class="lbl" style="margin-bottom:16px;">Vitals</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
+      <div style="border-right:1px solid var(--border);padding-right:16px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">HRV</div>
+        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-hrv-val">65</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">ms</div>
+        <div id="prog-hrv-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">BELOW RANGE</div>
+      </div>
+      <div style="border-right:1px solid var(--border);padding:0 16px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">RHR</div>
+        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-rhr-val">51</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">bpm</div>
+        <div style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--green);">EXCELLENT</div>
+      </div>
+      <div style="padding-left:16px;">
+        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">Sleep</div>
+        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-sleep-val">7.5</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">hr</div>
+        <div id="prog-sleep-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">NEAR TARGET</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Body Composition -->
   <div class="card">
     <div class="lbl">Body Composition</div>
@@ -374,33 +404,8 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
         <span style="font-size:12px;color:var(--gray2);">Scale Weight</span>
         <span style="font-size:14px;font-weight:700;color:var(--gray1);">162.8 lbs</span>
       </div>
-      <div class="prog-track"><div class="prog-fill" style="width:77%;background:var(--gray2);"></div></div>
+      <div class="prog-track"><div class="prog-fill" style="width:77%;background:rgba(255,255,255,0.55);"></div></div>
       <div class="prog-sub">Goal 155 lbs · −7.8 to go</div>
-    </div>
-  </div>
-
-  <!-- Vitals -->
-  <div class="card">
-    <div class="lbl" style="margin-bottom:16px;">Vitals</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
-      <div style="border-right:1px solid var(--border);padding-right:16px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">HRV</div>
-        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-hrv-val">65</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">ms</div>
-        <div id="prog-hrv-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">BELOW RANGE</div>
-      </div>
-      <div style="border-right:1px solid var(--border);padding:0 16px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">RHR</div>
-        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-rhr-val">51</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">bpm</div>
-        <div style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--green);">EXCELLENT</div>
-      </div>
-      <div style="padding-left:16px;">
-        <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray3);">Sleep</div>
-        <div style="font-size:28px;font-weight:700;color:var(--gray1);margin-top:6px;line-height:1;" id="prog-sleep-val">7.5</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">hr</div>
-        <div id="prog-sleep-status" style="font-size:9px;letter-spacing:0.07em;text-transform:uppercase;margin-top:6px;color:var(--amber);">NEAR TARGET</div>
-      </div>
     </div>
   </div>
 
@@ -1675,13 +1680,13 @@ function mkChart(id,type,labels,datasets,yOpts={},xOpts={}) {
   charts[id]=new Chart(el,{type,data:{labels,datasets},options:{
     responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{
-      backgroundColor:'#18181F',borderColor:'#2A2A35',borderWidth:1,
-      titleColor:'#FFFFFF',bodyColor:'#8A8A9A',padding:12,boxPadding:5,
+      backgroundColor:'#1A3060',borderColor:'rgba(0,102,204,0.5)',borderWidth:1,
+      titleColor:'#FFFFFF',bodyColor:'rgba(255,255,255,0.7)',padding:12,boxPadding:5,
       cornerRadius:8
     }},
     scales:{
-      x:{grid:{color:'#1E1E26'},ticks:{maxTicksLimit:6,color:'#4A4A58'},...xOpts},
-      y:{grid:{color:'#1E1E26'},ticks:{color:'#4A4A58'},...yOpts}
+      x:{grid:{color:'rgba(255,255,255,0.07)'},ticks:{maxTicksLimit:6,color:'rgba(255,255,255,0.35)'},...xOpts},
+      y:{grid:{color:'rgba(255,255,255,0.07)'},ticks:{color:'rgba(255,255,255,0.35)'},...yOpts}
     }
   }});
 }
@@ -1758,11 +1763,11 @@ function renderHRV() {
   }
 
   mkChart('hrv-chart','line',labels,[
-    {data:vals,borderColor:'#1C69D4',borderWidth:2,pointRadius:4,
-     pointBackgroundColor:vals.map(v=>v>=69&&v<=89?'#1C69D4':v<69?'#F5A623':'#00C878'),
+    {data:vals,borderColor:'#60AFFF',borderWidth:2,pointRadius:4,
+     pointBackgroundColor:vals.map(v=>v>=69&&v<=89?'#60AFFF':v<69?'#FFAA00':'#00D084'),
      fill:false,tension:0.5},
-    {data:vals.map(()=>89),borderColor:'rgba(28,105,212,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false},
-    {data:vals.map(()=>69),borderColor:'rgba(28,105,212,0.2)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:'-1',backgroundColor:'rgba(28,105,212,0.04)'}
+    {data:vals.map(()=>89),borderColor:'rgba(96,175,255,0.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false},
+    {data:vals.map(()=>69),borderColor:'rgba(96,175,255,0.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:'-1',backgroundColor:'rgba(0,102,204,0.06)'}
   ]);
 }
 
@@ -1784,7 +1789,7 @@ function renderSleep() {
 
   mkChart('sleep-chart','bar',labels,[{
     data:vals,borderRadius:3,
-    backgroundColor:vals.map(v=>v>=7.5?'rgba(28,105,212,0.7)':v>=7?'rgba(28,105,212,0.4)':'rgba(233,40,58,0.45)')
+    backgroundColor:vals.map(v=>v>=7.5?'rgba(96,175,255,0.8)':v>=7?'rgba(96,175,255,0.45)':'rgba(255,59,48,0.55)')
   }],{min:0,max:12});
 }
 
@@ -1814,7 +1819,7 @@ function renderRHR() {
   }
 
   mkChart('rhr-chart','line',data.map(d=>d.date),
-    [{data:data.map(d=>d.value),borderColor:'#E9283A',borderWidth:2,pointRadius:4,pointBackgroundColor:'#E9283A',fill:false,stepped:true}],
+    [{data:data.map(d=>d.value),borderColor:'#FF6058',borderWidth:2,pointRadius:4,pointBackgroundColor:'#FF6058',fill:false,stepped:true}],
     {min:44,max:58});
 }
 
@@ -1842,8 +1847,8 @@ function renderWeightFull() {
   set('wt-avg',avg(sorted.slice(-7).map(d=>d.value)).toFixed(1));
   set('wt-end-lbl',sorted[sorted.length-1].date.slice(5));
   mkChart('wt-full-chart','line',labels,[
-    {data:vals,borderColor:'rgba(0,102,204,0.2)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
-    {data:ma,borderColor:'#0066CC',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(0,102,204,0.06)'},tension:0.5}
+    {data:vals,borderColor:'rgba(96,175,255,0.25)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+    {data:ma,borderColor:'#60AFFF',borderWidth:2.5,pointRadius:0,fill:{target:'origin',above:'rgba(0,102,204,0.12)'},tension:0.5}
   ],{min:155,max:182});
 }
 
@@ -2431,7 +2436,7 @@ function renderFuel() {
   }
   mkChart('fuel-history-chart', 'bar', days, [{
     data: cals,
-    backgroundColor: cals.map(v => v >= 1700 && v <= 1900 ? 'rgba(28,105,212,0.7)' : v > 1900 ? 'rgba(233,40,58,0.6)' : 'rgba(245,166,35,0.6)'),
+    backgroundColor: cals.map(v => v >= 1700 && v <= 1900 ? 'rgba(96,175,255,0.8)' : v > 1900 ? 'rgba(255,59,48,0.7)' : 'rgba(255,170,0,0.7)'),
     borderRadius: 3,
   }], {
     min: 0, max: 2400,
