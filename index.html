@@ -1496,9 +1496,10 @@ async function healthList(dataType, daysBack) {
 }
 
 async function healthDailyRollUp(dataType, daysBack) {
-  const end = new Date().toISOString();
-  const start = new Date(Date.now() - daysBack * 86400000).toISOString();
-  const filter = `startTime >= "${start}" AND startTime < "${end}"`;
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - daysBack * 86400000).toISOString().slice(0, 10);
+  // :dailyRollUp uses date-only strings in filter, not ISO timestamps
+  const filter = `date >= "${startDate}" AND date < "${endDate}"`;
   const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:dailyRollUp?filter=${encodeURIComponent(filter)}`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
   if (!res.ok) {
@@ -1540,17 +1541,14 @@ async function fetchGoogleWeight() {
 }
 
 async function fetchGoogleSteps() {
-  const data = await healthList('steps', 45);
-  const byDate = {};
-  for (const pt of data.dataPoints || []) {
-    const date = ptDate(pt);
-    if (!date) continue;
-    const v = ptVal(pt);
-    if (!v || v <= 0) continue;
-    byDate[date] = (byDate[date] || 0) + Math.round(v);
-  }
-  return Object.entries(byDate)
-    .map(([date, value]) => ({ date, value }))
+  const data = await healthDailyRollUp('steps', 45);
+  return (data.dataPoints || [])
+    .map(pt => {
+      const v = ptVal(pt);
+      if (!v || v <= 0) return null;
+      return { date: ptDate(pt), value: Math.round(v) };
+    })
+    .filter(d => d && d.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
