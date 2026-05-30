@@ -1323,23 +1323,25 @@ const EVENTS = [
 
 // ── GOOGLE FITNESS API ────────────────────────────────────────────
 const GFIT_CLIENT_ID = '580577187739-mc7gb22ok305k4asbt0ndko89cpdmfh5.apps.googleusercontent.com';
+// Google Health API scopes (replaces legacy Google Fit fitness.* scopes)
 const GFIT_SCOPES = [
-  'https://www.googleapis.com/auth/fitness.body.read',
-  'https://www.googleapis.com/auth/fitness.sleep.read',
-  'https://www.googleapis.com/auth/fitness.activity.read',
-  'https://www.googleapis.com/auth/fitness.heart_rate.read',
-  'https://www.googleapis.com/auth/fitness.nutrition.read',
+  'https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly',
+  'https://www.googleapis.com/auth/googlehealth.sleep.readonly',
+  'https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly',
+  'https://www.googleapis.com/auth/googlehealth.nutrition.readonly',
 ].join(' ');
+
+const HEALTH_BASE = 'https://health.googleapis.com/v4/users/me';
 
 let gToken = null;
 let gTokenClient = null;
 
 function saveToken(token) {
-  try { localStorage.setItem('gfit_auth_v2', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+  try { localStorage.setItem('gfit_auth_v3', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
 }
 function loadToken() {
   try {
-    const s = JSON.parse(localStorage.getItem('gfit_auth_v2') || 'null');
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v3') || 'null');
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
@@ -1400,174 +1402,153 @@ function signInWithGoogle() {
   if (gTokenClient) gTokenClient.requestAccessToken({ prompt: '' });
 }
 
-function msToDate(ms) {
-  return new Date(Number(ms)).toISOString().slice(0, 10);
-}
+// ── GOOGLE HEALTH API (v4) ────────────────────────────────────────
+// Replaces legacy Google Fit REST API.
+// Data flows: Coros/VeSync/MacroFactor → Health Connect → Google Health → this API.
 
-async function gfitAggregate(dataTypeName, daysBack) {
-  const endMs = Date.now();
-  const startMs = endMs - daysBack * 86400000;
-  const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      aggregateBy: [{ dataTypeName }],
-      bucketByTime: { durationMillis: 86400000 },
-      startTimeMillis: startMs.toString(),
-      endTimeMillis: endMs.toString()
-    })
-  });
-  if (!res.ok) throw new Error(`Fit API ${res.status} for ${dataTypeName}`);
+async function healthList(dataType, daysBack) {
+  const end = new Date().toISOString();
+  const start = new Date(Date.now() - daysBack * 86400000).toISOString();
+  const filter = `${dataType}.interval.start_time >= "${start}" AND ${dataType}.interval.start_time < "${end}"`;
+  const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:list?filter=${encodeURIComponent(filter)}`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Health API ${res.status} (${dataType}): ${body}`);
+  }
   return res.json();
 }
 
-async function fetchGoogleWeight() {
-  const data = await gfitAggregate('com.google.weight', 120);
-  const result = [];
-  for (const bucket of data.bucket || []) {
-    const date = msToDate(bucket.startTimeMillis);
-    for (const ds of bucket.dataset || []) {
-      for (const pt of ds.point || []) {
-        const kg = pt.value?.[0]?.fpVal;
-        if (kg > 0) result.push({ date, value: Math.round(kg * 2.20462 * 10) / 10 });
-      }
-    }
+async function healthDailyRollUp(dataType, daysBack) {
+  const end = new Date().toISOString();
+  const start = new Date(Date.now() - daysBack * 86400000).toISOString();
+  const filter = `${dataType}.interval.start_time >= "${start}" AND ${dataType}.interval.start_time < "${end}"`;
+  const url = `${HEALTH_BASE}/dataTypes/${dataType}/dataPoints:dailyRollUp?filter=${encodeURIComponent(filter)}`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Health API ${res.status} (${dataType}): ${body}`);
   }
-  return result.sort((a, b) => b.date.localeCompare(a.date));
+  return res.json();
+}
+
+function ptVal(pt) {
+  // Defensive accessor — try common field paths across data types
+  return pt.value?.fpVal ?? pt.value?.intVal
+      ?? pt.standardValue?.fpVal ?? pt.standardValue?.intVal
+      ?? pt.originalValue?.fpVal ?? pt.originalValue?.intVal
+      ?? null;
+}
+
+async function fetchGoogleWeight() {
+  const data = await healthList('weight', 120);
+  return (data.dataPoints || [])
+    .map(pt => {
+      const kg = ptVal(pt);
+      if (!kg || kg <= 0) return null;
+      return { date: pt.interval.startTime.slice(0, 10), value: Math.round(kg * 2.20462 * 10) / 10 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 async function fetchGoogleSteps() {
-  const data = await gfitAggregate('com.google.step_count.delta', 45);
-  const result = [];
-  for (const bucket of data.bucket || []) {
-    const date = msToDate(bucket.startTimeMillis);
-    let total = 0;
-    for (const ds of bucket.dataset || []) {
-      for (const pt of ds.point || []) total += pt.value?.[0]?.intVal || 0;
-    }
-    if (total > 0) result.push({ date, value: total });
-  }
-  return result.sort((a, b) => b.date.localeCompare(a.date));
+  const data = await healthDailyRollUp('steps', 45);
+  return (data.dataPoints || [])
+    .map(pt => {
+      const v = ptVal(pt);
+      if (!v || v <= 0) return null;
+      return { date: pt.interval.startTime.slice(0, 10), value: Math.round(v) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 async function fetchGoogleSleep() {
-  const data = await gfitAggregate('com.google.sleep.segment', 75);
+  const data = await healthList('sleep', 75);
+  // Each data point is a sleep session; use end-time date as the "sleep night" key
   const byDate = {};
-  for (const bucket of data.bucket || []) {
-    for (const ds of bucket.dataset || []) {
-      for (const pt of ds.point || []) {
-        const sleepType = pt.value?.[0]?.intVal;
-        // 2=generic sleep, 4=light, 5=deep, 6=REM — all count toward sleep duration
-        if (sleepType === 2 || sleepType === 4 || sleepType === 5 || sleepType === 6) {
-          const startMs = Math.floor(parseInt(pt.startTimeNanos) / 1e6);
-          const endMs = Math.floor(parseInt(pt.endTimeNanos) / 1e6);
-          const durationMs = endMs - startMs;
-          const date = new Date(endMs).toISOString().slice(0, 10);
-          byDate[date] = (byDate[date] || 0) + durationMs;
-        }
-      }
-    }
+  for (const pt of data.dataPoints || []) {
+    const start = new Date(pt.interval.startTime);
+    const end = new Date(pt.interval.endTime);
+    const hours = (end - start) / 3600000;
+    if (hours < 1) continue;
+    const date = end.toISOString().slice(0, 10);
+    if (!byDate[date] || hours > byDate[date]) byDate[date] = hours;
   }
   return Object.entries(byDate)
-    .map(([date, ms]) => ({ date, value: Math.round(ms / 3600000 * 10) / 10 }))
-    .filter(r => r.value >= 1)
+    .map(([date, value]) => ({ date, value: Math.round(value * 10) / 10 }))
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 75);
 }
 
 async function fetchGoogleRHR() {
-  const data = await gfitAggregate('com.google.heart_rate.bpm', 365);
-  const byDate = {};
-  for (const bucket of data.bucket || []) {
-    const date = msToDate(bucket.startTimeMillis);
-    for (const ds of bucket.dataset || []) {
-      for (const pt of ds.point || []) {
-        // Use minimum BPM per day as resting heart rate proxy
-        const bpm = pt.value?.[0]?.fpVal;
-        if (bpm && bpm > 30 && bpm < 120) {
-          if (!byDate[date] || bpm < byDate[date]) byDate[date] = bpm;
-        }
-      }
-    }
-  }
-  return Object.entries(byDate)
-    .map(([date, value]) => ({ date, value: Math.round(value) }))
+  const data = await healthDailyRollUp('dailyRestingHeartRate', 90);
+  return (data.dataPoints || [])
+    .map(pt => {
+      const bpm = ptVal(pt);
+      if (!bpm || bpm < 30 || bpm > 120) return null;
+      return { date: pt.interval.startTime.slice(0, 10), value: Math.round(bpm) };
+    })
+    .filter(Boolean)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 async function fetchGoogleHRV() {
   try {
-    const data = await gfitAggregate('com.google.heart_rate.variability.rmssd.ms', 365);
-    const result = [];
-    for (const bucket of data.bucket || []) {
-      const date = msToDate(bucket.startTimeMillis);
-      for (const ds of bucket.dataset || []) {
-        for (const pt of ds.point || []) {
-          const hrv = pt.value?.[0]?.fpVal;
-          if (hrv && hrv > 0) result.push({ date, value: Math.round(hrv * 10) / 10 });
-        }
-      }
-    }
-    return result.sort((a, b) => b.date.localeCompare(a.date));
+    const data = await healthDailyRollUp('dailyHeartRateVariability', 90);
+    return (data.dataPoints || [])
+      .map(pt => {
+        const hrv = ptVal(pt);
+        if (!hrv || hrv <= 0) return null;
+        return { date: pt.interval.startTime.slice(0, 10), value: Math.round(hrv * 10) / 10 };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.date.localeCompare(a.date));
   } catch(e) {
+    console.warn('HRV fetch failed:', e);
     return [];
   }
 }
 
 async function fetchGoogleNutrition() {
-  const data = await gfitAggregate('com.google.nutrition', 35);
-  const byDate = {};
-  for (const bucket of data.bucket || []) {
-    const date = msToDate(bucket.startTimeMillis);
-    for (const ds of bucket.dataset || []) {
-      for (const pt of ds.point || []) {
-        const map = {};
-        (pt.value?.[0]?.mapVal || []).forEach(m => { map[m.key] = m.value?.fpVal || 0; });
-        const cals = map['calories'] || 0;
-        if (cals > 0) {
-          if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
-          byDate[date].cals   += cals;
-          byDate[date].protein += map['protein'] || 0;
-          byDate[date].carbs  += map['carbs.total'] || 0;
-          byDate[date].fat    += map['fat.total'] || 0;
-        }
-      }
+  try {
+    const data = await healthList('nutritionLog', 35);
+    const byDate = {};
+    for (const pt of data.dataPoints || []) {
+      const date = pt.interval.startTime.slice(0, 10);
+      // Nutrition values may be top-level fields or nested in a nutrients map
+      const v = pt.value || pt.standardValue || pt.originalValue || {};
+      const cals = v.calories ?? v.energy?.fpVal ?? 0;
+      if (!cals) continue;
+      if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
+      byDate[date].cals    += cals;
+      byDate[date].protein += v.protein ?? 0;
+      byDate[date].carbs   += v.totalCarbohydrate ?? v.carbs ?? 0;
+      byDate[date].fat     += v.totalFat ?? v.fat ?? 0;
     }
+    return Object.entries(byDate)
+      .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch(e) {
+    console.warn('Nutrition fetch failed:', e);
+    return [];
   }
-  return Object.entries(byDate)
-    .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
-    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 async function fetchGoogleActivities() {
-  const endMs = Date.now();
-  const startMs = endMs - 90 * 86400000;
-  const startISO = new Date(startMs).toISOString();
-  const endISO = new Date(endMs).toISOString();
-  const res = await fetch(
-    `https://www.googleapis.com/fitness/v1/users/me/sessions?startTime=${encodeURIComponent(startISO)}&endTime=${encodeURIComponent(endISO)}`,
-    { headers: { 'Authorization': `Bearer ${gToken}` } }
-  );
-  if (!res.ok) throw new Error(`Sessions API ${res.status}`);
-  const data = await res.json();
-
-  // Map Google Fit activity types to Signal internal types
-  const TYPE_MAP = {
-    55: 34, 56: 34, 57: 34, 58: 34,  // running variants → Run
-    78: 45, 95: 45, 40: 45,           // strength/weightlifting/kettlebell → Strength
-    90: 53, 91: 53, 92: 53, 93: 53,  // walking variants → Walk
-  };
-
-  return (data.session || [])
-    .filter(s => s.activityType !== 72 && s.activityType !== 69 && s.activityType !== 77)
-    .map(s => {
-      const start = Number(s.startTimeMillis);
-      const durMin = Math.round((Number(s.endTimeMillis) - start) / 60000);
-      const date = new Date(start).toISOString().slice(0, 10);
+  const data = await healthList('exercise', 90);
+  return (data.dataPoints || [])
+    .map(pt => {
+      const start = new Date(pt.interval.startTime);
+      const end = new Date(pt.interval.endTime);
+      const durMin = Math.round((end - start) / 60000);
+      const v = pt.value || pt.standardValue || pt.originalValue || {};
+      const name = v.exerciseType?.stringVal || v.activityName?.stringVal || pt.dataPointId || 'Workout';
       return {
-        date,
-        title: s.name || `Activity ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-        type: TYPE_MAP[s.activityType] ?? 58,
+        date: pt.interval.startTime.slice(0, 10),
+        title: name,
+        type: 58,
         duration: durMin
       };
     })
