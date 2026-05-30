@@ -360,9 +360,9 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
         <div class="row-sb-c" style="margin-top:2px;">
           <div>
             <div class="row" style="align-items:baseline;gap:3px;">
-              <span class="num-md">65</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">ms</span>
+              <span class="num-md" id="prog-hrv-val">65</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">ms</span>
             </div>
-            <div style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">BELOW RANGE</div>
+            <div id="prog-hrv-status" style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">BELOW RANGE</div>
           </div>
           <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,26 12,20 24,27 36,12 48,16 62,6 80,8" stroke="#1C69D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -372,7 +372,7 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
         <div class="row-sb-c" style="margin-top:2px;">
           <div>
             <div class="row" style="align-items:baseline;gap:3px;">
-              <span class="num-md">51</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">bpm</span>
+              <span class="num-md" id="prog-rhr-val">51</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">bpm</span>
             </div>
             <div style="font-size:10px;color:var(--green);margin-top:2px;letter-spacing:0.04em;">EXCELLENT</div>
           </div>
@@ -384,9 +384,9 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
         <div class="row-sb-c" style="margin-top:2px;">
           <div>
             <div class="row" style="align-items:baseline;gap:3px;">
-              <span class="num-md">7.5</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">hr</span>
+              <span class="num-md" id="prog-sleep-val">7.5</span><span style="font-size:11px;color:var(--gray2);margin-left:3px;">hr</span>
             </div>
-            <div style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">NEAR TARGET</div>
+            <div id="prog-sleep-status" style="font-size:10px;color:var(--amber);margin-top:2px;letter-spacing:0.04em;">NEAR TARGET</div>
           </div>
           <svg class="sparkline" viewBox="0 0 80 30"><polyline fill="none" points="0,10 12,16 24,6 36,14 48,8 62,6 80,12" stroke="#1C69D4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -436,12 +436,12 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
       <div>
         <div class="lbl">Heart Rate Variability</div>
         <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
-          <span class="num-lg">79</span>
+          <span class="num-lg" id="hrv-val">79</span>
           <span style="font-size:13px;color:var(--gray2);">ms · 30-day avg</span>
         </div>
         <div style="font-size:11px;color:var(--gray2);margin-top:3px;">Normal range: 69–89 ms</div>
       </div>
-      <span class="badge badge-green">In Range</span>
+      <span class="badge badge-green" id="hrv-badge">In Range</span>
     </div>
     <div style="height:160px;"><canvas id="hrv-chart"></canvas></div>
   </div>
@@ -463,9 +463,9 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   <div class="card">
     <div class="lbl">Resting Heart Rate</div>
     <div class="row" style="align-items:baseline;gap:8px;margin-top:4px;margin-bottom:14px;">
-      <span class="num-lg">51</span>
+      <span class="num-lg" id="rhr-val">51</span>
       <span style="font-size:13px;color:var(--gray2);">bpm</span>
-      <span class="badge badge-green" style="margin-left:4px;">Excellent</span>
+      <span class="badge badge-green" id="rhr-badge" style="margin-left:4px;">Excellent</span>
     </div>
     <div style="height:80px;"><canvas id="rhr-chart"></canvas></div>
   </div>
@@ -698,7 +698,7 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
   <!-- 30-day history chart -->
   <div class="card">
     <div class="lbl" style="margin-bottom:4px;">Calorie History — 30 Days</div>
-    <div style="font-size:11px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
+    <div id="fuel-history-lbl" style="font-size:11px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
     <div style="height:140px;"><canvas id="fuel-history-chart"></canvas></div>
   </div>
 
@@ -707,19 +707,19 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
     <div class="lbl" style="margin-bottom:14px;">30-Day Averages</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;text-align:center;">
       <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);">1,776</div>
+        <div id="fuel-avg-cals" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);">1,776</div>
         <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">kcal</div>
       </div>
       <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);">175</div>
+        <div id="fuel-avg-protein" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);">175</div>
         <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">protein</div>
       </div>
       <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);">167</div>
+        <div id="fuel-avg-carbs" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);">167</div>
         <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">carbs</div>
       </div>
       <div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);">64</div>
+        <div id="fuel-avg-fat" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);">64</div>
         <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">fat</div>
       </div>
     </div>
@@ -762,6 +762,7 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
 
 <script>
 const D = {"weight": [{"date": "2026-05-08", "value": 163.6}, {"date": "2026-05-07", "value": 162.6}, {"date": "2026-05-06", "value": 163.3}, {"date": "2026-05-05", "value": 163.7}, {"date": "2026-05-04", "value": 163.4}, {"date": "2026-05-03", "value": 163.0}, {"date": "2026-05-02", "value": 162.7}, {"date": "2026-05-01", "value": 162.6}, {"date": "2026-04-30", "value": 163.2}, {"date": "2026-04-29", "value": 163.9}, {"date": "2026-04-28", "value": 163.6}, {"date": "2026-04-27", "value": 164.2}, {"date": "2026-04-26", "value": 164.4}, {"date": "2026-04-25", "value": 163.7}, {"date": "2026-04-24", "value": 164.7}, {"date": "2026-04-21", "value": 165.1}, {"date": "2026-04-20", "value": 166.4}, {"date": "2026-04-19", "value": 165.0}, {"date": "2026-04-18", "value": 164.0}, {"date": "2026-04-17", "value": 165.0}, {"date": "2026-04-16", "value": 164.1}, {"date": "2026-04-15", "value": 164.9}, {"date": "2026-04-14", "value": 165.1}, {"date": "2026-04-13", "value": 166.0}, {"date": "2026-04-12", "value": 166.1}, {"date": "2026-04-11", "value": 167.2}, {"date": "2026-04-10", "value": 166.9}, {"date": "2026-04-09", "value": 166.3}, {"date": "2026-04-08", "value": 166.4}, {"date": "2026-04-07", "value": 167.4}, {"date": "2026-04-06", "value": 167.0}, {"date": "2026-04-05", "value": 165.9}, {"date": "2026-04-04", "value": 167.6}, {"date": "2026-04-03", "value": 167.9}, {"date": "2026-04-02", "value": 167.9}, {"date": "2026-04-01", "value": 167.1}, {"date": "2026-03-31", "value": 167.4}, {"date": "2026-03-30", "value": 166.6}, {"date": "2026-03-29", "value": 166.9}, {"date": "2026-03-28", "value": 167.9}, {"date": "2026-03-27", "value": 169.3}, {"date": "2026-03-26", "value": 169.0}, {"date": "2026-03-25", "value": 169.3}, {"date": "2026-03-24", "value": 169.6}, {"date": "2026-03-23", "value": 168.8}, {"date": "2026-03-22", "value": 167.9}, {"date": "2026-03-21", "value": 172.4}, {"date": "2026-03-20", "value": 170.4}, {"date": "2026-03-19", "value": 170.5}, {"date": "2026-03-18", "value": 170.8}, {"date": "2026-03-17", "value": 173.1}, {"date": "2026-03-16", "value": 171.4}, {"date": "2026-03-15", "value": 170.4}, {"date": "2026-03-14", "value": 171.2}, {"date": "2026-03-13", "value": 170.6}, {"date": "2026-03-12", "value": 170.6}, {"date": "2026-03-11", "value": 171.4}, {"date": "2026-03-10", "value": 172.0}, {"date": "2026-03-09", "value": 172.1}, {"date": "2026-03-08", "value": 172.5}, {"date": "2026-03-07", "value": 172.4}, {"date": "2026-03-06", "value": 173.9}, {"date": "2026-03-05", "value": 170.2}, {"date": "2026-03-04", "value": 170.8}, {"date": "2026-03-03", "value": 172.9}, {"date": "2026-03-02", "value": 173.3}, {"date": "2026-03-01", "value": 172.7}, {"date": "2026-02-28", "value": 173.0}, {"date": "2026-02-27", "value": 173.5}, {"date": "2026-02-26", "value": 173.7}, {"date": "2026-02-25", "value": 173.4}, {"date": "2026-02-24", "value": 174.4}, {"date": "2026-02-23", "value": 174.3}, {"date": "2026-02-22", "value": 173.4}, {"date": "2026-02-21", "value": 174.2}, {"date": "2026-02-20", "value": 175.1}, {"date": "2026-02-19", "value": 175.6}, {"date": "2026-02-18", "value": 174.7}, {"date": "2026-02-17", "value": 174.4}, {"date": "2026-02-16", "value": 174.5}, {"date": "2026-02-15", "value": 174.7}, {"date": "2026-02-14", "value": 175.3}, {"date": "2026-02-13", "value": 175.5}, {"date": "2026-02-12", "value": 175.6}, {"date": "2026-02-11", "value": 175.8}, {"date": "2026-02-09", "value": 176.8}, {"date": "2026-02-08", "value": 176.3}, {"date": "2026-02-07", "value": 176.4}, {"date": "2026-02-06", "value": 177.3}, {"date": "2026-02-05", "value": 177.1}], "rhr": [{"date": "2026-04-25", "value": 51}, {"date": "2026-04-21", "value": 51}, {"date": "2026-04-10", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-02", "value": 51}, {"date": "2026-04-01", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-31", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-30", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-23", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-03-22", "value": 51}, {"date": "2026-01-18", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2026-01-01", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-31", "value": 53}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-08", "value": 52}, {"date": "2025-12-07", "value": 52}, {"date": "2025-12-07", "value": 52}, {"date": "2025-12-07", "value": 52}], "hrv": [{"date": "2026-04-25", "value": 131.0}, {"date": "2026-04-21", "value": 88.0}, {"date": "2026-04-10", "value": 60.0}, {"date": "2026-04-01", "value": 71.0}, {"date": "2026-03-30", "value": 60.0}, {"date": "2026-03-22", "value": 106.0}, {"date": "2026-01-17", "value": 44.0}, {"date": "2025-12-31", "value": 39.0}, {"date": "2025-12-07", "value": 33.0}, {"date": "2025-10-15", "value": 64.0}, {"date": "2025-10-08", "value": 31.0}, {"date": "2025-10-07", "value": 38.0}, {"date": "2025-09-07", "value": 150.0}, {"date": "2025-07-23", "value": 50.0}, {"date": "2025-07-20", "value": 113.0}, {"date": "2025-07-16", "value": 125.0}, {"date": "2025-05-21", "value": 100.0}, {"date": "2025-04-23", "value": 88.0}, {"date": "2025-04-20", "value": 47.0}, {"date": "2025-03-16", "value": 32.0}, {"date": "2025-03-14", "value": 42.0}, {"date": "2025-03-05", "value": 71.0}, {"date": "2025-03-04", "value": 71.0}, {"date": "2025-02-24", "value": 56.0}, {"date": "2025-02-23", "value": 65.0}, {"date": "2025-02-07", "value": 48.0}, {"date": "2025-01-30", "value": 135.0}, {"date": "2025-01-19", "value": 91.0}, {"date": "2025-01-16", "value": 66.0}, {"date": "2025-01-11", "value": 103.0}, {"date": "2024-12-08", "value": 32.0}, {"date": "2024-10-17", "value": 67.0}, {"date": "2024-09-23", "value": 123.0}, {"date": "2024-09-09", "value": 74.0}, {"date": "2024-08-26", "value": 156.0}, {"date": "2024-08-24", "value": 119.0}], "sleep": [{"date": "2026-05-07", "value": 6.9}, {"date": "2026-05-06", "value": 8.1}, {"date": "2026-05-05", "value": 8.8}, {"date": "2026-05-04", "value": 7.4}, {"date": "2026-05-03", "value": 6.4}, {"date": "2026-05-02", "value": 9.4}, {"date": "2026-05-01", "value": 8.7}, {"date": "2026-04-30", "value": 8.0}, {"date": "2026-04-29", "value": 6.6}, {"date": "2026-04-28", "value": 5.7}, {"date": "2026-04-27", "value": 7.8}, {"date": "2026-04-26", "value": 9.0}, {"date": "2026-04-25", "value": 8.7}, {"date": "2026-04-24", "value": 6.8}, {"date": "2026-04-21", "value": 8.6}, {"date": "2026-04-20", "value": 6.5}, {"date": "2026-04-19", "value": 7.6}, {"date": "2026-04-18", "value": 8.8}, {"date": "2026-04-17", "value": 7.2}, {"date": "2026-04-16", "value": 6.0}, {"date": "2026-04-15", "value": 7.2}, {"date": "2026-04-14", "value": 6.2}, {"date": "2026-04-13", "value": 6.2}, {"date": "2026-04-12", "value": 7.4}, {"date": "2026-04-11", "value": 6.8}, {"date": "2026-04-10", "value": 9.1}, {"date": "2026-04-09", "value": 6.3}, {"date": "2026-04-08", "value": 6.3}, {"date": "2026-04-07", "value": 6.3}, {"date": "2026-04-06", "value": 5.6}, {"date": "2026-04-05", "value": 8.8}, {"date": "2026-04-04", "value": 9.2}, {"date": "2026-04-03", "value": 7.5}, {"date": "2026-04-02", "value": 9.2}, {"date": "2026-04-01", "value": 5.5}, {"date": "2026-03-31", "value": 7.0}, {"date": "2026-03-30", "value": 6.6}, {"date": "2026-03-29", "value": 6.0}, {"date": "2026-03-28", "value": 9.2}, {"date": "2026-03-27", "value": 5.4}, {"date": "2026-03-26", "value": 8.6}, {"date": "2026-03-25", "value": 9.4}, {"date": "2026-03-24", "value": 9.9}, {"date": "2026-03-23", "value": 6.5}, {"date": "2026-03-22", "value": 5.9}, {"date": "2026-03-21", "value": 10.3}, {"date": "2026-03-20", "value": 8.2}, {"date": "2026-03-19", "value": 6.6}, {"date": "2026-03-18", "value": 7.2}, {"date": "2026-03-17", "value": 7.0}, {"date": "2026-03-16", "value": 6.7}, {"date": "2026-03-15", "value": 8.1}, {"date": "2026-03-14", "value": 9.9}, {"date": "2026-03-13", "value": 9.0}, {"date": "2026-03-12", "value": 7.1}, {"date": "2026-03-11", "value": 5.7}, {"date": "2026-03-10", "value": 7.6}, {"date": "2026-03-09", "value": 5.8}, {"date": "2026-03-08", "value": 7.0}, {"date": "2026-03-06", "value": 7.4}], "exercise": [{"date": "2026-05-08", "title": "Friday \u2014 Arsenal", "type": 58, "duration": 30}, {"date": "2026-05-08", "title": "Strength May 8, 2026 8:55 AM", "type": 45, "duration": 50}, {"date": "2026-05-07", "title": "Strength May 7, 2026 6:46 AM", "type": 45, "duration": 81}, {"date": "2026-05-07", "title": "Thursday \u2014 Ground", "type": 58, "duration": 88}, {"date": "2026-05-06", "title": "Strength May 6, 2026 6:39 AM", "type": 45, "duration": 47}, {"date": "2026-05-06", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 60}, {"date": "2026-05-06", "title": "Indoor Run May 6, 2026 7:27 AM", "type": 34, "duration": 19}, {"date": "2026-05-06", "title": "Walk May 6, 2026 5:54 PM", "type": 53, "duration": 21}, {"date": "2026-05-05", "title": "Tuesday \u2014 Pull", "type": 58, "duration": 72}, {"date": "2026-05-05", "title": "Strength May 5, 2026 5:43 AM", "type": 45, "duration": 92}, {"date": "2026-05-04", "title": "Monday \u2014 Strike", "type": 58, "duration": 58}, {"date": "2026-05-04", "title": "Strength May 4, 2026 5:13 AM", "type": 45, "duration": 85}, {"date": "2026-05-04", "title": "Walk May 4, 2026 7:27 PM", "type": 53, "duration": 16}, {"date": "2026-05-01", "title": "Strength May 1, 2026 7:06 AM", "type": 45, "duration": 52}, {"date": "2026-05-01", "title": "Indoor Run May 1, 2026 8:00 AM", "type": 34, "duration": 41}, {"date": "2026-04-30", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 64}, {"date": "2026-04-30", "title": "Strength Apr 30, 2026 5:41 AM", "type": 45, "duration": 96}, {"date": "2026-04-29", "title": "Strength Apr 29, 2026 5:27 AM", "type": 45, "duration": 46}, {"date": "2026-04-29", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 60}, {"date": "2026-04-29", "title": "Indoor Run Apr 29, 2026 6:16 AM", "type": 34, "duration": 23}, {"date": "2026-04-28", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 79}, {"date": "2026-04-28", "title": "Strength Apr 28, 2026 6:01 AM", "type": 45, "duration": 80}, {"date": "2026-04-27", "title": "Monday \u2014 Conquest", "type": 58, "duration": 60}, {"date": "2026-04-27", "title": "Strength Apr 27, 2026 5:29 AM", "type": 45, "duration": 64}, {"date": "2026-04-25", "title": "Strength Apr 25, 2026 8:26 AM", "type": 45, "duration": 35}, {"date": "2026-04-25", "title": "Indoor Run Apr 25, 2026 9:02 AM", "type": 34, "duration": 25}, {"date": "2026-04-25", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 63}, {"date": "2026-04-24", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 64}, {"date": "2026-04-21", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 58}, {"date": "2026-04-21", "title": "Strength Apr 21, 2026 5:46 AM", "type": 45, "duration": 100}, {"date": "2026-04-20", "title": "Monday \u2014 Conquest", "type": 58, "duration": 81}, {"date": "2026-04-20", "title": "Strength Apr 20, 2026 6:09 AM", "type": 45, "duration": 109}, {"date": "2026-04-17", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 73}, {"date": "2026-04-17", "title": "Strength Apr 17, 2026 5:47 AM", "type": 45, "duration": 55}, {"date": "2026-04-17", "title": "Indoor Run Apr 17, 2026 6:43 AM", "type": 34, "duration": 16}, {"date": "2026-04-16", "title": "Strength Apr 16, 2026 5:50 AM", "type": 45, "duration": 75}, {"date": "2026-04-16", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 55}, {"date": "2026-04-15", "title": "Strength Apr 15, 2026 5:53 AM", "type": 45, "duration": 43}, {"date": "2026-04-15", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 85}, {"date": "2026-04-15", "title": "Indoor Run Apr 15, 2026 6:38 AM", "type": 34, "duration": 21}, {"date": "2026-04-14", "title": "Strength Apr 14, 2026 5:38 AM", "type": 45, "duration": 79}, {"date": "2026-04-14", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 56}, {"date": "2026-04-13", "title": "Monday \u2014 Conquest", "type": 58, "duration": 61}, {"date": "2026-04-13", "title": "Strength Apr 13, 2026 5:35 AM", "type": 45, "duration": 67}, {"date": "2026-04-10", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 61}, {"date": "2026-04-10", "title": "Strength Apr 10, 2026 6:14 AM", "type": 45, "duration": 102}, {"date": "2026-04-09", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 67}, {"date": "2026-04-09", "title": "Strength Apr 9, 2026 5:40 AM", "type": 45, "duration": 91}, {"date": "2026-04-08", "title": "Strength Apr 8, 2026 5:38 AM", "type": 45, "duration": 41}, {"date": "2026-04-08", "title": "Wednesday \u2014 Wild Card", "type": 58, "duration": 39}, {"date": "2026-04-08", "title": "Indoor Run Apr 8, 2026 6:20 AM", "type": 34, "duration": 10}, {"date": "2026-04-07", "title": "Strength Apr 7, 2026 5:26 AM", "type": 45, "duration": 64}, {"date": "2026-04-07", "title": "Tuesday \u2014 Arsenal", "type": 58, "duration": 59}, {"date": "2026-04-06", "title": "Monday \u2014 Conquest", "type": 58, "duration": 59}, {"date": "2026-04-06", "title": "Strength Apr 6, 2026 6:58 AM", "type": 45, "duration": 56}, {"date": "2026-04-04", "title": "Indoor Run Apr 4, 2026 7:09 AM", "type": 34, "duration": 56}, {"date": "2026-04-03", "title": "Friday \u2014 The Reckoning", "type": 58, "duration": 53}, {"date": "2026-04-03", "title": "Strength 6:17 AM Apr 3, 2026", "type": 45, "duration": 57}, {"date": "2026-04-02", "title": "Thursday \u2014 Fortify", "type": 58, "duration": 39}, {"date": "2026-04-02", "title": "Strength 6:10 AM Apr 2, 2026", "type": 45, "duration": 48}], "steps": [{"date": "2026-05-08", "value": 4029}, {"date": "2026-05-07", "value": 14290}, {"date": "2026-05-06", "value": 17623}, {"date": "2026-05-05", "value": 15427}, {"date": "2026-05-04", "value": 11290}, {"date": "2026-05-03", "value": 5213}, {"date": "2026-05-02", "value": 10307}, {"date": "2026-05-01", "value": 25563}, {"date": "2026-04-30", "value": 9669}, {"date": "2026-04-29", "value": 18791}, {"date": "2026-04-28", "value": 12216}, {"date": "2026-04-27", "value": 10693}, {"date": "2026-04-26", "value": 5596}, {"date": "2026-04-25", "value": 23018}, {"date": "2026-04-24", "value": 5766}, {"date": "2026-04-23", "value": 2103}, {"date": "2026-04-22", "value": 4363}, {"date": "2026-04-21", "value": 12514}, {"date": "2026-04-20", "value": 11025}, {"date": "2026-04-19", "value": 13406}, {"date": "2026-04-18", "value": 5407}, {"date": "2026-04-17", "value": 11518}, {"date": "2026-04-16", "value": 10255}, {"date": "2026-04-15", "value": 6443}, {"date": "2026-04-14", "value": 10920}, {"date": "2026-04-13", "value": 10179}, {"date": "2026-04-12", "value": 6211}, {"date": "2026-04-11", "value": 11450}, {"date": "2026-04-10", "value": 14185}, {"date": "2026-04-09", "value": 6814}]};
+D.nutrition = [];
 const TD = {"yoy_steps": {"2016": [5671, 5640, 6358, 6859, 5911, 3830, 3950, 4584, 4186, 5565, 4651, 5580], "2017": [4596, null, 2907, 662, 3828, 7218, null, null, null, null, null, 4970], "2018": [6387, 5597, 5594, 6719, 7698, 7892, 8076, 11293, 9284, 9290, 10872, 10896], "2019": [11174, 10656, 11770, 12042, 12459, 10342, 9995, 9122, 10092, 9044, 8880, 7732], "2020": [6705, 7065, 4502, 4099, 5378, 6091, 6633, 6343, 6713, 7094, 5607, 6179], "2021": [4171, 4445, 5214, 6380, 5263, 6258, 6025, 5494, 6410, 6152, 4657, 3583], "2022": [3922, 4373, 4547, 6298, 4683, 5729, 4184, 3831, 5196, 5467, 5483, 5516], "2023": [5712, 5192, 4587, 5566, 5245, 4668, 5405, 5656, 4357, 4373, 4234, 4581], "2024": [3841, 3815, 4288, 4831, 6922, 9261, 8115, 15824, 11624, 12579, 9918, 16826], "2025": [14016, 9850, 8311, 7737, 7410, 8212, 4800, 5692, 7325, 6289, 5485, 9332], "2026": [10609, 12318, 13368, 11353, 12968, null, null, null, null, null, null, null]}, "yoy_rhr": {"2016": [null, null, null, null, null, 32.0, 32.0, null, null, null, null, null], "2017": [null, null, null, null, null, null, null, null, null, null, null, 52.0], "2018": [53.5, 52.2, 53.0, 54.7, 52.9, 52.6, 49.0, 50.0, 52.1, 51.7, 51.0, 52.3], "2019": [51.3, 51.8, 51.7, 52.2, 52.6, 51.4, 52.7, 52.7, 52.2, 50.8, 52.7, 52.8], "2020": [47.4, 51.5, 51.2, 53.5, 51.2, 50.7, 50.8, 49.5, 50.1, 48.4, 49.7, 50.7], "2021": [49.5, 51.8, 51.7, 52.7, 53.5, 52.2, 51.4, 53.9, 52.4, 52.5, 52.3, 53.1], "2022": [51.2, 53.1, 53.3, 52.7, 52.7, 51.5, 51.0, 51.0, 50.9, 51.0, 51.6, 51.8], "2023": [51.3, 50.8, 50.1, 47.7, 50.3, 49.8, 48.6, 48.6, 48.9, 49.0, 50.8, 49.8], "2024": [52.1, 51.8, 50.4, 51.4, 50.6, 50.2, 49.5, 49.1, 49.5, 50.0, null, 50.0], "2025": [48.0, 46.0, 46.0, 47.0, 50.0, null, 49.7, null, 49.0, 49.0, null, 52.3], "2026": [53.0, null, 51.0, 51.0, null, null, null, null, null, null, null, null]}, "monthly_series": [{"ym": "2015-12", "steps": 6766, "rhr": null, "active": null}, {"ym": "2016-01", "steps": 5671, "rhr": null, "active": null}, {"ym": "2016-02", "steps": 5640, "rhr": null, "active": null}, {"ym": "2016-03", "steps": 6358, "rhr": null, "active": null}, {"ym": "2016-04", "steps": 6859, "rhr": null, "active": null}, {"ym": "2016-05", "steps": 5911, "rhr": null, "active": null}, {"ym": "2016-06", "steps": 3830, "rhr": 32.0, "active": null}, {"ym": "2016-07", "steps": 3950, "rhr": 32.0, "active": null}, {"ym": "2016-08", "steps": 4584, "rhr": null, "active": null}, {"ym": "2016-09", "steps": 4186, "rhr": null, "active": null}, {"ym": "2016-10", "steps": 5565, "rhr": null, "active": null}, {"ym": "2016-11", "steps": 4651, "rhr": null, "active": null}, {"ym": "2016-12", "steps": 5580, "rhr": null, "active": null}, {"ym": "2017-01", "steps": 4596, "rhr": null, "active": null}, {"ym": "2017-03", "steps": 2907, "rhr": null, "active": null}, {"ym": "2017-04", "steps": 662, "rhr": null, "active": null}, {"ym": "2017-05", "steps": 3828, "rhr": null, "active": null}, {"ym": "2017-06", "steps": 7218, "rhr": null, "active": null}, {"ym": "2017-12", "steps": 4970, "rhr": 52.0, "active": 105}, {"ym": "2018-01", "steps": 6387, "rhr": 53.5, "active": 61}, {"ym": "2018-02", "steps": 5597, "rhr": 52.2, "active": 59}, {"ym": "2018-03", "steps": 5594, "rhr": 53.0, "active": 48}, {"ym": "2018-04", "steps": 6719, "rhr": 54.7, "active": 142}, {"ym": "2018-05", "steps": 7698, "rhr": 52.9, "active": 78}, {"ym": "2018-06", "steps": 7892, "rhr": 52.6, "active": 100}, {"ym": "2018-07", "steps": 8076, "rhr": 49.0, "active": 99}, {"ym": "2018-08", "steps": 11293, "rhr": 50.0, "active": 62}, {"ym": "2018-09", "steps": 9284, "rhr": 52.1, "active": 51}, {"ym": "2018-10", "steps": 9290, "rhr": 51.7, "active": 40}, {"ym": "2018-11", "steps": 10872, "rhr": 51.0, "active": 44}, {"ym": "2018-12", "steps": 10896, "rhr": 52.3, "active": 51}, {"ym": "2019-01", "steps": 11174, "rhr": 51.3, "active": 54}, {"ym": "2019-02", "steps": 10656, "rhr": 51.8, "active": 60}, {"ym": "2019-03", "steps": 11770, "rhr": 51.7, "active": 81}, {"ym": "2019-04", "steps": 12042, "rhr": 52.2, "active": 79}, {"ym": "2019-05", "steps": 12459, "rhr": 52.6, "active": 197}, {"ym": "2019-06", "steps": 10342, "rhr": 51.4, "active": 136}, {"ym": "2019-07", "steps": 9995, "rhr": 52.7, "active": 125}, {"ym": "2019-08", "steps": 9122, "rhr": 52.7, "active": 133}, {"ym": "2019-09", "steps": 10092, "rhr": 52.2, "active": 136}, {"ym": "2019-10", "steps": 9044, "rhr": 50.8, "active": 156}, {"ym": "2019-11", "steps": 8880, "rhr": 52.7, "active": 144}, {"ym": "2019-12", "steps": 7732, "rhr": 52.8, "active": 111}, {"ym": "2020-01", "steps": 6705, "rhr": 47.4, "active": 110}, {"ym": "2020-02", "steps": 7065, "rhr": 51.5, "active": 112}, {"ym": "2020-03", "steps": 4502, "rhr": 51.2, "active": 85}, {"ym": "2020-04", "steps": 4099, "rhr": 53.5, "active": 88}, {"ym": "2020-05", "steps": 5378, "rhr": 51.2, "active": 73}, {"ym": "2020-06", "steps": 6091, "rhr": 50.7, "active": 55}, {"ym": "2020-07", "steps": 6633, "rhr": 50.8, "active": 98}, {"ym": "2020-08", "steps": 6343, "rhr": 49.5, "active": 106}, {"ym": "2020-09", "steps": 6713, "rhr": 50.1, "active": 94}, {"ym": "2020-10", "steps": 7094, "rhr": 48.4, "active": 95}, {"ym": "2020-11", "steps": 5607, "rhr": 49.7, "active": 105}, {"ym": "2020-12", "steps": 6179, "rhr": 50.7, "active": 66}, {"ym": "2021-01", "steps": 4171, "rhr": 49.5, "active": 61}, {"ym": "2021-02", "steps": 4445, "rhr": 51.8, "active": 79}, {"ym": "2021-03", "steps": 5214, "rhr": 51.7, "active": 70}, {"ym": "2021-04", "steps": 6380, "rhr": 52.7, "active": 53}, {"ym": "2021-05", "steps": 5263, "rhr": 53.5, "active": 56}, {"ym": "2021-06", "steps": 6258, "rhr": 52.2, "active": 47}, {"ym": "2021-07", "steps": 6025, "rhr": 51.4, "active": 50}, {"ym": "2021-08", "steps": 5494, "rhr": 53.9, "active": 66}, {"ym": "2021-09", "steps": 6410, "rhr": 52.4, "active": 17}, {"ym": "2021-10", "steps": 6152, "rhr": 52.5, "active": 48}, {"ym": "2021-11", "steps": 4657, "rhr": 52.3, "active": 57}, {"ym": "2021-12", "steps": 3583, "rhr": 53.1, "active": 23}, {"ym": "2022-01", "steps": 3922, "rhr": 51.2, "active": 22}, {"ym": "2022-02", "steps": 4373, "rhr": 53.1, "active": 22}, {"ym": "2022-03", "steps": 4547, "rhr": 53.3, "active": 32}, {"ym": "2022-04", "steps": 6298, "rhr": 52.7, "active": 31}, {"ym": "2022-05", "steps": 4683, "rhr": 52.7, "active": 32}, {"ym": "2022-06", "steps": 5729, "rhr": 51.5, "active": 34}, {"ym": "2022-07", "steps": 4184, "rhr": 51.0, "active": 46}, {"ym": "2022-08", "steps": 3831, "rhr": 51.0, "active": 99}, {"ym": "2022-09", "steps": 5196, "rhr": 50.9, "active": 73}, {"ym": "2022-10", "steps": 5467, "rhr": 51.0, "active": 48}, {"ym": "2022-11", "steps": 5483, "rhr": 51.6, "active": 56}, {"ym": "2022-12", "steps": 5516, "rhr": 51.8, "active": 68}, {"ym": "2023-01", "steps": 5712, "rhr": 51.3, "active": 58}, {"ym": "2023-02", "steps": 5192, "rhr": 50.8, "active": 57}, {"ym": "2023-03", "steps": 4587, "rhr": 50.1, "active": 51}, {"ym": "2023-04", "steps": 5566, "rhr": 47.7, "active": 47}, {"ym": "2023-05", "steps": 5245, "rhr": 50.3, "active": 36}, {"ym": "2023-06", "steps": 4668, "rhr": 49.8, "active": 45}, {"ym": "2023-07", "steps": 5405, "rhr": 48.6, "active": 47}, {"ym": "2023-08", "steps": 5656, "rhr": 48.6, "active": 38}, {"ym": "2023-09", "steps": 4357, "rhr": 48.9, "active": 26}, {"ym": "2023-10", "steps": 4373, "rhr": 49.0, "active": 52}, {"ym": "2023-11", "steps": 4234, "rhr": 50.8, "active": 46}, {"ym": "2023-12", "steps": 4581, "rhr": 49.8, "active": 50}, {"ym": "2024-01", "steps": 3841, "rhr": 52.1, "active": 36}, {"ym": "2024-02", "steps": 3815, "rhr": 51.8, "active": 31}, {"ym": "2024-03", "steps": 4288, "rhr": 50.4, "active": 35}, {"ym": "2024-04", "steps": 4831, "rhr": 51.4, "active": 33}, {"ym": "2024-05", "steps": 6922, "rhr": 50.6, "active": 59}, {"ym": "2024-06", "steps": 9261, "rhr": 50.2, "active": 85}, {"ym": "2024-07", "steps": 8115, "rhr": 49.5, "active": 102}, {"ym": "2024-08", "steps": 15824, "rhr": 49.1, "active": 141}, {"ym": "2024-09", "steps": 11624, "rhr": 49.5, "active": null}, {"ym": "2024-10", "steps": 12579, "rhr": 50.0, "active": null}, {"ym": "2024-11", "steps": 9918, "rhr": null, "active": null}, {"ym": "2024-12", "steps": 16826, "rhr": 50.0, "active": null}, {"ym": "2025-01", "steps": 14016, "rhr": 48.0, "active": null}, {"ym": "2025-02", "steps": 9850, "rhr": 46.0, "active": null}, {"ym": "2025-03", "steps": 8311, "rhr": 46.0, "active": null}, {"ym": "2025-04", "steps": 7737, "rhr": 47.0, "active": null}, {"ym": "2025-05", "steps": 7410, "rhr": 50.0, "active": null}, {"ym": "2025-06", "steps": 8212, "rhr": null, "active": null}, {"ym": "2025-07", "steps": 4800, "rhr": 49.7, "active": null}, {"ym": "2025-08", "steps": 5692, "rhr": null, "active": null}, {"ym": "2025-09", "steps": 7325, "rhr": 49.0, "active": null}, {"ym": "2025-10", "steps": 6289, "rhr": 49.0, "active": null}, {"ym": "2025-11", "steps": 5485, "rhr": null, "active": null}, {"ym": "2025-12", "steps": 9332, "rhr": 52.3, "active": null}, {"ym": "2026-01", "steps": 10609, "rhr": 53.0, "active": null}, {"ym": "2026-02", "steps": 12318, "rhr": null, "active": null}, {"ym": "2026-03", "steps": 13368, "rhr": 51.0, "active": null}, {"ym": "2026-04", "steps": 11353, "rhr": 51.0, "active": null}, {"ym": "2026-05", "steps": 12968, "rhr": null, "active": null}], "month_names": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]};
 const EVENTS = [
   {
@@ -1435,6 +1436,31 @@ async function fetchGoogleHRV() {
   }
 }
 
+async function fetchGoogleNutrition() {
+  const data = await gfitAggregate('com.google.nutrition', 35);
+  const byDate = {};
+  for (const bucket of data.bucket || []) {
+    const date = msToDate(bucket.startTimeMillis);
+    for (const ds of bucket.dataset || []) {
+      for (const pt of ds.point || []) {
+        const map = {};
+        (pt.value?.[0]?.mapVal || []).forEach(m => { map[m.key] = m.value?.fpVal || 0; });
+        const cals = map['calories'] || 0;
+        if (cals > 0) {
+          if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
+          byDate[date].cals   += cals;
+          byDate[date].protein += map['protein'] || 0;
+          byDate[date].carbs  += map['carbs.total'] || 0;
+          byDate[date].fat    += map['fat.total'] || 0;
+        }
+      }
+    }
+  }
+  return Object.entries(byDate)
+    .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
 async function fetchGoogleActivities() {
   const endMs = Date.now();
   const startMs = endMs - 90 * 86400000;
@@ -1471,17 +1497,47 @@ async function fetchGoogleActivities() {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
+function populateFuelFromLive(nutrition) {
+  if (!nutrition || nutrition.length === 0) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const todayData = nutrition.find(n => n.date === today) || nutrition.find(n => n.date === yesterday);
+  if (todayData) {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    set('fuel-cals', todayData.cals);
+    set('fuel-protein', todayData.protein);
+    set('fuel-carbs', todayData.carbs);
+    set('fuel-fat', todayData.fat);
+    updateFuelProgress();
+  }
+
+  // Update 30-day averages
+  const last30 = nutrition.slice(0, 30);
+  if (last30.length > 0) {
+    const r = (arr, k) => Math.round(arr.reduce((s, n) => s + n[k], 0) / arr.length);
+    const avgCals = r(last30, 'cals'), avgProt = r(last30, 'protein'), avgCarbs = r(last30, 'carbs'), avgFat = r(last30, 'fat');
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('fuel-avg-cals', avgCals.toLocaleString());
+    set('fuel-avg-protein', avgProt);
+    set('fuel-avg-carbs', avgCarbs);
+    set('fuel-avg-fat', avgFat);
+    const lbl = document.getElementById('fuel-history-lbl');
+    if (lbl) lbl.textContent = 'Avg: ' + avgCals.toLocaleString() + ' kcal · Target: 1,800 kcal';
+  }
+}
+
 async function fetchAndMergeGoogleFitData() {
   const loadEl = document.getElementById('gfit-loading');
   loadEl.classList.add('show');
   try {
-    const [weight, steps, sleep, rhr, hrv, exercise] = await Promise.allSettled([
+    const [weight, steps, sleep, rhr, hrv, exercise, nutrition] = await Promise.allSettled([
       fetchGoogleWeight(),
       fetchGoogleSteps(),
       fetchGoogleSleep(),
       fetchGoogleRHR(),
       fetchGoogleHRV(),
-      fetchGoogleActivities()
+      fetchGoogleActivities(),
+      fetchGoogleNutrition()
     ]);
     if (weight.status === 'fulfilled' && weight.value.length > 0) D.weight = weight.value;
     if (steps.status === 'fulfilled' && steps.value.length > 0) D.steps = steps.value;
@@ -1489,11 +1545,19 @@ async function fetchAndMergeGoogleFitData() {
     if (rhr.status === 'fulfilled' && rhr.value.length > 0) D.rhr = rhr.value;
     if (hrv.status === 'fulfilled' && hrv.value.length > 0) D.hrv = hrv.value;
     if (exercise.status === 'fulfilled' && exercise.value.length > 0) D.exercise = exercise.value;
+    if (nutrition.status === 'fulfilled' && nutrition.value.length > 0) {
+      D.nutrition = nutrition.value;
+      populateFuelFromLive(D.nutrition);
+    }
 
     renderWeight();
     renderActivity();
     renderDexa();
+    renderHRV();
+    renderSleep();
+    renderRHR();
     setTimeout(renderWeightFull, 100);
+    if (charts['fuel-history-chart']) renderFuel();
   } catch(e) {
     console.error('Google Fit sync error:', e);
   } finally {
@@ -1586,6 +1650,22 @@ function renderHRV() {
   const data=asc(D.hrv);
   const labels=data.map(d=>d.date.slice(5));
   const vals=data.map(d=>d.value);
+
+  // Update headline numbers
+  const latest=vals[vals.length-1]||65;
+  const recentAvg=Math.round(avg(vals.slice(-10)));
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('hrv-val',recentAvg);
+  set('prog-hrv-val',latest);
+  const status=latest>=89?['ELEVATED','var(--green)']:latest>=69?['IN RANGE','var(--green)']:['BELOW RANGE','var(--amber)'];
+  const statusEl=document.getElementById('prog-hrv-status');
+  if(statusEl){statusEl.textContent=status[0];statusEl.style.color=status[1];}
+  const badge=document.getElementById('hrv-badge');
+  if(badge){
+    badge.textContent=latest>=89?'Elevated':latest>=69?'In Range':'Below Range';
+    badge.className='badge '+(latest>=69?'badge-green':'badge-amber');
+  }
+
   mkChart('hrv-chart','line',labels,[
     {data:vals,borderColor:'#1C69D4',borderWidth:2,pointRadius:4,
      pointBackgroundColor:vals.map(v=>v>=69&&v<=89?'#1C69D4':v<69?'#F5A623':'#00C878'),
@@ -1601,7 +1681,16 @@ function renderSleep() {
   const labels=data.map(d=>d.date.slice(5));
   const vals=data.map(d=>d.value);
   const a=avg(vals.slice(-14));
-  document.getElementById('sleep-avg').textContent=a.toFixed(1);
+  const lastNight=vals[vals.length-1]||0;
+
+  // Update all sleep displays
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('sleep-avg',a.toFixed(1));
+  set('prog-sleep-val',lastNight.toFixed(1));
+  const sleepStatus=lastNight>=7.5?['ON TARGET','var(--green)']:lastNight>=7?['NEAR TARGET','var(--amber)']:['BELOW TARGET','var(--red)'];
+  const sleepStatusEl=document.getElementById('prog-sleep-status');
+  if(sleepStatusEl){sleepStatusEl.textContent=sleepStatus[0];sleepStatusEl.style.color=sleepStatus[1];}
+
   mkChart('sleep-chart','bar',labels,[{
     data:vals,borderRadius:3,
     backgroundColor:vals.map(v=>v>=7.5?'rgba(28,105,212,0.7)':v>=7?'rgba(28,105,212,0.4)':'rgba(233,40,58,0.45)')
@@ -1610,10 +1699,29 @@ function renderSleep() {
 
 // ── RHR ───────────────────────────────────────────────────────────
 function renderRHR() {
-  const data=[
-    {date:'2025-07',value:49},{date:'2025-10',value:49},{date:'2025-12',value:52},
-    {date:'2026-01',value:53},{date:'2026-03',value:51},{date:'2026-04',value:51}
-  ];
+  // Deduplicate D.rhr by date (take min per date), then group by month
+  const byDate={};
+  D.rhr.forEach(d=>{ if(!byDate[d.date]||d.value<byDate[d.date]) byDate[d.date]=d.value; });
+  const byMonth={};
+  Object.entries(byDate).forEach(([date,val])=>{
+    const ym=date.slice(0,7);
+    if(!byMonth[ym]) byMonth[ym]=[];
+    byMonth[ym].push(val);
+  });
+  const data=Object.entries(byMonth)
+    .map(([ym,vals])=>({date:ym,value:Math.round(avg(vals))}))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const latest=data[data.length-1]?.value||51;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('rhr-val',latest);
+  set('prog-rhr-val',latest);
+  const badge=document.getElementById('rhr-badge');
+  if(badge){
+    badge.textContent=latest<=50?'Excellent':latest<=55?'Good':'Elevated';
+    badge.className='badge '+(latest<=55?'badge-green':'badge-amber');
+  }
+
   mkChart('rhr-chart','line',data.map(d=>d.date),
     [{data:data.map(d=>d.value),borderColor:'#E9283A',borderWidth:2,pointRadius:4,pointBackgroundColor:'#E9283A',fill:false,stepped:true}],
     {min:44,max:58});
@@ -2196,11 +2304,17 @@ Keep it under 100 words. Be direct and specific. No generic advice.`;
 
 // ── FUEL HISTORY CHART ────────────────────────────────────────────
 function renderFuel() {
-  const last30 = MF.last_14_days;
-  const labels = last30.map(d => d.Date.slice(5));
-  const cals = last30.map(d => d['Calories (kcal)']);
-  
-  mkChart('fuel-history-chart', 'bar', labels, [{
+  let days, cals;
+  if (D.nutrition?.length > 0) {
+    const src = [...D.nutrition].reverse().slice(-30);
+    days = src.map(n => n.date.slice(5));
+    cals = src.map(n => n.cals);
+    populateFuelFromLive(D.nutrition);
+  } else {
+    days = MF.last_14_days.map(d => d.Date.slice(5));
+    cals = MF.last_14_days.map(d => d['Calories (kcal)']);
+  }
+  mkChart('fuel-history-chart', 'bar', days, [{
     data: cals,
     backgroundColor: cals.map(v => v >= 1700 && v <= 1900 ? 'rgba(28,105,212,0.7)' : v > 1900 ? 'rgba(233,40,58,0.6)' : 'rgba(245,166,35,0.6)'),
     borderRadius: 3,
@@ -2232,6 +2346,9 @@ async function init() {
   renderWeight();
   renderActivity();
   renderDexa();
+  renderHRV();
+  renderSleep();
+  renderRHR();
   setTimeout(renderWeightFull, 100);
 
   // If user has an active Google session, request a token silently
