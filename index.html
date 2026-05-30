@@ -605,27 +605,39 @@ nav .nav-inner { display: flex; justify-content: space-around; padding: 10px 0 6
 <div id="pg-fuel" class="page">
   <div class="page-title"><h2>Fuel</h2><p>Nutrition Intelligence</p></div>
 
-  <!-- Today's intake entry -->
+  <!-- Today's intake — live from MacroFactor -->
   <div class="card">
-    <div class="lbl" style="margin-bottom:14px;">Today's Intake So Far</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div>
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Calories</div>
-        <input type="number" id="fuel-cals" placeholder="e.g. 1200" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="lbl">Today's Intake</div>
+      <span id="fuel-sync-badge" style="display:none;font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Calories</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);" id="fuel-cals-display">—</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">/ 1,800 kcal</div>
       </div>
-      <div>
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Protein (g)</div>
-        <input type="number" id="fuel-protein" placeholder="e.g. 120" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Protein</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);" id="fuel-protein-display">—</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">/ 180g target</div>
       </div>
-      <div>
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Carbs (g)</div>
-        <input type="number" id="fuel-carbs" placeholder="e.g. 80" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Carbs</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);" id="fuel-carbs-display">—</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">grams</div>
       </div>
-      <div>
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Fat (g)</div>
-        <input type="number" id="fuel-fat" placeholder="e.g. 40" style="font-size:16px;padding:10px 12px;" oninput="updateFuelProgress()"/>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
+        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Fat</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);" id="fuel-fat-display">—</div>
+        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">grams</div>
       </div>
     </div>
+    <!-- Hidden inputs used by analyzeFuel() and updateFuelProgress() -->
+    <input type="hidden" id="fuel-cals" value="0"/>
+    <input type="hidden" id="fuel-protein" value="0"/>
+    <input type="hidden" id="fuel-carbs" value="0"/>
+    <input type="hidden" id="fuel-fat" value="0"/>
 
     <!-- Progress bars -->
     <div id="fuel-progress" style="display:none;">
@@ -1297,17 +1309,18 @@ const GFIT_SCOPES = [
   'https://www.googleapis.com/auth/fitness.sleep.read',
   'https://www.googleapis.com/auth/fitness.activity.read',
   'https://www.googleapis.com/auth/fitness.heart_rate.read',
+  'https://www.googleapis.com/auth/fitness.nutrition.read',
 ].join(' ');
 
 let gToken = null;
 let gTokenClient = null;
 
 function saveToken(token) {
-  try { localStorage.setItem('gfit_auth', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+  try { localStorage.setItem('gfit_auth_v2', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
 }
 function loadToken() {
   try {
-    const s = JSON.parse(localStorage.getItem('gfit_auth') || 'null');
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v2') || 'null');
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
@@ -1517,11 +1530,20 @@ function populateFuelFromLive(nutrition) {
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const todayData = nutrition.find(n => n.date === today) || nutrition.find(n => n.date === yesterday);
   if (todayData) {
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-    set('fuel-cals', todayData.cals);
-    set('fuel-protein', todayData.protein);
-    set('fuel-carbs', todayData.carbs);
-    set('fuel-fat', todayData.fat);
+    // Hidden inputs (used by analyzeFuel + updateFuelProgress)
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || 0; };
+    setVal('fuel-cals', todayData.cals);
+    setVal('fuel-protein', todayData.protein);
+    setVal('fuel-carbs', todayData.carbs);
+    setVal('fuel-fat', todayData.fat);
+    // Live display cards
+    const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v != null ? v : '—'; };
+    setTxt('fuel-cals-display', todayData.cals);
+    setTxt('fuel-protein-display', todayData.protein);
+    setTxt('fuel-carbs-display', todayData.carbs);
+    setTxt('fuel-fat-display', todayData.fat);
+    const badge = document.getElementById('fuel-sync-badge');
+    if (badge) badge.style.display = 'block';
     updateFuelProgress();
   }
 
@@ -2242,10 +2264,12 @@ function updateFuelProgress() {
 }
 
 async function analyzeFuel() {
-  const cals = +document.getElementById('fuel-cals').value || 0;
-  const protein = +document.getElementById('fuel-protein').value || 0;
-  const carbs = +document.getElementById('fuel-carbs').value || 0;
-  const fat = +document.getElementById('fuel-fat').value || 0;
+  // Prefer live nutrition data; fall back to hidden inputs
+  const liveToday = D.nutrition?.[0];
+  const cals = liveToday?.cals || +document.getElementById('fuel-cals').value || 0;
+  const protein = liveToday?.protein || +document.getElementById('fuel-protein').value || 0;
+  const carbs = liveToday?.carbs || +document.getElementById('fuel-carbs').value || 0;
+  const fat = liveToday?.fat || +document.getElementById('fuel-fat').value || 0;
   
   const btn = document.getElementById('fuel-btn');
   const result = document.getElementById('fuel-result');
