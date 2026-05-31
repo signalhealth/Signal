@@ -1307,6 +1307,13 @@ const HEALTH_BASE = 'https://health.googleapis.com/v4/users/me';
 let gToken = null;
 let gTokenClient = null;
 
+// Returning users: hide landing page immediately (sync) so pull-to-refresh
+// never flashes the splash screen while the async init() is still running.
+if (localStorage.getItem('gfit_connected')) {
+  const lp = document.getElementById('pg-landing');
+  if (lp) lp.style.display = 'none';
+}
+
 function localDate(d) {
   const x = d || new Date();
   return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0');
