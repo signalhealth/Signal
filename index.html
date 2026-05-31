@@ -446,46 +446,67 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
 <div id="pg-recovery" class="page">
 
   <div class="card">
-    <div class="row-sb" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="lbl" style="margin-bottom:0;">Heart Rate Variability</div>
+      <div class="pills">
+        <button class="pill pill-on" onclick="hrvRange(14,this)">14D</button>
+        <button class="pill" onclick="hrvRange(30,this)">30D</button>
+        <button class="pill" onclick="hrvRange(60,this)">60D</button>
+      </div>
+    </div>
+    <div class="row-sb" style="margin-bottom:12px;">
       <div>
-        <div class="lbl">Heart Rate Variability</div>
-        <div class="row" style="align-items:baseline;gap:8px;margin-top:6px;">
+        <div class="row" style="align-items:baseline;gap:8px;">
           <span class="num-lg" id="hrv-val">79</span>
-          <span style="font-size:15px;color:var(--gray2);">ms · 30-day avg</span>
+          <span style="font-size:15px;color:var(--gray2);">ms · <span id="hrv-days-lbl">14</span>-day avg</span>
         </div>
         <div style="font-size:12px;color:var(--gray3);margin-top:4px;">Normal range: 69–89 ms</div>
       </div>
       <span class="badge badge-green" id="hrv-badge">In Range</span>
     </div>
-    <div style="height:160px;"><canvas id="hrv-chart"></canvas></div>
+    <div style="height:150px;"><canvas id="hrv-chart"></canvas></div>
   </div>
 
   <div class="card">
-    <div class="row-sb" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="lbl" style="margin-bottom:0;">Sleep Duration</div>
+      <div class="pills">
+        <button class="pill pill-on" onclick="sleepRange(14,this)">14D</button>
+        <button class="pill" onclick="sleepRange(30,this)">30D</button>
+        <button class="pill" onclick="sleepRange(60,this)">60D</button>
+      </div>
+    </div>
+    <div class="row-sb" style="margin-bottom:12px;">
       <div>
-        <div class="lbl">Sleep Duration</div>
-        <div class="row" style="align-items:baseline;gap:8px;margin-top:6px;">
+        <div class="row" style="align-items:baseline;gap:8px;">
           <span class="num-lg" id="sleep-avg">7.5</span>
-          <span style="font-size:15px;color:var(--gray2);">hr · 14-day avg</span>
+          <span style="font-size:15px;color:var(--gray2);">hr · <span id="sleep-days-lbl">14</span>-day avg</span>
         </div>
       </div>
-      <span class="badge badge-amber">Near Target</span>
+      <span class="badge badge-amber" id="sleep-badge">Near Target</span>
     </div>
     <div style="height:130px;"><canvas id="sleep-chart"></canvas></div>
   </div>
 
   <div class="card">
-    <div class="row-sb" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="lbl" style="margin-bottom:0;">Resting Heart Rate</div>
+      <div class="pills">
+        <button class="pill pill-on" onclick="rhrRange(14,this)">14D</button>
+        <button class="pill" onclick="rhrRange(30,this)">30D</button>
+        <button class="pill" onclick="rhrRange(60,this)">60D</button>
+      </div>
+    </div>
+    <div class="row-sb" style="margin-bottom:12px;">
       <div>
-        <div class="lbl">Resting Heart Rate</div>
-        <div class="row" style="align-items:baseline;gap:8px;margin-top:6px;">
+        <div class="row" style="align-items:baseline;gap:8px;">
           <span class="num-lg" id="rhr-val">51</span>
-          <span style="font-size:15px;color:var(--gray2);">bpm</span>
+          <span style="font-size:15px;color:var(--gray2);">bpm · <span id="rhr-days-lbl">14</span>-day avg</span>
         </div>
       </div>
       <span class="badge badge-green" id="rhr-badge">Excellent</span>
     </div>
-    <div style="height:80px;"><canvas id="rhr-chart"></canvas></div>
+    <div style="height:120px;"><canvas id="rhr-chart"></canvas></div>
   </div>
 
   <div class="card">
@@ -1767,16 +1788,26 @@ function wtRange(d,btn) {
 }
 
 // ── HRV ───────────────────────────────────────────────────────────
-function renderHRV() {
-  const data=asc(D.hrv);
+let _hrvDays=14;
+function hrvRange(days,btn){
+  _hrvDays=days;
+  btn.closest('.pills').querySelectorAll('.pill').forEach(b=>b.classList.remove('pill-on'));
+  btn.classList.add('pill-on');
+  renderHRV(days);
+}
+function renderHRV(days=_hrvDays) {
+  const all=asc(D.hrv);
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cutStr=cutoff.toISOString().slice(0,10);
+  const data=all.filter(d=>d.date>=cutStr);
   const labels=data.map(d=>d.date.slice(5));
   const vals=data.map(d=>d.value);
 
-  // Update headline numbers
-  const latest=vals[vals.length-1]||65;
-  const recentAvg=Math.round(avg(vals.slice(-10)));
+  const latest=all[all.length-1]?.value||65;
+  const periodAvg=vals.length?Math.round(avg(vals)):latest;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('hrv-val',recentAvg);
+  set('hrv-val',periodAvg);
+  set('hrv-days-lbl',days);
   set('prog-hrv-val',latest);
   const status=latest>=89?['ELEVATED','var(--green)']:latest>=69?['IN RANGE','var(--green)']:['BELOW RANGE','var(--amber)'];
   const statusEl=document.getElementById('prog-hrv-status');
@@ -1787,30 +1818,46 @@ function renderHRV() {
     badge.className='badge '+(latest>=69?'badge-green':'badge-amber');
   }
 
+  const pr=days<=14?4:days<=30?3:2;
   mkChart('hrv-chart','line',labels,[
-    {data:vals,borderColor:'#60AFFF',borderWidth:2,pointRadius:4,
+    {data:vals,borderColor:'#60AFFF',borderWidth:2,pointRadius:pr,
      pointBackgroundColor:vals.map(v=>v>=69&&v<=89?'#60AFFF':v<69?'#FFAA00':'#00D084'),
-     fill:false,tension:0.5},
+     fill:false,tension:0.4},
     {data:vals.map(()=>89),borderColor:'rgba(96,175,255,0.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false},
     {data:vals.map(()=>69),borderColor:'rgba(96,175,255,0.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:'-1',backgroundColor:'rgba(0,102,204,0.06)'}
   ]);
 }
 
 // ── SLEEP ─────────────────────────────────────────────────────────
-function renderSleep() {
-  const data=asc(D.sleep);
-  const labels=data.map(d=>d.date.slice(5));
-  const vals=data.map(d=>d.value);
-  const a=avg(vals.slice(-14));
-  const lastNight=vals[vals.length-1]||0;
+let _sleepDays=14;
+function sleepRange(days,btn){
+  _sleepDays=days;
+  btn.closest('.pills').querySelectorAll('.pill').forEach(b=>b.classList.remove('pill-on'));
+  btn.classList.add('pill-on');
+  renderSleep(days);
+}
+function renderSleep(days=_sleepDays) {
+  const all=asc(D.sleep);
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cutStr=cutoff.toISOString().slice(0,10);
+  const slice=all.filter(d=>d.date>=cutStr);
+  const labels=slice.map(d=>d.date.slice(5));
+  const vals=slice.map(d=>d.value);
+  const periodAvg=vals.length?avg(vals):0;
+  const lastNight=all[all.length-1]?.value||0;
 
-  // Update all sleep displays
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('sleep-avg',a.toFixed(1));
+  set('sleep-avg',periodAvg.toFixed(1));
+  set('sleep-days-lbl',days);
   set('prog-sleep-val',lastNight.toFixed(1));
   const sleepStatus=lastNight>=7.5?['ON TARGET','var(--green)']:lastNight>=7?['NEAR TARGET','var(--amber)']:['BELOW TARGET','var(--red)'];
   const sleepStatusEl=document.getElementById('prog-sleep-status');
   if(sleepStatusEl){sleepStatusEl.textContent=sleepStatus[0];sleepStatusEl.style.color=sleepStatus[1];}
+  const badge=document.getElementById('sleep-badge');
+  if(badge){
+    badge.textContent=lastNight>=7.5?'On Target':lastNight>=7?'Near Target':'Below Target';
+    badge.className='badge '+(lastNight>=7.5?'badge-green':lastNight>=7?'badge-amber':'badge-red');
+  }
 
   mkChart('sleep-chart','bar',labels,[{
     data:vals,borderRadius:3,
@@ -1819,23 +1866,30 @@ function renderSleep() {
 }
 
 // ── RHR ───────────────────────────────────────────────────────────
-function renderRHR() {
-  // Deduplicate D.rhr by date (take min per date), then group by month
+let _rhrDays=14;
+function rhrRange(days,btn){
+  _rhrDays=days;
+  btn.closest('.pills').querySelectorAll('.pill').forEach(b=>b.classList.remove('pill-on'));
+  btn.classList.add('pill-on');
+  renderRHR(days);
+}
+function renderRHR(days=_rhrDays) {
+  // Deduplicate D.rhr by date (take min per date)
   const byDate={};
   D.rhr.forEach(d=>{ if(!byDate[d.date]||d.value<byDate[d.date]) byDate[d.date]=d.value; });
-  const byMonth={};
-  Object.entries(byDate).forEach(([date,val])=>{
-    const ym=date.slice(0,7);
-    if(!byMonth[ym]) byMonth[ym]=[];
-    byMonth[ym].push(val);
-  });
-  const data=Object.entries(byMonth)
-    .map(([ym,vals])=>({date:ym,value:Math.round(avg(vals))}))
+  const allDaily=Object.entries(byDate)
+    .map(([date,value])=>({date,value}))
     .sort((a,b)=>a.date.localeCompare(b.date));
 
-  const latest=data[data.length-1]?.value||51;
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cutStr=cutoff.toISOString().slice(0,10);
+  const data=allDaily.filter(d=>d.date>=cutStr);
+
+  const latest=allDaily[allDaily.length-1]?.value||51;
+  const periodAvg=data.length?Math.round(avg(data.map(d=>d.value))):latest;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('rhr-val',latest);
+  set('rhr-val',periodAvg);
+  set('rhr-days-lbl',days);
   set('prog-rhr-val',latest);
   const badge=document.getElementById('rhr-badge');
   if(badge){
@@ -1843,9 +1897,13 @@ function renderRHR() {
     badge.className='badge '+(latest<=55?'badge-green':'badge-amber');
   }
 
-  mkChart('rhr-chart','line',data.map(d=>d.date),
-    [{data:data.map(d=>d.value),borderColor:'#FF6058',borderWidth:2,pointRadius:4,pointBackgroundColor:'#FF6058',fill:false,stepped:true}],
-    {min:44,max:58});
+  const pr=days<=14?4:days<=30?3:2;
+  const rhrVals=data.map(d=>d.value);
+  const allMin=Math.min(...rhrVals,48), allMax=Math.max(...rhrVals,58);
+  mkChart('rhr-chart','line',data.map(d=>d.date.slice(5)),
+    [{data:rhrVals,borderColor:'#FF6058',borderWidth:2,pointRadius:pr,
+      pointBackgroundColor:'#FF6058',fill:{target:'origin',above:'rgba(255,96,88,0.08)'},tension:0.4}],
+    {min:allMin-2,max:allMax+2});
 }
 
 // ── TRAINING ──────────────────────────────────────────────────────
