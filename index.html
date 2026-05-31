@@ -1498,6 +1498,12 @@ async function silentRefresh() {
     if (dot) dot.style.background = '';
     return;
   }
+  // Worker configured but failing — amber dot, no GIS fallback (prevents CCT flash loop)
+  if (localStorage.getItem('signal_worker_url')) {
+    const dot = document.querySelector('.header-google-dot');
+    if (dot) dot.style.background = '#f59e0b';
+    return;
+  }
   // No Worker configured — fall back to GIS silent auth
   if (!gTokenClient) return;
   const hint = localStorage.getItem('gfit_hint');
@@ -3123,6 +3129,11 @@ async function init() {
       await fetchAndMergeGoogleFitData();
       return;
     }
+    // Worker configured but not responding — show app, amber dot, never fall through to GIS
+    showApp(); showConnected();
+    const dot = document.querySelector('.header-google-dot');
+    if (dot) dot.style.background = '#f59e0b';
+    return;
   }
 
   // Valid token still in storage — use it immediately
