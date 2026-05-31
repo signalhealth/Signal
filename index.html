@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v64</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v65</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1514,63 +1514,11 @@ async function fetchGoogleWeight() {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
-async function getCorosDataSourceId(dataTypeName) {
-  const cacheKey = 'coros_src2_' + dataTypeName;
-  const cached = localStorage.getItem(cacheKey);
-  if (cached) return cached;
-  try {
-    const res = await fetch(
-      `https://www.googleapis.com/fitness/v1/users/me/dataSources?dataTypeName=${dataTypeName}`,
-      { headers: { 'Authorization': `Bearer ${gToken}` } }
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    const sources = json.dataSource || [];
-    console.log('[Signal] step dataSources:', JSON.stringify(sources.map(s => ({
-      id: s.dataStreamId, name: s.dataStreamName,
-      pkg: s.application?.packageName,
-      devType: s.device?.type, devMfr: s.device?.manufacturer, devModel: s.device?.model
-    }))));
-    const hasCorosStr = s => ['application.packageName','dataStreamId','dataStreamName']
-      .concat(['device.manufacturer','device.model'])
-      .map(k => k.split('.').reduce((o,p) => o?.[p], s) || '')
-      .some(v => v.toLowerCase().includes('coros'));
-    let src = sources.find(hasCorosStr);
-    if (!src) src = sources.find(s => s.device?.type === 'watch');
-    if (!src) src = sources.find(s => s.device?.type !== 'phone' && s.device?.type !== 'tablet');
-    if (src?.dataStreamId) {
-      localStorage.setItem(cacheKey, src.dataStreamId);
-      return src.dataStreamId;
-    }
-  } catch(e) {}
-  return null;
-}
-
 async function fetchGoogleSteps() {
   const endDate = new Date(); endDate.setHours(23, 59, 59, 999);
   const startDate = new Date(endDate); startDate.setDate(startDate.getDate() - 44); startDate.setHours(0, 0, 0, 0);
 
-  const corosSrcId = await getCorosDataSourceId('com.google.step_count.delta');
-  const aggregateBy = corosSrcId
-    ? [{ dataTypeName: 'com.google.step_count.delta', dataSourceId: corosSrcId }]
-    : [{ dataTypeName: 'com.google.step_count.delta' }];
-
-  const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      aggregateBy,
-      bucketByTime: { durationMillis: 86400000 },
-      startTimeMillis: startDate.getTime(),
-      endTimeMillis: endDate.getTime()
-    })
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Fit API ${res.status} (steps): ${body}`);
-  }
-  const json = await res.json();
-  return (json.bucket || [])
+  const parseStepBuckets = (json) => (json.bucket || [])
     .map(b => {
       const date = localDate(new Date(+b.startTimeMillis));
       const pts = b.dataset?.[0]?.point || [];
@@ -1579,6 +1527,68 @@ async function fetchGoogleSteps() {
     })
     .filter(Boolean)
     .sort((a, b) => b.date.localeCompare(a.date));
+
+  const doAggregate = async (aggregateBy) => {
+    const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aggregateBy,
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis: startDate.getTime(),
+        endTimeMillis: endDate.getTime()
+      })
+    });
+    if (!res.ok) { const b = await res.text().catch(() => ''); throw new Error(`Fit API ${res.status} (steps): ${b}`); }
+    return res.json();
+  };
+
+  // Try to find the Coros/Health Connect step source so we skip Pixel phone inflation.
+  // Coros syncs via Health Connect (pkg: com.google.android.apps.healthdata); the device
+  // manufacturer/model or stream name/ID should identify it.
+  const cacheKey = 'coros_src3_com.google.step_count.delta';
+  let corosSrcId = localStorage.getItem(cacheKey);
+  if (!corosSrcId) {
+    try {
+      const dsRes = await fetch(
+        'https://www.googleapis.com/fitness/v1/users/me/dataSources?dataTypeName=com.google.step_count.delta',
+        { headers: { 'Authorization': `Bearer ${gToken}` } }
+      );
+      if (dsRes.ok) {
+        const sources = (await dsRes.json()).dataSource || [];
+        const isCorosLike = s => {
+          const fields = [
+            s.dataStreamId, s.dataStreamName,
+            s.application?.packageName,
+            s.device?.manufacturer, s.device?.model
+          ].map(f => (f || '').toLowerCase());
+          return fields.some(f => f.includes('coros') || f.includes('apex') || f.includes('pace') || f.includes('vertix'));
+        };
+        // prefer explicit Coros match, then watch type, then Health Connect (which bridges Coros on Android)
+        const src = sources.find(isCorosLike)
+          || sources.find(s => s.device?.type === 'watch')
+          || sources.find(s => (s.application?.packageName || '').includes('healthdata') && s.device?.type !== 'phone');
+        if (src?.dataStreamId) {
+          localStorage.setItem(cacheKey, src.dataStreamId);
+          corosSrcId = src.dataStreamId;
+        }
+      }
+    } catch(e) {}
+  }
+
+  if (corosSrcId) {
+    try {
+      const json = await doAggregate([{ dataTypeName: 'com.google.step_count.delta', dataSourceId: corosSrcId }]);
+      const result = parseStepBuckets(json);
+      if (result.length > 0) return result;
+      // Source returned no data — clear cache and fall back to merged
+      localStorage.removeItem(cacheKey);
+    } catch(e) {}
+  }
+
+  // Fallback: merged aggregate (includes Pixel phone steps)
+  const json = await doAggregate([{ dataTypeName: 'com.google.step_count.delta' }]);
+  return parseStepBuckets(json);
 }
 
 async function fetchGoogleSleep() {
