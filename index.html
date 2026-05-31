@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v52</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v53</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1308,11 +1308,13 @@ const HEALTH_BASE = 'https://health.googleapis.com/v4/users/me';
 let gToken = null;
 let gTokenClient = null;
 
-// Returning users: hide landing page immediately (sync) so pull-to-refresh
-// never flashes the splash screen while the async init() is still running.
+// Returning users: immediately show app shell (sync, before async init runs)
+// so pull-to-refresh never flashes the splash screen or leaves a blank screen.
 if (localStorage.getItem('gfit_connected')) {
-  const lp = document.getElementById('pg-landing');
-  if (lp) lp.style.display = 'none';
+  document.getElementById('pg-landing').style.display  = 'none';
+  document.getElementById('app-header').style.display  = '';
+  document.getElementById('app-main').style.display    = '';
+  document.getElementById('app-nav').style.display     = '';
 }
 
 function localDate(d) {
@@ -2868,7 +2870,14 @@ async function init() {
     if (ready && !gTokenClient) window.onGoogleLibraryLoad();
   });
 }
-init();
+init().catch(() => {
+  // If init() throws, ensure the UI is never stuck blank.
+  // Show landing page so user can at least reconnect.
+  document.getElementById('pg-landing').style.display = '';
+  document.getElementById('app-header').style.display = 'none';
+  document.getElementById('app-main').style.display   = 'none';
+  document.getElementById('app-nav').style.display    = 'none';
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(reg => {
