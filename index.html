@@ -614,6 +614,20 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     </div>
   </div>
 
+  <!-- Micronutrients -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="lbl" style="margin-bottom:0;">Micronutrients</div>
+      <button onclick="toggleMicroEdit()" style="font-size:11px;font-weight:700;letter-spacing:0.08em;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--gray2);cursor:pointer;font-family:Space Grotesk,sans-serif;">EDIT</button>
+    </div>
+    <div id="micro-list"></div>
+    <div id="micro-edit-panel" style="display:none;margin-top:4px;border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:12px;color:var(--gray3);margin-bottom:12px;">Configure up to 5 micronutrient goals. Sodium, fiber, potassium, calcium, iron auto-track from Google Fit.</div>
+      <div id="micro-edit-rows"></div>
+      <button onclick="saveMicros()" style="margin-top:10px;width:100%;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;font-family:Space Grotesk,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">SAVE</button>
+    </div>
+  </div>
+
   <!-- Context toggles -->
   <div class="card">
     <div class="lbl" style="margin-bottom:14px;">Today's Context</div>
@@ -1522,58 +1536,54 @@ async function fetchGoogleHRV() {
 
 async function fetchGoogleNutrition() {
   try {
-    // List all nutrition data sources (aggregate API misses HC bridge sources)
-    const srcRes = await fetch(
-      'https://www.googleapis.com/fitness/v1/users/me/dataSources?dataTypeName=com.google.nutrition',
-      { headers: { 'Authorization': `Bearer ${gToken}` } }
-    );
-    if (!srcRes.ok) {
-      console.warn('Nutrition dataSources error', srcRes.status, await srcRes.text().catch(() => ''));
+    const endMs = Date.now();
+    const startMs = endMs - 35 * 86400000;
+    // Aggregate endpoint handles deduplication across all sources natively
+    const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aggregateBy: [{ dataTypeName: 'com.google.nutrition' }],
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis: startMs,
+        endTimeMillis: endMs
+      })
+    });
+    if (!res.ok) {
+      console.warn('Nutrition aggregate error', res.status, await res.text().catch(() => ''));
       return [];
     }
-    const sources = (await srcRes.json()).dataSource || [];
-    console.log('Nutrition sources:', sources.map(s => s.dataStreamId));
-    if (!sources.length) return [];
-
-    const endNs   = String(Date.now() * 1000000);
-    const startNs = String((Date.now() - 35 * 86400000) * 1000000);
-    const byDate  = {};
-
-    for (const src of sources) {
-      const url = `https://www.googleapis.com/fitness/v1/users/me/dataSources/${encodeURIComponent(src.dataStreamId)}/datasets/${startNs}-${endNs}`;
-      const dRes = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
-      if (!dRes.ok) { console.warn('Nutrition dataset error', src.dataStreamId, dRes.status); continue; }
-      const pts = (await dRes.json()).point || [];
-      for (const pt of pts) {
-        const ms   = Math.floor(+pt.startTimeNanos / 1000000);
-        const date = new Date(ms).toISOString().slice(0, 10);
-        const map  = {};
-        for (const e of (pt.value?.[0]?.mapVal || [])) map[e.key] = e.value?.fpVal ?? e.value?.intVal ?? 0;
-        const cals = map['calories'] ?? 0;
-        if (!cals) continue;
-        const foodName = pt.value?.[1]?.stringValue || null;
-        if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0, items: [] };
-        byDate[date].cals    += cals;
-        byDate[date].protein += map['protein']     ?? 0;
-        byDate[date].carbs   += map['carbs.total'] ?? 0;
-        byDate[date].fat     += map['fat.total']   ?? 0;
-        if (foodName) byDate[date].items.push({
-          name: foodName,
-          cals: Math.round(cals),
-          protein: Math.round(map['protein'] ?? 0),
-          carbs: Math.round(map['carbs.total'] ?? 0),
-          fat: Math.round(map['fat.total'] ?? 0)
-        });
+    const json = await res.json();
+    const byDate = {};
+    for (const b of (json.bucket || [])) {
+      // Bucket startTimeMillis is UTC midnight; use it as-is for date key
+      const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
+      for (const ds of (b.dataset || [])) {
+        for (const pt of (ds.point || [])) {
+          const map = {};
+          for (const e of (pt.value?.[0]?.mapVal || [])) map[e.key] = e.value?.fpVal ?? e.value?.intVal ?? 0;
+          const cals = map['calories'] ?? 0;
+          if (!cals) continue;
+          const foodName = pt.value?.[1]?.stringValue || null;
+          if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0, raw: {}, items: [] };
+          byDate[date].cals    += cals;
+          byDate[date].protein += map['protein']     ?? 0;
+          byDate[date].carbs   += map['carbs.total'] ?? 0;
+          byDate[date].fat     += map['fat.total']   ?? 0;
+          for (const k of ['sodium','potassium','dietary_fiber','calcium','iron','vitamin_c','vitamin_a','cholesterol','fat.saturated','sugar']) {
+            if (map[k]) byDate[date].raw[k] = (byDate[date].raw[k] || 0) + map[k];
+          }
+          if (foodName) byDate[date].items.push({ name: foodName, cals: Math.round(cals), protein: Math.round(map['protein'] ?? 0), carbs: Math.round(map['carbs.total'] ?? 0), fat: Math.round(map['fat.total'] ?? 0) });
+        }
       }
     }
-
     const result = Object.entries(byDate)
-      .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat), items: v.items || [] }))
+      .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat), raw: v.raw, items: v.items }))
       .filter(d => d.cals > 0)
       .sort((a, b) => b.date.localeCompare(a.date));
-    console.log('Nutrition fetched:', result.length, 'days, most recent:', result[0]);
+    console.log('Nutrition:', result.length, 'days fetched, most recent:', result[0]);
     return result;
-  } catch(e) { console.warn('Nutrition fetch exception:', e); return []; }
+  } catch(e) { console.warn('Nutrition exception:', e); return []; }
 }
 
 async function fetchGoogleActivities() {
@@ -1632,6 +1642,76 @@ function populateFuelFromLive(nutrition) {
     const lbl = document.getElementById('fuel-history-lbl');
     if (lbl) lbl.textContent = 'Avg: ' + avgCals.toLocaleString() + ' kcal · Target: 1,800 kcal';
   }
+}
+
+// ── MICRONUTRIENTS ────────────────────────────────────────────────
+const MICRO_FIT_MAP = {
+  'sodium': 'sodium', 'potassium': 'potassium', 'fiber': 'dietary_fiber',
+  'dietary fiber': 'dietary_fiber', 'calcium': 'calcium', 'iron': 'iron',
+  'vitamin c': 'vitamin_c', 'vitamin a': 'vitamin_a', 'cholesterol': 'cholesterol',
+  'saturated fat': 'fat.saturated', 'sugar': 'sugar'
+};
+const DEFAULT_MICROS = [
+  { name: 'Zinc',      target: 30,   unit: 'mg' },
+  { name: 'Vitamin D', target: 2000, unit: 'IU' },
+  { name: 'Magnesium', target: 400,  unit: 'mg' },
+  { name: 'Fiber',     target: 30,   unit: 'g'  },
+  { name: 'Sodium',    target: 2300, unit: 'mg' },
+];
+function loadMicroGoals() {
+  try { return JSON.parse(localStorage.getItem('signal_micros_v1') || 'null') || DEFAULT_MICROS; } catch(e) { return DEFAULT_MICROS; }
+}
+function getMicroFitKey(name) { return MICRO_FIT_MAP[name.toLowerCase()] || null; }
+
+function renderMicros() {
+  const el = document.getElementById('micro-list');
+  if (!el) return;
+  const goals = loadMicroGoals();
+  const today = new Date().toISOString().slice(0, 10);
+  const todayData = D.nutrition?.find(n => n.date === today) || D.nutrition?.[0];
+  const raw = todayData?.raw || {};
+
+  el.innerHTML = goals.map(m => {
+    const fitKey = getMicroFitKey(m.name);
+    const current = fitKey && raw[fitKey] != null ? Math.round(raw[fitKey]) : null;
+    const pct = current !== null ? Math.min(100, Math.round(current / m.target * 100)) : null;
+    const col = pct === null ? 'var(--gray3)' : pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--amber)' : 'var(--red)';
+    const autoTag = fitKey ? '' : '<span style="font-size:10px;color:var(--gray3);margin-left:5px;">GOAL</span>';
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:14px;color:var(--gray1);">${m.name}${autoTag}</span>
+        <span style="font-size:13px;font-weight:600;color:${col};">${current !== null ? current+' / '+m.target+' '+m.unit : m.target+' '+m.unit}</span>
+      </div>
+      ${pct !== null ? `<div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${col};"></div></div>` : `<div class="prog-track"><div style="width:100%;height:100%;border-radius:4px;background:repeating-linear-gradient(90deg,var(--border2) 0,var(--border2) 4px,transparent 4px,transparent 8px);"></div></div>`}
+    </div>`;
+  }).join('');
+}
+
+function toggleMicroEdit() {
+  const panel = document.getElementById('micro-edit-panel');
+  const open = panel.style.display !== 'none';
+  if (!open) {
+    const goals = loadMicroGoals();
+    document.getElementById('micro-edit-rows').innerHTML = goals.map((m, i) =>
+      `<div style="display:grid;grid-template-columns:2fr 1fr 0.6fr;gap:6px;margin-bottom:8px;">
+        <input value="${m.name}" id="me-name-${i}" placeholder="Nutrient" style="padding:8px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--white);font-family:Space Grotesk,sans-serif;font-size:13px;"/>
+        <input value="${m.target}" id="me-tgt-${i}" type="number" min="0" style="padding:8px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--white);font-family:Space Grotesk,sans-serif;font-size:13px;"/>
+        <input value="${m.unit}" id="me-unit-${i}" placeholder="mg" style="padding:8px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--white);font-family:Space Grotesk,sans-serif;font-size:13px;"/>
+      </div>`
+    ).join('');
+  }
+  panel.style.display = open ? 'none' : 'block';
+}
+
+function saveMicros() {
+  const goals = loadMicroGoals().map((_, i) => ({
+    name:   document.getElementById('me-name-'+i)?.value?.trim() || '',
+    target: parseFloat(document.getElementById('me-tgt-'+i)?.value) || 0,
+    unit:   document.getElementById('me-unit-'+i)?.value?.trim() || 'mg',
+  })).filter(m => m.name);
+  localStorage.setItem('signal_micros_v1', JSON.stringify(goals));
+  document.getElementById('micro-edit-panel').style.display = 'none';
+  renderMicros();
 }
 
 function setFuelDisplay(cals, protein, carbs, fat) {
@@ -1718,6 +1798,7 @@ async function fetchAndMergeGoogleFitData() {
     renderRHR();
     setTimeout(renderWeightFull, 100);
     if (charts['fuel-history-chart']) renderFuel();
+    renderMicros();
   } catch(e) {
     console.error('Google Fit sync error:', e);
   } finally {
@@ -2429,6 +2510,13 @@ async function analyzeFuel() {
   const foodLog = liveToday?.items?.length
     ? liveToday.items.map(i => `${i.name} (${i.cals}cal, ${i.protein}g P)`).join(', ')
     : null;
+  const microGoals = loadMicroGoals();
+  const raw = liveToday?.raw || {};
+  const microStatus = microGoals.map(m => {
+    const fitKey = getMicroFitKey(m.name);
+    const cur = fitKey && raw[fitKey] != null ? Math.round(raw[fitKey]) : null;
+    return cur !== null ? `${m.name}: ${cur}/${m.target}${m.unit}` : `${m.name}: goal ${m.target}${m.unit} (not auto-tracked)`;
+  }).join(', ');
   
   btn.textContent = 'ANALYZING...';
   btn.style.opacity = '0.6';
@@ -2457,6 +2545,7 @@ TODAY SO FAR:
 - Protein: ${protein}g (remaining: ${Math.max(0,180-protein)}g)
 - Carbs: ${carbs}g
 - Fat: ${fat}g${foodLog ? '\n- Foods eaten: ' + foodLog : ''}
+- Micros: ${microStatus}
 - Trained today: ${fuelCtx.trained || 'unknown'}
 - Sleep last night: ${latestSleep}h (${fuelCtx.sleep || 'unknown'} quality)
 - HRV: ${latestHRV}ms
@@ -2533,7 +2622,7 @@ function renderFuel() {
 const pageCharts = {
   recovery: ()=>{ renderHRV(); renderSleep(); renderRHR(); renderRec(); },
   labs: ()=>{ renderLabs(); },
-  fuel: ()=>{ renderFuel(); },
+  fuel: ()=>{ renderFuel(); renderMicros(); },
 };
 function showPage(name,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
