@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v58</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v59</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1948,9 +1948,7 @@ const movAvg=(vals,w=7)=>vals.map((_,i)=>{const s=vals.slice(Math.max(0,i-w+1),i
 let _wtDays=14;
 function renderWeight(days=_wtDays) {
   const allSorted=asc(D.weight);
-  const latestDate=new Date(allSorted[allSorted.length-1].date);
-  const cutoff=new Date(latestDate); cutoff.setDate(cutoff.getDate()-days);
-  const slice=allSorted.filter(d=>d.date>=cutoff.toISOString().slice(0,10));
+  const slice=allSorted.slice(-days);  // last N entries, not calendar cutoff
   const labels=slice.map(d=>d.date.slice(5));
   const vals=slice.map(d=>d.value);
   const ma=movAvg(vals);
