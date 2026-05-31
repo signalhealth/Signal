@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v66</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v67</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1423,12 +1423,31 @@ function connectGoogle() {
   }
 }
 
+let _silentAttempt = false;
+
 window.onGoogleLibraryLoad = function() {
   gTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GFIT_CLIENT_ID,
     scope: GFIT_SCOPES,
     callback: async (resp) => {
-      if (resp.error) { console.error('Google auth error:', resp); return; }
+      const wasSilent = _silentAttempt;
+      _silentAttempt = false;
+      if (resp.error) {
+        console.error('Google auth error:', resp);
+        if (wasSilent) {
+          // Silent refresh failed (session expired) — turn indicator amber so user knows to tap
+          const dot = document.querySelector('.header-google-dot');
+          if (dot) dot.style.background = '#f59e0b';
+          const hg = document.getElementById('header-google');
+          if (hg) hg.title = 'Google session expired — tap to reconnect';
+        }
+        return;
+      }
+      // Success — reset indicator to green
+      const dot = document.querySelector('.header-google-dot');
+      if (dot) dot.style.background = '';
+      const hg = document.getElementById('header-google');
+      if (hg) hg.title = 'Google Health connected — tap to re-auth';
       gToken = resp.access_token;
       saveToken(gToken);
       showApp();
@@ -1447,11 +1466,20 @@ window.onGoogleLibraryLoad = function() {
 function silentRefresh() {
   if (!gTokenClient) return;
   const hint = localStorage.getItem('gfit_hint');
-  gTokenClient.requestAccessToken({ prompt: '', ...(hint ? { login_hint: hint } : {}) });
+  _silentAttempt = true;
+  // prompt:'none' guarantees no popup ever appears during background refresh.
+  // If the Chrome session is still valid this completes invisibly.
+  // If not, the callback flags the indicator amber so the user can tap to reconnect.
+  gTokenClient.requestAccessToken({ prompt: 'none', ...(hint ? { login_hint: hint } : {}) });
 }
 
 function signInWithGoogle() {
-  if (gTokenClient) silentRefresh();
+  if (!gTokenClient) return;
+  _silentAttempt = false;
+  const hint = localStorage.getItem('gfit_hint');
+  // With login_hint and no prompt restriction Google uses the known account
+  // with minimal UI — typically just a brief account confirmation, not a full login.
+  gTokenClient.requestAccessToken({ ...(hint ? { login_hint: hint, prompt: '' } : { prompt: 'select_account' }) });
 }
 
 // ── GOOGLE HEALTH API (v4) ────────────────────────────────────────
