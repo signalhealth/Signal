@@ -1267,7 +1267,10 @@ let gToken = null;
 let gTokenClient = null;
 
 function saveToken(token) {
-  try { localStorage.setItem('gfit_auth_v7', JSON.stringify({ token, expiry: Date.now() + 3500000 })); } catch(e) {}
+  try {
+    localStorage.setItem('gfit_auth_v7', JSON.stringify({ token, expiry: Date.now() + 3500000 }));
+    localStorage.setItem('gfit_connected', '1');
+  } catch(e) {}
 }
 function loadToken() {
   try {
@@ -1275,6 +1278,9 @@ function loadToken() {
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
+}
+function hasConnectedBefore() {
+  return !!localStorage.getItem('gfit_connected');
 }
 function showApp() {
   document.getElementById('pg-landing').style.display = 'none';
@@ -2564,18 +2570,6 @@ async function init() {
   renderRHR();
   setTimeout(renderWeightFull, 100);
 
-  // Restore from localStorage if token is still valid — skip landing page entirely
-  const stored = loadToken();
-  if (stored) {
-    gToken = stored;
-    showApp();
-    showConnected();
-    await fetchAndMergeGoogleFitData();
-    return;
-  }
-
-  // No stored token — show landing page, wait for user to tap Connect
-  // Pre-initialize GIS in the background so the button is instant
   const waitForGIS = () => new Promise(resolve => {
     if (window.google?.accounts?.oauth2) { resolve(true); return; }
     let tries = 0;
@@ -2583,6 +2577,33 @@ async function init() {
       if (window.google?.accounts?.oauth2 || ++tries > 40) { clearInterval(t); resolve(!!window.google?.accounts?.oauth2); }
     }, 250);
   });
+
+  // Valid token still in storage — use it immediately
+  const stored = loadToken();
+  if (stored) {
+    gToken = stored;
+    showApp();
+    showConnected();
+    await fetchAndMergeGoogleFitData();
+    // Pre-warm GIS so silent refresh is ready before token expires
+    waitForGIS().then(ready => { if (ready && !gTokenClient) window.onGoogleLibraryLoad(); });
+    return;
+  }
+
+  // Token expired but user has connected before — skip landing page, silent re-auth
+  if (hasConnectedBefore()) {
+    showApp();
+    showConnected();
+    waitForGIS().then(ready => {
+      if (ready) {
+        if (!gTokenClient) window.onGoogleLibraryLoad();
+        gTokenClient.requestAccessToken({ prompt: '' });
+      }
+    });
+    return;
+  }
+
+  // First-time user — show landing page, pre-initialize GIS in background
   waitForGIS().then(ready => {
     if (ready && !gTokenClient) window.onGoogleLibraryLoad();
   });
