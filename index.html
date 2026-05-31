@@ -2700,14 +2700,36 @@ function resetAnthropicKey() { localStorage.removeItem('anthropic_key'); locatio
 let _antKeyCb = null;
 function showApiKeyPrompt(el, cb) {
   _antKeyCb = cb;
-  el.innerHTML = `<div style="font-size:13px;color:var(--gray2);line-height:1.6;margin-bottom:10px;">Enter your Anthropic API key to enable AI insights. Stored only on this device.</div>
-    <input id="ant-key-input" type="password" placeholder="sk-ant-api03-…" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid rgba(28,105,212,0.35);background:rgba(255,255,255,0.05);color:#fff;font-family:Space Grotesk,sans-serif;font-size:13px;margin-bottom:8px;display:block;"/>
-    <button onclick="antKeySave()" style="width:100%;padding:10px;border-radius:8px;border:none;background:rgba(28,105,212,0.85);color:#fff;font-family:Space Grotesk,sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Save &amp; Continue</button>
-    <div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,0.25);">Get your key at console.anthropic.com &nbsp;·&nbsp; <a href="#" onclick="localStorage.removeItem('anthropic_key');location.reload();return false;" style="color:rgba(100,160,255,0.45);">Reset</a></div>`;
+  el.innerHTML = `
+    <div style="font-size:13px;color:var(--gray2);line-height:1.6;margin-bottom:10px;">Enter your Anthropic API key. Stored only on this device, never sent anywhere else.</div>
+    <div style="position:relative;margin-bottom:8px;">
+      <input id="ant-key-input" type="password" placeholder="sk-ant-api03-…"
+        autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+        style="width:100%;box-sizing:border-box;padding:10px 40px 10px 12px;border-radius:8px;border:1px solid rgba(28,105,212,0.35);background:rgba(255,255,255,0.05);color:#fff;font-family:Space Grotesk,sans-serif;font-size:13px;display:block;"/>
+      <button onclick="antKeyToggle()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--gray3);cursor:pointer;font-size:16px;padding:0;" title="Show/hide">👁</button>
+    </div>
+    <div id="ant-key-preview" style="font-size:11px;color:var(--gray3);margin-bottom:8px;min-height:16px;font-family:monospace;letter-spacing:0.05em;"></div>
+    <button onclick="antKeySave()" style="width:100%;padding:10px;border-radius:8px;border:none;background:rgba(28,105,212,0.85);color:#fff;font-family:Space Grotesk,sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Save &amp; Analyze</button>
+    <div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,0.25);">console.anthropic.com &nbsp;·&nbsp; <a href="#" onclick="localStorage.removeItem('anthropic_key');location.reload();return false;" style="color:rgba(100,160,255,0.45);">Reset saved key</a></div>`;
+  const inp = document.getElementById('ant-key-input');
+  inp.addEventListener('input', () => {
+    const v = inp.value.trim();
+    const pre = document.getElementById('ant-key-preview');
+    if (v.length > 8) pre.textContent = v.slice(0,12) + '…' + v.slice(-4) + '  (' + v.length + ' chars)';
+    else pre.textContent = '';
+  });
+}
+function antKeyToggle() {
+  const inp = document.getElementById('ant-key-input');
+  if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 function antKeySave() {
-  const k = (document.getElementById('ant-key-input')?.value || '').trim();
-  if (!k) return;
+  const k = (document.getElementById('ant-key-input')?.value || '').trim().replace(/\s+/g, '');
+  if (!k.startsWith('sk-ant-')) {
+    const pre = document.getElementById('ant-key-preview');
+    if (pre) pre.style.color = 'var(--red)', pre.textContent = 'Key should start with sk-ant- — check for typos';
+    return;
+  }
   localStorage.setItem('anthropic_key', k);
   if (_antKeyCb) { const cb = _antKeyCb; _antKeyCb = null; cb(); }
 }
