@@ -1346,6 +1346,18 @@ function localDate(d) {
   return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0');
 }
 
+async function getWorkerToken() {
+  const url = localStorage.getItem('signal_worker_url');
+  const secret = localStorage.getItem('signal_worker_secret');
+  if (!url || !secret) return null;
+  try {
+    const res = await fetch(url + '/token', { headers: { 'Authorization': 'Bearer ' + secret } });
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d.access_token || null;
+  } catch(e) { return null; }
+}
+
 let _refreshTimer = null;
 function saveToken(token) {
   try {
@@ -1476,7 +1488,17 @@ window.onGoogleLibraryLoad = function() {
   });
 };
 
-function silentRefresh() {
+async function silentRefresh() {
+  // Worker-based refresh — completely silent, no Chrome Custom Tab
+  const wToken = await getWorkerToken();
+  if (wToken) {
+    gToken = wToken;
+    saveToken(wToken);
+    const dot = document.querySelector('.header-google-dot');
+    if (dot) dot.style.background = '';
+    return;
+  }
+  // No Worker configured — fall back to GIS silent auth
   if (!gTokenClient) return;
   const hint = localStorage.getItem('gfit_hint');
   _silentAttempt = 1;
@@ -3056,6 +3078,14 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
 
 // ── INIT ──────────────────────────────────────────────────────────
 async function init() {
+  // One-time Worker setup via URL params: ?worker=URL&wsecret=SECRET
+  try {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('worker')) localStorage.setItem('signal_worker_url', p.get('worker'));
+    if (p.get('wsecret')) localStorage.setItem('signal_worker_secret', p.get('wsecret'));
+    if (p.get('worker') || p.get('wsecret')) window.history.replaceState({}, '', window.location.pathname);
+  } catch(e) {}
+
   await loadS();
   loadFuelFromStorage();
   renderWeight();
@@ -3075,6 +3105,26 @@ async function init() {
     }, 250);
   });
 
+  // Worker configured — use it for completely silent auth (no OAuth popup ever)
+  if (localStorage.getItem('signal_worker_url')) {
+    const stored = loadToken();
+    if (stored) {
+      gToken = stored;
+      showApp(); showConnected();
+      await fetchAndMergeGoogleFitData();
+      return;
+    }
+    const wToken = await getWorkerToken();
+    if (wToken) {
+      gToken = wToken;
+      saveToken(wToken);
+      localStorage.setItem('gfit_connected', '2');
+      showApp(); showConnected();
+      await fetchAndMergeGoogleFitData();
+      return;
+    }
+  }
+
   // Valid token still in storage — use it immediately
   const stored = loadToken();
   if (stored) {
@@ -3082,7 +3132,6 @@ async function init() {
     showApp();
     showConnected();
     await fetchAndMergeGoogleFitData();
-    // Pre-warm GIS so silent refresh is ready before token expires
     waitForGIS().then(ready => { if (ready && !gTokenClient) window.onGoogleLibraryLoad(); });
     return;
   }
