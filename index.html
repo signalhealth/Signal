@@ -1539,8 +1539,16 @@ async function fetchGoogleHRV() {
 
 async function fetchGoogleNutrition() {
   try {
-    const endMs = Date.now();
-    const startMs = endMs - 35 * 86400000;
+    // Snap to UTC midnight so bucket boundaries align to calendar days.
+    // Without this, buckets start at the current time-of-day 35 days ago,
+    // causing food logged at noon to fall in yesterday's bucket.
+    const endDate = new Date();
+    endDate.setUTCHours(23, 59, 59, 999);
+    const startDate = new Date(endDate);
+    startDate.setUTCDate(startDate.getUTCDate() - 34);
+    startDate.setUTCHours(0, 0, 0, 0);
+    const startMs = startDate.getTime();
+    const endMs = endDate.getTime();
     // Aggregate endpoint handles deduplication across all sources natively
     const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
       method: 'POST',
@@ -1666,6 +1674,17 @@ function loadMicroGoals() {
 }
 function getMicroFitKey(name) { return MICRO_FIT_MAP[name.toLowerCase()] || null; }
 
+function loadMicroManual(date) {
+  try { return JSON.parse(localStorage.getItem('micro_manual_' + date) || '{}'); } catch(e) { return {}; }
+}
+function saveMicroManual(name, value) {
+  const today = new Date().toISOString().slice(0, 10);
+  const data = loadMicroManual(today);
+  data[name] = parseFloat(value) || 0;
+  localStorage.setItem('micro_manual_' + today, JSON.stringify(data));
+  renderMicros();
+}
+
 function renderMicros() {
   const el = document.getElementById('micro-list');
   if (!el) return;
@@ -1673,20 +1692,42 @@ function renderMicros() {
   const today = new Date().toISOString().slice(0, 10);
   const todayData = D.nutrition?.find(n => n.date === today) || D.nutrition?.[0];
   const raw = todayData?.raw || {};
+  const manual = loadMicroManual(today);
 
   el.innerHTML = goals.map(m => {
     const fitKey = getMicroFitKey(m.name);
-    const current = fitKey && raw[fitKey] != null ? Math.round(raw[fitKey]) : null;
+    const fitVal = fitKey && raw[fitKey] != null ? Math.round(raw[fitKey]) : null;
+    const manVal = manual[m.name] != null ? manual[m.name] : null;
+    const current = fitVal !== null ? fitVal : manVal;
     const pct = current !== null ? Math.min(100, Math.round(current / m.target * 100)) : null;
     const col = pct === null ? 'var(--gray3)' : pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--amber)' : 'var(--red)';
-    const autoTag = fitKey ? '' : '<span style="font-size:10px;color:var(--gray3);margin-left:5px;">GOAL</span>';
-    return `<div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <span style="font-size:14px;color:var(--gray1);">${m.name}${autoTag}</span>
-        <span style="font-size:13px;font-weight:600;color:${col};">${current !== null ? current+' / '+m.target+' '+m.unit : m.target+' '+m.unit}</span>
-      </div>
-      ${pct !== null ? `<div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${col};"></div></div>` : `<div class="prog-track"><div style="width:100%;height:100%;border-radius:4px;background:repeating-linear-gradient(90deg,var(--border2) 0,var(--border2) 4px,transparent 4px,transparent 8px);"></div></div>`}
-    </div>`;
+
+    if (fitKey) {
+      // Auto-tracked from Fit
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:14px;color:var(--gray1);">${m.name}</span>
+          <span style="font-size:13px;font-weight:600;color:${col};">${current !== null ? current+' / '+m.target+' '+m.unit : '— / '+m.target+' '+m.unit}</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:${pct||0}%;background:${col};"></div></div>
+      </div>`;
+    } else {
+      // Manual entry — show input field
+      const safeId = m.name.replace(/\s+/g,'_');
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:14px;color:var(--gray1);">${m.name}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="number" min="0" value="${manVal||''}" placeholder="0"
+              id="micro-inp-${safeId}"
+              onchange="saveMicroManual('${m.name}',this.value)"
+              style="width:56px;padding:4px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--white);font-family:Space Grotesk,sans-serif;font-size:13px;font-weight:600;text-align:right;"/>
+            <span style="font-size:12px;color:var(--gray3);">/ ${m.target} ${m.unit}</span>
+          </div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" style="width:${pct||0}%;background:${col};"></div></div>
+      </div>`;
+    }
   }).join('');
 }
 
@@ -2515,10 +2556,11 @@ async function analyzeFuel() {
     : null;
   const microGoals = loadMicroGoals();
   const raw = liveToday?.raw || {};
+  const manual = loadMicroManual(today);
   const microStatus = microGoals.map(m => {
     const fitKey = getMicroFitKey(m.name);
-    const cur = fitKey && raw[fitKey] != null ? Math.round(raw[fitKey]) : null;
-    return cur !== null ? `${m.name}: ${cur}/${m.target}${m.unit}` : `${m.name}: goal ${m.target}${m.unit} (not auto-tracked)`;
+    const cur = fitKey && raw[fitKey] != null ? Math.round(raw[fitKey]) : (manual[m.name] ?? null);
+    return cur !== null ? `${m.name}: ${cur}/${m.target}${m.unit}` : `${m.name}: goal ${m.target}${m.unit} (not logged today)`;
   }).join(', ');
   
   btn.textContent = 'ANALYZING...';
