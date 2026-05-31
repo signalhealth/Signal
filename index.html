@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v70</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v71</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1526,20 +1526,52 @@ function ptVal(pt) {
 }
 
 async function fetchGoogleWeight() {
-  let data = null;
+  const byDate = {};
+
+  // Source 1: Health Connect v4
   for (const typeName of ['weight', 'bodyWeight', 'bodyMass', 'body.weight']) {
     try {
-      data = await healthList(typeName, 120);
-      if (Array.isArray(data.dataPoints)) break;
-    } catch(e) { data = null; }
+      const data = await healthList(typeName, 120);
+      if (!Array.isArray(data.dataPoints) || !data.dataPoints.length) continue;
+      for (const pt of data.dataPoints) {
+        const kg = ptVal(pt);
+        if (!kg || kg <= 0) continue;
+        const date = localDate(new Date(pt.interval?.startTime || pt.startTime));
+        if (date) byDate[date] = Math.round(kg * 2.20462 * 10) / 10;
+      }
+      break;
+    } catch(e) {}
   }
-  return ((data && data.dataPoints) || [])
-    .map(pt => {
-      const kg = ptVal(pt);
-      if (!kg || kg <= 0) return null;
-      return { date: localDate(new Date(pt.interval?.startTime || pt.startTime)), value: Math.round(kg * 2.20462 * 10) / 10 };
-    })
-    .filter(d => d && d.date)
+
+  // Source 2: Google Fit v1 (VeSync and other scales often write here directly)
+  try {
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    const start = new Date(end); start.setDate(start.getDate() - 120); start.setHours(0, 0, 0, 0);
+    const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        aggregateBy: [{ dataTypeName: 'com.google.weight' }],
+        bucketByTime: { durationMillis: 86400000 },
+        startTimeMillis: start.getTime(), endTimeMillis: end.getTime()
+      })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      for (const b of (json.bucket || [])) {
+        const date = localDate(new Date(+b.startTimeMillis));
+        const pts = b.dataset?.[0]?.point || [];
+        for (const pt of pts) {
+          const kg = pt.value?.[0]?.fpVal;
+          if (kg && kg > 0) byDate[date] = Math.round(kg * 2.20462 * 10) / 10;
+        }
+      }
+    }
+  } catch(e) {}
+
+  return Object.entries(byDate)
+    .map(([date, value]) => ({ date, value }))
+    .filter(d => d.value > 0)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
