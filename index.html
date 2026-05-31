@@ -1349,7 +1349,7 @@ function localDate(d) {
 let _refreshTimer = null;
 function saveToken(token) {
   try {
-    const expiry = Date.now() + 3500000;
+    const expiry = Date.now() + 3540000; // 59 min (Google tokens are ~60 min)
     localStorage.setItem('gfit_auth_v8', JSON.stringify({ token, expiry }));
     localStorage.setItem('gfit_connected', '2');
     scheduleTokenRefresh(expiry);
@@ -1367,18 +1367,21 @@ function loadToken() {
 }
 function scheduleTokenRefresh(expiry) {
   if (_refreshTimer) clearTimeout(_refreshTimer);
-  const msUntilRefresh = expiry - Date.now() - 20 * 60 * 1000; // refresh 20 min before expiry
-  if (msUntilRefresh <= 0) return;
+  // Fire 8 min before expiry — close enough to prevent mid-session expiry,
+  // but not so early we trigger unnecessary Chrome Custom Tab flashes.
+  const msUntilRefresh = expiry - Date.now() - 8 * 60 * 1000;
+  if (msUntilRefresh <= 0) { silentRefresh(); return; }
   _refreshTimer = setTimeout(() => silentRefresh(), msUntilRefresh);
 }
 
-// When user switches back to the app, proactively refresh if token
-// expires within 10 minutes so they never hit an expired token mid-session.
+// When user foregrounds the app, refresh only if the token is gone or nearly gone.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   try {
     const s = JSON.parse(localStorage.getItem('gfit_auth_v8') || 'null');
-    if (s && s.expiry - Date.now() < 10 * 60 * 1000) silentRefresh();
+    const expired = !s || !s.token || s.expiry <= Date.now();
+    const almostExpired = s && s.expiry - Date.now() < 5 * 60 * 1000;
+    if ((expired || almostExpired) && gTokenClient) silentRefresh();
   } catch(e) {}
 });
 function hasConnectedBefore() {
@@ -1424,7 +1427,8 @@ function connectGoogle() {
   }
 }
 
-let _silentAttempt = false;
+// 0 = not a silent attempt, 1 = first try (prompt:none), 2 = second try (prompt:'')
+let _silentAttempt = 0;
 
 window.onGoogleLibraryLoad = function() {
   gTokenClient = google.accounts.oauth2.initTokenClient({
@@ -1432,11 +1436,19 @@ window.onGoogleLibraryLoad = function() {
     scope: GFIT_SCOPES,
     callback: async (resp) => {
       const wasSilent = _silentAttempt;
-      _silentAttempt = false;
+      _silentAttempt = 0;
       if (resp.error) {
-        console.error('Google auth error:', resp);
-        if (wasSilent) {
-          // Silent refresh failed (session expired) — turn indicator amber so user knows to tap
+        if (wasSilent === 1) {
+          // prompt:none failed — try prompt:'' which may succeed silently if Chrome
+          // session is valid but needs a nudge (no visible login form either way).
+          const hint = localStorage.getItem('gfit_hint');
+          _silentAttempt = 2;
+          gTokenClient.requestAccessToken({ prompt: '', ...(hint ? { login_hint: hint } : {}) });
+          return;
+        }
+        if (wasSilent === 2) {
+          // Both silent attempts failed — turn indicator amber; token still valid
+          // for several minutes so data keeps loading until user taps to reconnect.
           const dot = document.querySelector('.header-google-dot');
           if (dot) dot.style.background = '#f59e0b';
           const hg = document.getElementById('header-google');
@@ -1467,10 +1479,7 @@ window.onGoogleLibraryLoad = function() {
 function silentRefresh() {
   if (!gTokenClient) return;
   const hint = localStorage.getItem('gfit_hint');
-  _silentAttempt = true;
-  // prompt:'none' guarantees no popup ever appears during background refresh.
-  // If the Chrome session is still valid this completes invisibly.
-  // If not, the callback flags the indicator amber so the user can tap to reconnect.
+  _silentAttempt = 1;
   gTokenClient.requestAccessToken({ prompt: 'none', ...(hint ? { login_hint: hint } : {}) });
 }
 
