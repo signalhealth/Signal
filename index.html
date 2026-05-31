@@ -1347,9 +1347,17 @@ function localDate(d) {
 }
 
 async function getWorkerToken() {
-  const url = localStorage.getItem('signal_worker_url');
-  const secret = localStorage.getItem('signal_worker_secret');
+  // Read config from URL hash first (survives pull-to-refresh), then localStorage
+  let url = null, secret = null;
+  try {
+    const p = new URLSearchParams(window.location.hash.slice(1));
+    url = p.get('worker'); secret = p.get('wsecret');
+  } catch(e) {}
+  if (!url) url = localStorage.getItem('signal_worker_url');
+  if (!secret) secret = localStorage.getItem('signal_worker_secret');
   if (!url || !secret) return null;
+  // Keep localStorage in sync
+  try { localStorage.setItem('signal_worker_url', url); localStorage.setItem('signal_worker_secret', secret); } catch(e) {}
   try {
     const res = await fetch(url + '/token', { headers: { 'Authorization': 'Bearer ' + secret } });
     if (!res.ok) return null;
