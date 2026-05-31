@@ -154,7 +154,7 @@ main {
 .num-sub { font-size: 11px; color: var(--gray2); margin-top: 5px; }
 
 /* ── BADGES ──────────────────────────────────────────────────── */
-.badge { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; }
+.badge { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; padding: 4px 10px; border-radius: 5px; text-transform: uppercase; }
 .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,200,120,0.25); }
 .badge-amber { background: rgba(245,166,35,0.1); color: var(--amber); border: 1px solid rgba(245,166,35,0.25); }
 .badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(233,40,58,0.25); }
@@ -171,7 +171,7 @@ main {
 .prog-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
 .prog-track { height: 4px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
 .prog-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
-.prog-sub { font-size: 10px; color: var(--gray3); margin-top: 5px; letter-spacing: 0.04em; }
+.prog-sub { font-size: 12px; color: var(--gray3); margin-top: 5px; letter-spacing: 0.03em; }
 
 /* ── SPARKLINES ──────────────────────────────────────────────── */
 .sparkline { width: 80px; height: 30px; }
@@ -216,7 +216,7 @@ main {
 .cycle-cell.active { border-color: var(--blue); background: rgba(28,105,212,0.08); }
 
 /* ── LAB ROW ─────────────────────────────────────────────────── */
-.lab-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #182030; }
+.lab-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--border); }
 .lab-row:last-child { border-bottom: none; }
 
 /* ── DEXA ────────────────────────────────────────────────────── */
@@ -444,17 +444,16 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
 
 <!-- ═══════════════ RECOVERY ═══════════════ -->
 <div id="pg-recovery" class="page">
-  <div class="page-title"><h2>Recovery</h2><p>HRV · Sleep · Readiness</p></div>
 
   <div class="card">
-    <div class="row-sb" style="margin-bottom:12px;">
+    <div class="row-sb" style="margin-bottom:14px;">
       <div>
         <div class="lbl">Heart Rate Variability</div>
-        <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
+        <div class="row" style="align-items:baseline;gap:8px;margin-top:6px;">
           <span class="num-lg" id="hrv-val">79</span>
-          <span style="font-size:13px;color:var(--gray2);">ms · 30-day avg</span>
+          <span style="font-size:15px;color:var(--gray2);">ms · 30-day avg</span>
         </div>
-        <div style="font-size:11px;color:var(--gray2);margin-top:3px;">Normal range: 69–89 ms</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">Normal range: 69–89 ms</div>
       </div>
       <span class="badge badge-green" id="hrv-badge">In Range</span>
     </div>
@@ -462,12 +461,12 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
   </div>
 
   <div class="card">
-    <div class="row-sb" style="margin-bottom:12px;">
+    <div class="row-sb" style="margin-bottom:14px;">
       <div>
         <div class="lbl">Sleep Duration</div>
-        <div class="row" style="align-items:baseline;gap:6px;margin-top:4px;">
+        <div class="row" style="align-items:baseline;gap:8px;margin-top:6px;">
           <span class="num-lg" id="sleep-avg">7.5</span>
-          <span style="font-size:13px;color:var(--gray2);">hr · 14-day avg</span>
+          <span style="font-size:15px;color:var(--gray2);">hr · 14-day avg</span>
         </div>
       </div>
       <span class="badge badge-amber">Near Target</span>
@@ -476,17 +475,21 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
   </div>
 
   <div class="card">
-    <div class="lbl">Resting Heart Rate</div>
-    <div class="row" style="align-items:baseline;gap:8px;margin-top:4px;margin-bottom:14px;">
-      <span class="num-lg" id="rhr-val">51</span>
-      <span style="font-size:13px;color:var(--gray2);">bpm</span>
-      <span class="badge badge-green" id="rhr-badge" style="margin-left:4px;">Excellent</span>
+    <div class="row-sb" style="margin-bottom:14px;">
+      <div>
+        <div class="lbl">Resting Heart Rate</div>
+        <div class="row" style="align-items:baseline;gap:8px;margin-top:6px;">
+          <span class="num-lg" id="rhr-val">51</span>
+          <span style="font-size:15px;color:var(--gray2);">bpm</span>
+        </div>
+      </div>
+      <span class="badge badge-green" id="rhr-badge">Excellent</span>
     </div>
     <div style="height:80px;"><canvas id="rhr-chart"></canvas></div>
   </div>
 
   <div class="card">
-    <div class="lbl" style="margin-bottom:12px;">Log Recovery Note</div>
+    <div class="lbl" style="margin-bottom:12px;">Recovery Notes</div>
     <div class="form-row" style="margin-top:6px;">
       <input type="date" id="rec-date" style="max-width:140px;"/>
       <input type="text" id="rec-note" placeholder="e.g. 79ms — full recovery"/>
@@ -500,10 +503,18 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
 
 <!-- ═══════════════ LABS ═══════════════ -->
 <div id="pg-labs" class="page">
-  <div class="page-title"><h2>Labs</h2><p>Vive Health Panel · May 9, 2026</p></div>
-  <div class="card"><div class="lbl" style="margin-bottom:12px;">🔴 Flagged</div><div id="labs-red"></div></div>
-  <div class="card"><div class="lbl" style="margin-bottom:12px;">⚠️ Monitor</div><div id="labs-amber"></div></div>
-  <div class="card"><div class="lbl" style="margin-bottom:12px;">✓ Optimal</div><div id="labs-green"></div></div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;color:var(--red);">Flagged</div>
+    <div id="labs-red"></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;color:var(--amber);">Monitor</div>
+    <div id="labs-amber"></div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:14px;color:var(--green);">Optimal</div>
+    <div id="labs-green"></div>
+  </div>
   <div class="card">
     <div class="lbl" style="margin-bottom:12px;">Add Result</div>
     <div class="form-grid-2"><input type="date" id="lab-date"/><input type="text" id="lab-name" placeholder="Marker"/></div>
@@ -518,37 +529,36 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
 
 <!-- ═══════════════ FUEL ═══════════════ -->
 <div id="pg-fuel" class="page">
-  <div class="page-title"><h2>Fuel</h2><p>Nutrition Intelligence</p></div>
 
   <!-- Today's intake — live from MacroFactor -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div>
         <div class="lbl">Today's Intake</div>
-        <div id="fuel-date-lbl" style="font-size:10px;color:var(--gray3);margin-top:2px;"></div>
+        <div id="fuel-date-lbl" style="font-size:12px;color:var(--gray3);margin-top:3px;"></div>
       </div>
-      <span id="fuel-sync-badge" style="display:none;font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
+      <span id="fuel-sync-badge" style="display:none;font-size:11px;color:var(--green);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">MacroFactor ✓</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Calories</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);" id="fuel-cals-display">—</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">/ 1,800 kcal</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Calories</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--white);line-height:1;" id="fuel-cals-display">—</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">/ 1,800 kcal</div>
       </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Protein</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);" id="fuel-protein-display">—</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">/ 180g target</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Protein</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--green);line-height:1;" id="fuel-protein-display">—</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">/ 180g target</div>
       </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Carbs</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);" id="fuel-carbs-display">—</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">grams</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Carbs</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--blue);line-height:1;" id="fuel-carbs-display">—</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">grams</div>
       </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:12px;">
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Fat</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);" id="fuel-fat-display">—</div>
-        <div style="font-size:10px;color:var(--gray3);margin-top:2px;">grams</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Fat</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--amber);line-height:1;" id="fuel-fat-display">—</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">grams</div>
       </div>
     </div>
     <!-- Hidden inputs used by analyzeFuel() and updateFuelProgress() -->
@@ -561,22 +571,22 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <div id="fuel-progress" style="display:none;">
       <div class="prog-wrap">
         <div class="prog-row">
-          <span style="font-size:12px;color:var(--gray2);">Calories</span>
-          <span style="font-size:12px;font-weight:600;" id="fuel-cals-label">0 / 1800</span>
+          <span style="font-size:14px;color:var(--gray2);">Calories</span>
+          <span style="font-size:13px;font-weight:600;" id="fuel-cals-label">0 / 1800</span>
         </div>
         <div class="prog-track"><div class="prog-fill" id="fuel-cals-bar" style="width:0%;background:var(--blue);"></div></div>
       </div>
       <div class="prog-wrap">
         <div class="prog-row">
-          <span style="font-size:12px;color:var(--gray2);">Protein</span>
-          <span style="font-size:12px;font-weight:600;" id="fuel-protein-label">0 / 180g</span>
+          <span style="font-size:14px;color:var(--gray2);">Protein</span>
+          <span style="font-size:13px;font-weight:600;" id="fuel-protein-label">0 / 180g</span>
         </div>
         <div class="prog-track"><div class="prog-fill" id="fuel-protein-bar" style="width:0%;background:var(--green);"></div></div>
       </div>
       <div class="prog-wrap" style="margin-bottom:0;">
         <div class="prog-row">
-          <span style="font-size:12px;color:var(--gray2);">Carbs</span>
-          <span style="font-size:12px;font-weight:600;" id="fuel-carbs-label">0 / 150g</span>
+          <span style="font-size:14px;color:var(--gray2);">Carbs</span>
+          <span style="font-size:13px;font-weight:600;" id="fuel-carbs-label">0 / 150g</span>
         </div>
         <div class="prog-track"><div class="prog-fill" id="fuel-carbs-bar" style="width:0%;background:var(--amber);"></div></div>
       </div>
@@ -585,40 +595,40 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
 
   <!-- Context toggles -->
   <div class="card">
-    <div class="lbl" style="margin-bottom:12px;">Today's Context</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+    <div class="lbl" style="margin-bottom:14px;">Today's Context</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
       <div>
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Trained today?</div>
+        <div style="font-size:12px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:7px;">Trained today?</div>
         <div style="display:flex;gap:6px;">
-          <button id="ctx-trained-yes" onclick="setCtx('trained','yes')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Yes</button>
-          <button id="ctx-trained-no" onclick="setCtx('trained','no')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">No</button>
+          <button id="ctx-trained-yes" onclick="setCtx('trained','yes')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:13px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Yes</button>
+          <button id="ctx-trained-no" onclick="setCtx('trained','no')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:13px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">No</button>
         </div>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Sleep quality</div>
+        <div style="font-size:12px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:7px;">Sleep quality</div>
         <div style="display:flex;gap:6px;">
-          <button id="ctx-sleep-good" onclick="setCtx('sleep','good')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Good</button>
-          <button id="ctx-sleep-poor" onclick="setCtx('sleep','poor')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Poor</button>
+          <button id="ctx-sleep-good" onclick="setCtx('sleep','good')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:13px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Good</button>
+          <button id="ctx-sleep-poor" onclick="setCtx('sleep','poor')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:13px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Poor</button>
         </div>
       </div>
     </div>
     <div>
-      <div style="font-size:10px;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px;">Goal today</div>
+      <div style="font-size:12px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:7px;">Goal today</div>
       <div style="display:flex;gap:6px;">
-        <button id="ctx-goal-recomp" onclick="setCtx('goal','recomp')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--blue);background:rgba(28,105,212,0.1);color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Recomp</button>
-        <button id="ctx-goal-performance" onclick="setCtx('goal','performance')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Performance</button>
-        <button id="ctx-goal-recovery" onclick="setCtx('goal','recovery')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:11px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Recovery</button>
+        <button id="ctx-goal-recomp" onclick="setCtx('goal','recomp')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--blue);background:rgba(0,102,204,0.15);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Recomp</button>
+        <button id="ctx-goal-performance" onclick="setCtx('goal','performance')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Performance</button>
+        <button id="ctx-goal-recovery" onclick="setCtx('goal','recovery')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--gray2);font-size:12px;font-weight:600;cursor:pointer;font-family:Space Grotesk,sans-serif;transition:all 0.15s;">Recovery</button>
       </div>
     </div>
   </div>
 
   <!-- AI Recommendation -->
   <div class="card card-blue">
-    <div class="lbl" style="color:rgba(28,105,212,0.7);margin-bottom:12px;">Signal Fuel Advisor</div>
-    <div id="fuel-result" style="font-size:13px;color:var(--gray2);line-height:1.65;min-height:60px;">
+    <div class="lbl" style="color:rgba(0,102,204,0.8);margin-bottom:12px;">Signal Fuel Advisor</div>
+    <div id="fuel-result" style="font-size:14px;color:var(--gray2);line-height:1.65;min-height:60px;">
       Enter today's intake and tap Analyze to get a personalized recommendation.
     </div>
-    <button onclick="analyzeFuel()" id="fuel-btn" style="margin-top:16px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--blue);color:white;font-family:Space Grotesk,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.04em;">
+    <button onclick="analyzeFuel()" id="fuel-btn" style="margin-top:16px;width:100%;padding:14px;border-radius:10px;border:none;background:var(--blue);color:white;font-family:Space Grotesk,sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.06em;">
       ANALYZE
     </button>
   </div>
@@ -626,29 +636,29 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
   <!-- 30-day history chart -->
   <div class="card">
     <div class="lbl" style="margin-bottom:4px;">Calorie History — 30 Days</div>
-    <div id="fuel-history-lbl" style="font-size:11px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
+    <div id="fuel-history-lbl" style="font-size:13px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
     <div style="height:140px;"><canvas id="fuel-history-chart"></canvas></div>
   </div>
 
   <!-- Macro averages -->
   <div class="card">
-    <div class="lbl" style="margin-bottom:14px;">30-Day Averages</div>
+    <div class="lbl" style="margin-bottom:16px;">30-Day Averages</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;text-align:center;">
       <div>
-        <div id="fuel-avg-cals" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--white);">1,776</div>
-        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">kcal</div>
+        <div id="fuel-avg-cals" style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:var(--white);line-height:1;">1,776</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:5px;">kcal</div>
       </div>
       <div>
-        <div id="fuel-avg-protein" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);">175</div>
-        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">protein</div>
+        <div id="fuel-avg-protein" style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:var(--green);line-height:1;">175</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:5px;">protein</div>
       </div>
       <div>
-        <div id="fuel-avg-carbs" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--blue);">167</div>
-        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">carbs</div>
+        <div id="fuel-avg-carbs" style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:var(--blue);line-height:1;">167</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:5px;">carbs</div>
       </div>
       <div>
-        <div id="fuel-avg-fat" style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--amber);">64</div>
-        <div style="font-size:10px;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;">fat</div>
+        <div id="fuel-avg-fat" style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:var(--amber);line-height:1;">64</div>
+        <div style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:0.06em;margin-top:5px;">fat</div>
       </div>
     </div>
   </div>
@@ -1895,7 +1905,7 @@ function labRow(l) {
   const cols={red:'var(--red)',amber:'var(--amber)',green:'var(--green)'};
   const bs={red:'badge-red',amber:'badge-amber',green:'badge-green'};
   const ls={red:'HIGH',amber:'MONITOR',green:'OK'};
-  return '<div class="lab-row"><div><div style="font-size:13px;color:var(--gray1);">'+l.name+'</div><div style="font-size:10px;color:var(--gray3);margin-top:1px;letter-spacing:0.04em;">ref '+l.ref+'</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-weight:600;font-size:13px;color:'+cols[l.s]+';">'+l.val+' <span style="font-weight:400;font-size:10px;color:var(--gray3);">'+l.unit+'</span></span><span class="badge '+bs[l.s]+'">'+ls[l.s]+'</span></div></div>';
+  return '<div class="lab-row"><div><div style="font-size:15px;color:var(--gray1);font-weight:500;">'+l.name+'</div><div style="font-size:12px;color:var(--gray3);margin-top:3px;letter-spacing:0.03em;">ref '+l.ref+'</div></div><div style="display:flex;align-items:center;gap:10px;"><span style="font-weight:700;font-size:15px;color:'+cols[l.s]+';">'+l.val+'<span style="font-weight:400;font-size:12px;color:var(--gray3);margin-left:3px;">'+l.unit+'</span></span><span class="badge '+bs[l.s]+'">'+ls[l.s]+'</span></div></div>';
 }
 function renderLabs() {
   const all=[...LABS,...S.labs];
