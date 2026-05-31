@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v56</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v57</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -384,6 +384,22 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
         <div id="prog-sleep-status" style="font-size:10px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-top:8px;color:var(--amber);">NEAR TARGET</div>
       </div>
     </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div class="lbl" style="margin-bottom:0;">Steps</div>
+      <div id="steps-date-lbl" style="font-size:11px;color:var(--gray3);"></div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+      <span id="steps-today-val" style="font-size:48px;font-weight:700;color:var(--white);line-height:1;letter-spacing:-0.02em;">—</span>
+      <span style="font-size:14px;color:var(--gray3);">/ 10,000</span>
+    </div>
+    <div class="prog-track" style="margin-bottom:14px;">
+      <div id="steps-bar" class="prog-fill" style="width:0%;background:var(--blue);transition:width 0.4s ease;"></div>
+    </div>
+    <div style="height:60px;"><canvas id="steps-spark-chart"></canvas></div>
   </div>
 
   <!-- Body Composition -->
@@ -1857,6 +1873,7 @@ async function fetchAndMergeGoogleFitData() {
     }
 
     renderWeight();
+    renderSteps();
     renderActivity();
     renderDexa();
     renderHRV();
@@ -2066,6 +2083,38 @@ function renderRHR(days=_rhrDays) {
     [{data:rhrVals,borderColor:'#FF6058',borderWidth:2,pointRadius:pr,
       pointBackgroundColor:'#FF6058',fill:{target:'origin',above:'rgba(255,96,88,0.08)'},tension:0.4}],
     {min:allMin-2,max:allMax+2});
+}
+
+function renderSteps() {
+  const steps = D.steps || [];
+  if (!steps.length) return;
+  const today = localDate();
+  const todayEntry = steps.find(s => s.date === today);
+  const count = todayEntry?.value || 0;
+  const goal = 10000;
+  const pct = Math.min(100, Math.round(count / goal * 100));
+  const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--blue)' : 'var(--amber)';
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('steps-today-val', count ? count.toLocaleString() : '—');
+  set('steps-date-lbl', todayEntry ? 'Today' : steps[0] ? steps[0].date.slice(5) : '');
+  const bar = document.getElementById('steps-bar');
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = color; }
+
+  const spark = steps.slice(0, 14).reverse();
+  if (charts['steps-spark-chart']) charts['steps-spark-chart'].destroy();
+  const el = document.getElementById('steps-spark-chart');
+  if (!el || !spark.length) return;
+  charts['steps-spark-chart'] = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: spark.map(s => s.date.slice(5)),
+      datasets: [{ data: spark.map(s => s.value),
+        backgroundColor: spark.map(s => s.date === today ? color : 'rgba(0,102,204,0.4)'),
+        borderRadius: 3, borderSkipped: false }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.y.toLocaleString()+' steps'}}},
+      scales:{ x:{display:false}, y:{display:false, min:0} } }
+  });
 }
 
 // ── TRAINING ──────────────────────────────────────────────────────
@@ -2837,6 +2886,7 @@ async function init() {
   await loadS();
   loadFuelFromStorage();
   renderWeight();
+  renderSteps();
   renderActivity();
   renderDexa();
   renderHRV();
