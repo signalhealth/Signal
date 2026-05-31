@@ -574,12 +574,12 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
       <div style="background:var(--surface2);border-radius:12px;padding:14px;">
         <div style="font-size:11px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Carbs</div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--blue);line-height:1;" id="fuel-carbs-display">—</div>
-        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">grams</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">/ 160g target</div>
       </div>
       <div style="background:var(--surface2);border-radius:12px;padding:14px;">
         <div style="font-size:11px;font-weight:600;color:var(--gray3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Fat</div>
         <div style="font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;color:var(--amber);line-height:1;" id="fuel-fat-display">—</div>
-        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">grams</div>
+        <div style="font-size:12px;color:var(--gray3);margin-top:4px;">/ 60g target</div>
       </div>
     </div>
     <!-- Hidden inputs used by analyzeFuel() and updateFuelProgress() -->
@@ -604,12 +604,19 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
         </div>
         <div class="prog-track"><div class="prog-fill" id="fuel-protein-bar" style="width:0%;background:var(--green);"></div></div>
       </div>
-      <div class="prog-wrap" style="margin-bottom:0;">
+      <div class="prog-wrap">
         <div class="prog-row">
           <span style="font-size:14px;color:var(--gray2);">Carbs</span>
-          <span style="font-size:13px;font-weight:600;" id="fuel-carbs-label">0 / 150g</span>
+          <span style="font-size:13px;font-weight:600;" id="fuel-carbs-label">0 / 160g</span>
         </div>
-        <div class="prog-track"><div class="prog-fill" id="fuel-carbs-bar" style="width:0%;background:var(--amber);"></div></div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-carbs-bar" style="width:0%;background:var(--blue);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-bottom:0;">
+        <div class="prog-row">
+          <span style="font-size:14px;color:var(--gray2);">Fat</span>
+          <span style="font-size:13px;font-weight:600;" id="fuel-fat-label">0 / 60g</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="fuel-fat-bar" style="width:0%;background:var(--amber);"></div></div>
       </div>
     </div>
   </div>
@@ -2513,28 +2520,33 @@ function setCtx(key, val) {
 }
 
 function updateFuelProgress() {
-  const cals = +document.getElementById('fuel-cals').value || 0;
+  const cals    = +document.getElementById('fuel-cals').value    || 0;
   const protein = +document.getElementById('fuel-protein').value || 0;
-  const carbs = +document.getElementById('fuel-carbs').value || 0;
+  const carbs   = +document.getElementById('fuel-carbs').value   || 0;
+  const fat     = +document.getElementById('fuel-fat').value     || 0;
   if (!cals && !protein) return;
-  
+
   document.getElementById('fuel-progress').style.display = 'block';
-  
-  const calPct = Math.min(100, (cals/1800)*100);
+
+  const calPct  = Math.min(100, (cals/1800)*100);
   const protPct = Math.min(100, (protein/180)*100);
-  const carbPct = Math.min(100, (carbs/150)*100);
-  
-  document.getElementById('fuel-cals-bar').style.width = calPct + '%';
+  const carbPct = Math.min(100, (carbs/160)*100);
+  const fatPct  = Math.min(100, (fat/60)*100);
+
+  document.getElementById('fuel-cals-bar').style.width    = calPct + '%';
   document.getElementById('fuel-protein-bar').style.width = protPct + '%';
-  document.getElementById('fuel-carbs-bar').style.width = carbPct + '%';
-  
-  document.getElementById('fuel-cals-label').textContent = cals + ' / 1800';
+  document.getElementById('fuel-carbs-bar').style.width   = carbPct + '%';
+  document.getElementById('fuel-fat-bar').style.width     = fatPct + '%';
+
+  document.getElementById('fuel-cals-label').textContent    = cals + ' / 1800';
   document.getElementById('fuel-protein-label').textContent = protein + 'g / 180g';
-  document.getElementById('fuel-carbs-label').textContent = carbs + 'g / 150g';
-  
-  // Color code
-  document.getElementById('fuel-cals-bar').style.background = calPct > 100 ? 'var(--red)' : calPct > 80 ? 'var(--green)' : 'var(--blue)';
-  document.getElementById('fuel-protein-bar').style.background = protPct > 90 ? 'var(--green)' : 'var(--amber)';
+  document.getElementById('fuel-carbs-label').textContent   = carbs + 'g / 160g';
+  document.getElementById('fuel-fat-label').textContent     = fat + 'g / 60g';
+
+  document.getElementById('fuel-cals-bar').style.background    = calPct > 100 ? 'var(--red)' : calPct > 80 ? 'var(--green)' : 'var(--blue)';
+  document.getElementById('fuel-protein-bar').style.background = protPct >= 90 ? 'var(--green)' : 'var(--amber)';
+  document.getElementById('fuel-carbs-bar').style.background   = carbPct > 100 ? 'var(--red)' : 'var(--blue)';
+  document.getElementById('fuel-fat-bar').style.background     = fatPct > 100 ? 'var(--red)' : 'var(--amber)';
 }
 
 async function analyzeFuel() {
@@ -2582,7 +2594,7 @@ async function analyzeFuel() {
 PAUL'S PROFILE:
 - Goal: Body recomp — reach 155 lbs / 15% body fat by May 2027
 - Current: ${latestWeight} lbs, ~26% body fat, 116.9 lbs lean mass
-- Daily targets: 1,800 kcal, 180g protein, maintain lean mass on TRT (started May 15, 2026)
+- Daily targets: 1,800 kcal, 180g protein, 160g carbs, 60g fat, maintain lean mass on TRT (started May 15, 2026)
 - 30-day avg: 1,776 kcal, 175g protein, 167g carbs, 64g fat
 
 TODAY SO FAR:
@@ -2729,7 +2741,7 @@ async function getInsight() {
 PAUL'S PROFILE:
 - Goal: Body recomp — reach 155 lbs / 15% body fat by May 2027
 - Started ~177 lbs in February 2026, cutting with lean mass preserved on TRT (started May 15, 2026)
-- Daily targets: 1,800 kcal, 180g protein, ~4 days/week lifting (C1 program)
+- Daily targets: 1,800 kcal, 180g protein, 160g carbs, 60g fat, ~4 days/week lifting (C1 program)
 
 TODAY'S DATA:
 - Weight: ${latestWeight ? latestWeight + ' lbs' : 'unavailable'}
