@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v59</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v60</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1495,17 +1495,16 @@ async function fetchGoogleWeight() {
 }
 
 async function fetchGoogleSteps() {
-  // Use Google Fit v1 aggregate API — Health API v4 :dailyRollUp is scope-blocked
-  const endMs = Date.now();
-  const startMs = endMs - 45 * 86400000;
+  const endDate = new Date(); endDate.setHours(23, 59, 59, 999);
+  const startDate = new Date(endDate); startDate.setDate(startDate.getDate() - 44); startDate.setHours(0, 0, 0, 0);
   const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       aggregateBy: [{ dataTypeName: 'com.google.step_count.delta' }],
       bucketByTime: { durationMillis: 86400000 },
-      startTimeMillis: startMs,
-      endTimeMillis: endMs
+      startTimeMillis: startDate.getTime(),
+      endTimeMillis: endDate.getTime()
     })
   });
   if (!res.ok) {
@@ -1515,7 +1514,7 @@ async function fetchGoogleSteps() {
   const json = await res.json();
   return (json.bucket || [])
     .map(b => {
-      const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
+      const date = localDate(new Date(+b.startTimeMillis));
       const pts = b.dataset?.[0]?.point || [];
       const total = pts.reduce((sum, p) => sum + (p.value?.[0]?.intVal || 0), 0);
       return total > 0 ? { date, value: total } : null;
@@ -2114,7 +2113,7 @@ function renderSteps() {
   const color = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--blue)' : 'var(--amber)';
   const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   set('steps-today-val', count ? count.toLocaleString() : '—');
-  set('steps-date-lbl', todayEntry ? 'Today' : steps[0] ? steps[0].date.slice(5) : '');
+  set('steps-date-lbl', 'Today');
   const bar = document.getElementById('steps-bar');
   if (bar) { bar.style.width = pct + '%'; bar.style.background = color; }
 
