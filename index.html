@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v82</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v83</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -3118,6 +3118,9 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
 
 // ── INIT ──────────────────────────────────────────────────────────
 async function init() {
+  // Always show the app shell immediately — never block on auth
+  showApp();
+
   // One-time Worker setup via URL params: ?worker=URL&wsecret=SECRET
   try {
     const p = new URLSearchParams(window.location.search);
@@ -3203,12 +3206,10 @@ async function init() {
   });
 }
 init().catch(() => {
-  // If init() throws, ensure the UI is never stuck blank.
-  // Show landing page so user can at least reconnect.
-  document.getElementById('pg-landing').style.display = '';
-  document.getElementById('app-header').style.display = 'none';
-  document.getElementById('app-main').style.display   = 'none';
-  document.getElementById('app-nav').style.display    = 'none';
+  // If init() throws, keep the app visible with an amber dot — never show the landing page.
+  showApp();
+  const dot = document.querySelector('.header-google-dot');
+  if (dot) dot.style.background = '#f59e0b';
 });
 
 if ('serviceWorker' in navigator) {
