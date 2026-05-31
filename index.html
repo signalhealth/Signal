@@ -1307,6 +1307,11 @@ const HEALTH_BASE = 'https://health.googleapis.com/v4/users/me';
 let gToken = null;
 let gTokenClient = null;
 
+function localDate(d) {
+  const x = d || new Date();
+  return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0');
+}
+
 function saveToken(token) {
   try {
     localStorage.setItem('gfit_auth_v8', JSON.stringify({ token, expiry: Date.now() + 3500000 }));
@@ -1546,14 +1551,15 @@ async function fetchGoogleHRV() {
 
 async function fetchGoogleNutrition() {
   try {
-    // Snap to UTC midnight so bucket boundaries align to calendar days.
-    // Without this, buckets start at the current time-of-day 35 days ago,
-    // causing food logged at noon to fall in yesterday's bucket.
+    // Align buckets to LOCAL midnight so food logged at any hour of the day
+    // stays in the correct local calendar day. UTC-based buckets would shift
+    // the day boundary to 8pm EDT / 5pm PDT, causing late-evening entries to
+    // appear under tomorrow and earlier entries to show as "Yesterday".
     const endDate = new Date();
-    endDate.setUTCHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 999);
     const startDate = new Date(endDate);
-    startDate.setUTCDate(startDate.getUTCDate() - 34);
-    startDate.setUTCHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - 34);
+    startDate.setHours(0, 0, 0, 0);
     const startMs = startDate.getTime();
     const endMs = endDate.getTime();
     // Aggregate endpoint handles deduplication across all sources natively
@@ -1574,8 +1580,7 @@ async function fetchGoogleNutrition() {
     const json = await res.json();
     const byDate = {};
     for (const b of (json.bucket || [])) {
-      // Bucket startTimeMillis is UTC midnight; use it as-is for date key
-      const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
+      const date = localDate(new Date(+b.startTimeMillis));
       for (const ds of (b.dataset || [])) {
         for (const pt of (ds.point || [])) {
           const map = {};
@@ -1632,8 +1637,8 @@ async function fetchGoogleActivities() {
 
 function populateFuelFromLive(nutrition) {
   if (!nutrition || nutrition.length === 0) return;
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const today = localDate();
+  const yesterday = localDate(new Date(Date.now() - 86400000));
   const todayData = nutrition.find(n => n.date === today) || nutrition.find(n => n.date === yesterday) || nutrition[0];
   if (todayData) {
     setFuelDisplay(todayData.cals, todayData.protein, todayData.carbs, todayData.fat);
@@ -1685,7 +1690,7 @@ function loadMicroManual(date) {
   try { return JSON.parse(localStorage.getItem('micro_manual_' + date) || '{}'); } catch(e) { return {}; }
 }
 function saveMicroManual(name, value) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const data = loadMicroManual(today);
   data[name] = parseFloat(value) || 0;
   localStorage.setItem('micro_manual_' + today, JSON.stringify(data));
@@ -1696,7 +1701,7 @@ function renderMicros() {
   const el = document.getElementById('micro-list');
   if (!el) return;
   const goals = loadMicroGoals();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const todayData = D.nutrition?.find(n => n.date === today) || D.nutrition?.[0];
   const raw = todayData?.raw || {};
   const manual = loadMicroManual(today);
@@ -1776,7 +1781,7 @@ function setFuelDisplay(cals, protein, carbs, fat) {
 }
 
 function loadFuelFromStorage() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const saved = JSON.parse(localStorage.getItem('fuel_manual_' + today) || 'null');
   if (saved) {
     setFuelDisplay(saved.cals, saved.protein, saved.carbs, saved.fat);
@@ -1793,7 +1798,7 @@ function toggleFuelManual() {
   const open = wrap.style.display !== 'none';
   wrap.style.display = open ? 'none' : 'block';
   if (!open) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     const saved = JSON.parse(localStorage.getItem('fuel_manual_' + today) || 'null');
     if (saved) {
       const s = id => { const el = document.getElementById(id); return el; };
@@ -1808,7 +1813,7 @@ function toggleFuelManual() {
 function saveFuelManual() {
   const g = id => parseInt(document.getElementById(id)?.value || '0', 10);
   const data = { cals: g('fm-cals'), protein: g('fm-protein'), carbs: g('fm-carbs'), fat: g('fm-fat') };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   localStorage.setItem('fuel_manual_' + today, JSON.stringify(data));
   setFuelDisplay(data.cals, data.protein, data.carbs, data.fat);
   const badge = document.getElementById('fuel-sync-badge');
@@ -2557,7 +2562,7 @@ async function analyzeFuel() {
   if (!apiKey) { showApiKeyPrompt(result, analyzeFuel); return; }
 
   // Prefer live nutrition data; fall back to hidden inputs
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const liveToday = D.nutrition?.find(n => n.date === today) || D.nutrition?.[0];
   const cals = liveToday?.cals || +document.getElementById('fuel-cals').value || 0;
   const protein = liveToday?.protein || +document.getElementById('fuel-protein').value || 0;
@@ -2658,7 +2663,7 @@ function renderFuel() {
     days = MF.last_14_days.map(d => d.Date.slice(5));
     cals = MF.last_14_days.map(d => d['Calories (kcal)']);
     // Populate TODAY'S INTAKE from most recent MF entry as fallback
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     const mfEntry = MF.last_14_days.slice().reverse().find(d => d.Date <= today);
     if (mfEntry) {
       setFuelDisplay(mfEntry['Calories (kcal)'], mfEntry['Protein (g)'], mfEntry['Carbs (g)'], mfEntry['Fat (g)']);
