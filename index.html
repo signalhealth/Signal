@@ -1274,11 +1274,10 @@ const EVENTS = [
 // ── GOOGLE FITNESS API ────────────────────────────────────────────
 const GFIT_CLIENT_ID = '580577187739-mc7gb22ok305k4asbt0ndko89cpdmfh5.apps.googleusercontent.com';
 const GFIT_SCOPES = [
-  'https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly',
-  'https://www.googleapis.com/auth/googlehealth.sleep.readonly',
-  'https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly',
-  'https://www.googleapis.com/auth/googlehealth.nutrition.readonly',
   'https://www.googleapis.com/auth/fitness.activity.read',
+  'https://www.googleapis.com/auth/fitness.body.read',
+  'https://www.googleapis.com/auth/fitness.sleep.read',
+  'https://www.googleapis.com/auth/fitness.heart_rate.read',
   'https://www.googleapis.com/auth/fitness.nutrition.read',
 ].join(' ');
 
@@ -1289,19 +1288,19 @@ let gTokenClient = null;
 
 function saveToken(token) {
   try {
-    localStorage.setItem('gfit_auth_v7', JSON.stringify({ token, expiry: Date.now() + 3500000 }));
-    localStorage.setItem('gfit_connected', '1');
+    localStorage.setItem('gfit_auth_v8', JSON.stringify({ token, expiry: Date.now() + 3500000 }));
+    localStorage.setItem('gfit_connected', '2');
   } catch(e) {}
 }
 function loadToken() {
   try {
-    const s = JSON.parse(localStorage.getItem('gfit_auth_v7') || 'null');
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v8') || 'null');
     if (s && s.token && s.expiry > Date.now()) return s.token;
   } catch(e) {}
   return null;
 }
 function hasConnectedBefore() {
-  return !!localStorage.getItem('gfit_connected');
+  return localStorage.getItem('gfit_connected') === '2';
 }
 function showApp() {
   document.getElementById('pg-landing').style.display = 'none';
@@ -1522,8 +1521,6 @@ async function fetchGoogleHRV() {
 }
 
 async function fetchGoogleNutrition() {
-  // Google Fit v1 aggregate API — the only CORS-accessible path for MacroFactor data
-  // (health.googleapis.com/v4 blocks browser CORS requests entirely)
   try {
     const endMs = Date.now();
     const startMs = endMs - 35 * 86400000;
@@ -1537,28 +1534,40 @@ async function fetchGoogleNutrition() {
         endTimeMillis: endMs
       })
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.status);
+      console.warn('Nutrition API error', res.status, err);
+      return [];
+    }
     const json = await res.json();
     const byDate = {};
     for (const b of (json.bucket || [])) {
-      const date = new Date(+b.startTimeMillis).toISOString().slice(0, 10);
-      for (const pt of (b.dataset?.[0]?.point || [])) {
-        const map = {};
-        for (const entry of (pt.value?.[0]?.mapVal || [])) map[entry.key] = entry.value?.fpVal ?? 0;
-        const cals = map['calories'] ?? 0;
-        if (!cals) continue;
-        if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
-        byDate[date].cals    += cals;
-        byDate[date].protein += map['protein'] ?? 0;
-        byDate[date].carbs   += map['carbs.total'] ?? 0;
-        byDate[date].fat     += map['fat.total'] ?? 0;
+      // Use local date from bucket midpoint to avoid UTC boundary issues
+      const midMs = (+b.startTimeMillis + +b.endTimeMillis) / 2;
+      const date = new Date(midMs).toLocaleDateString('en-CA'); // YYYY-MM-DD in local tz
+      for (const ds of (b.dataset || [])) {
+        for (const pt of (ds.point || [])) {
+          const map = {};
+          for (const entry of (pt.value?.[0]?.mapVal || [])) {
+            map[entry.key] = entry.value?.fpVal ?? entry.value?.intVal ?? 0;
+          }
+          const cals = map['calories'] ?? 0;
+          if (!cals) continue;
+          if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0 };
+          byDate[date].cals    += cals;
+          byDate[date].protein += map['protein'] ?? 0;
+          byDate[date].carbs   += map['carbs.total'] ?? 0;
+          byDate[date].fat     += map['fat.total'] ?? 0;
+        }
       }
     }
-    return Object.entries(byDate)
+    const result = Object.entries(byDate)
       .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat) }))
       .filter(d => d.cals > 0)
       .sort((a, b) => b.date.localeCompare(a.date));
-  } catch(e) { return []; }
+    console.log('Nutrition fetched:', result.length, 'days', result[0]);
+    return result;
+  } catch(e) { console.warn('Nutrition fetch exception:', e); return []; }
 }
 
 async function fetchGoogleActivities() {
