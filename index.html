@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v67</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v68</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1641,33 +1641,79 @@ async function fetchGoogleHRV() {
 }
 
 async function fetchGoogleNutrition() {
+  // Try Health Connect (health.googleapis.com/v4) first — MacroFactor writes here directly.
+  // HC is real-time; Google Fit v1 aggregate lags by hours.
+  let hcData = null;
+  for (const typeName of ['nutrition', 'meal']) {
+    try {
+      hcData = await healthList(typeName, 34);
+      if (Array.isArray(hcData.dataPoints) && hcData.dataPoints.length > 0) break;
+      hcData = null;
+    } catch(e) { hcData = null; }
+  }
+
+  if (hcData?.dataPoints?.length > 0) {
+    const byDate = {};
+    for (const pt of hcData.dataPoints) {
+      const t = pt.interval?.startTime || pt.startTime;
+      if (!t) continue;
+      const date = localDate(new Date(t));
+      if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0, raw: {}, items: [] };
+      const v = pt.value || {};
+
+      // HC v4 energy field: kilocalories (kcal). Very large values (>10000) mean joules — convert.
+      const gVal = x => x?.value ?? (typeof x === 'number' ? x : 0);
+      const rawE = gVal(v.energy) || gVal(v.calories) || 0;
+      const cals = rawE > 10000 ? rawE / 4184 : rawE;
+      if (!cals) continue;
+
+      byDate[date].cals    += cals;
+      byDate[date].protein += gVal(v.protein);
+      byDate[date].carbs   += gVal(v.totalCarbohydrate ?? v.carbohydrates);
+      byDate[date].fat     += gVal(v.totalFat);
+
+      const microSrc = {
+        sodium:         gVal(v.sodium),
+        dietary_fiber:  gVal(v.dietaryFiber),
+        potassium:      gVal(v.potassium),
+        calcium:        gVal(v.calcium),
+        iron:           gVal(v.iron),
+        'fat.saturated': gVal(v.saturatedFat),
+        sugar:          gVal(v.sugar),
+      };
+      for (const [k, val] of Object.entries(microSrc)) {
+        if (val) byDate[date].raw[k] = (byDate[date].raw[k] || 0) + val;
+      }
+      const foodName = v.name || pt.name || null;
+      if (foodName) byDate[date].items.push({
+        name: foodName,
+        cals: Math.round(cals),
+        protein: Math.round(gVal(v.protein)),
+        carbs:   Math.round(gVal(v.totalCarbohydrate ?? v.carbohydrates)),
+        fat:     Math.round(gVal(v.totalFat))
+      });
+    }
+    const result = Object.entries(byDate)
+      .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat), raw: v.raw, items: v.items }))
+      .filter(d => d.cals > 0)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    if (result.length > 0) return result;
+  }
+
+  // Fallback: Google Fit v1 aggregate (historical data already synced to Fit)
   try {
-    // Align buckets to LOCAL midnight so food logged at any hour of the day
-    // stays in the correct local calendar day. UTC-based buckets would shift
-    // the day boundary to 8pm EDT / 5pm PDT, causing late-evening entries to
-    // appear under tomorrow and earlier entries to show as "Yesterday".
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
-    const startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - 34);
-    startDate.setHours(0, 0, 0, 0);
-    const startMs = startDate.getTime();
-    const endMs = endDate.getTime();
-    // Aggregate endpoint handles deduplication across all sources natively
+    const endDate = new Date(); endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(endDate); startDate.setDate(startDate.getDate() - 34); startDate.setHours(0, 0, 0, 0);
     const res = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${gToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         aggregateBy: [{ dataTypeName: 'com.google.nutrition' }],
         bucketByTime: { durationMillis: 86400000 },
-        startTimeMillis: startMs,
-        endTimeMillis: endMs
+        startTimeMillis: startDate.getTime(), endTimeMillis: endDate.getTime()
       })
     });
-    if (!res.ok) {
-      console.warn('Nutrition aggregate error', res.status, await res.text().catch(() => ''));
-      return [];
-    }
+    if (!res.ok) return [];
     const json = await res.json();
     const byDate = {};
     for (const b of (json.bucket || [])) {
@@ -1681,23 +1727,21 @@ async function fetchGoogleNutrition() {
           const foodName = pt.value?.[1]?.stringValue || null;
           if (!byDate[date]) byDate[date] = { cals: 0, protein: 0, carbs: 0, fat: 0, raw: {}, items: [] };
           byDate[date].cals    += cals;
-          byDate[date].protein += map['protein']     ?? 0;
+          byDate[date].protein += map['protein'] ?? 0;
           byDate[date].carbs   += map['carbs.total'] ?? 0;
-          byDate[date].fat     += map['fat.total']   ?? 0;
+          byDate[date].fat     += map['fat.total'] ?? 0;
           for (const k of ['sodium','potassium','dietary_fiber','calcium','iron','vitamin_c','vitamin_a','cholesterol','fat.saturated','sugar']) {
             if (map[k]) byDate[date].raw[k] = (byDate[date].raw[k] || 0) + map[k];
           }
-          if (foodName) byDate[date].items.push({ name: foodName, cals: Math.round(cals), protein: Math.round(map['protein'] ?? 0), carbs: Math.round(map['carbs.total'] ?? 0), fat: Math.round(map['fat.total'] ?? 0) });
+          if (foodName) byDate[date].items.push({ name: foodName, cals: Math.round(cals), protein: Math.round(map['protein']??0), carbs: Math.round(map['carbs.total']??0), fat: Math.round(map['fat.total']??0) });
         }
       }
     }
-    const result = Object.entries(byDate)
+    return Object.entries(byDate)
       .map(([date, v]) => ({ date, cals: Math.round(v.cals), protein: Math.round(v.protein), carbs: Math.round(v.carbs), fat: Math.round(v.fat), raw: v.raw, items: v.items }))
       .filter(d => d.cals > 0)
       .sort((a, b) => b.date.localeCompare(a.date));
-    console.log('Nutrition:', result.length, 'days fetched, most recent:', result[0]);
-    return result;
-  } catch(e) { console.warn('Nutrition exception:', e); return []; }
+  } catch(e) { return []; }
 }
 
 async function fetchGoogleActivities() {
