@@ -1525,7 +1525,7 @@ async function silentRefresh() {
     return;
   }
   // Worker configured but failing — amber dot, no GIS fallback (prevents CCT flash loop)
-  if (localStorage.getItem('signal_worker_url')) {
+  if (_readWorkerCreds()) {
     const dot = document.querySelector('.header-google-dot');
     if (dot) dot.style.background = '#f59e0b';
     return;
@@ -3138,7 +3138,10 @@ async function init() {
   });
 
   // Worker configured — use it for completely silent auth (no OAuth popup ever)
-  if (localStorage.getItem('signal_worker_url')) {
+  const _initWorkerCreds = _readWorkerCreds();
+  if (_initWorkerCreds) {
+    // Re-save to all layers in case localStorage was cleared (e.g. PWA cold start)
+    _saveWorkerCreds(_initWorkerCreds.url, _initWorkerCreds.secret);
     const stored = loadToken();
     if (stored) {
       gToken = stored;
