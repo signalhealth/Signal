@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v60</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v61</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1366,12 +1366,20 @@ function loadToken() {
 }
 function scheduleTokenRefresh(expiry) {
   if (_refreshTimer) clearTimeout(_refreshTimer);
-  const msUntilRefresh = expiry - Date.now() - 5 * 60 * 1000; // refresh 5 min before expiry
+  const msUntilRefresh = expiry - Date.now() - 20 * 60 * 1000; // refresh 20 min before expiry
   if (msUntilRefresh <= 0) return;
-  _refreshTimer = setTimeout(() => {
-    if (gTokenClient) gTokenClient.requestAccessToken({ prompt: '' });
-  }, msUntilRefresh);
+  _refreshTimer = setTimeout(() => silentRefresh(), msUntilRefresh);
 }
+
+// When user switches back to the app, proactively refresh if token
+// expires within 10 minutes so they never hit an expired token mid-session.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const s = JSON.parse(localStorage.getItem('gfit_auth_v8') || 'null');
+    if (s && s.expiry - Date.now() < 10 * 60 * 1000) silentRefresh();
+  } catch(e) {}
+});
 function hasConnectedBefore() {
   return !!localStorage.getItem('gfit_connected');
 }
@@ -1426,12 +1434,24 @@ window.onGoogleLibraryLoad = function() {
       showApp();
       showConnected();
       await fetchAndMergeGoogleFitData();
+      // Store account hint after first successful auth so future silent
+      // refreshes can skip the account picker entirely.
+      try {
+        const ui = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${gToken}` } });
+        if (ui.ok) { const d = await ui.json(); if (d.email) localStorage.setItem('gfit_hint', d.email); }
+      } catch(e) {}
     }
   });
 };
 
+function silentRefresh() {
+  if (!gTokenClient) return;
+  const hint = localStorage.getItem('gfit_hint');
+  gTokenClient.requestAccessToken({ prompt: '', ...(hint ? { login_hint: hint } : {}) });
+}
+
 function signInWithGoogle() {
-  if (gTokenClient) gTokenClient.requestAccessToken({ prompt: '' });
+  if (gTokenClient) silentRefresh();
 }
 
 // ── GOOGLE HEALTH API (v4) ────────────────────────────────────────
@@ -2948,8 +2968,8 @@ async function init() {
     waitForGIS().then(ready => {
       if (!ready) return;
       if (!gTokenClient) window.onGoogleLibraryLoad();
-      // Silent if scope is current; one-time consent prompt if scope needs upgrade
-      gTokenClient.requestAccessToken({ prompt: needsScopeUpgrade() ? 'consent' : '' });
+      if (needsScopeUpgrade()) gTokenClient.requestAccessToken({ prompt: 'consent' });
+      else silentRefresh();
     });
     return;
   }
