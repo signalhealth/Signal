@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v57</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v58</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -336,9 +336,9 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div class="lbl" style="margin-bottom:0;">Weight</div>
       <div class="pills">
-        <button class="pill pill-on" onclick="wtRange(30,this)">30D</button>
+        <button class="pill pill-on" onclick="wtRange(14,this)">14D</button>
+        <button class="pill" onclick="wtRange(30,this)">30D</button>
         <button class="pill" onclick="wtRange(60,this)">60D</button>
-        <button class="pill" onclick="wtRange(90,this)">90D</button>
       </div>
     </div>
     <div style="text-align:center;padding:8px 0 4px;">
@@ -692,9 +692,16 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     </button>
   </div>
 
-  <!-- 30-day history chart -->
+  <!-- History chart -->
   <div class="card">
-    <div class="lbl" style="margin-bottom:4px;">Calorie History — 30 Days</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div class="lbl" style="margin-bottom:0;">Calorie History</div>
+      <div class="pills">
+        <button class="pill pill-on" onclick="fuelRange(14,this)">14D</button>
+        <button class="pill" onclick="fuelRange(30,this)">30D</button>
+        <button class="pill" onclick="fuelRange(60,this)">60D</button>
+      </div>
+    </div>
     <div id="fuel-history-lbl" style="font-size:13px;color:var(--gray2);margin-bottom:12px;">Avg: 1,776 kcal · Target: 1,800 kcal</div>
     <div style="height:140px;"><canvas id="fuel-history-chart"></canvas></div>
   </div>
@@ -737,13 +744,13 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Recovery
     </button>
-    <button class="nav-btn" onclick="showPage('labs',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M9 3v8L4 19a1 1 0 001 1h14a1 1 0 001-1L15 11V3M9 3H6M15 3h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Labs
-    </button>
     <button class="nav-btn" onclick="showPage('fuel',this)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 3h18M3 3v14a2 2 0 002 2h14a2 2 0 002-2V3M8 3v4h8V3M12 11v6M9 14h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Fuel
+    </button>
+    <button class="nav-btn" onclick="showPage('labs',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M9 3v8L4 19a1 1 0 001 1h14a1 1 0 001-1L15 11V3M9 3H6M15 3h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Labs
     </button>
   </div>
 </nav>
@@ -1338,18 +1345,32 @@ function localDate(d) {
   return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0');
 }
 
+let _refreshTimer = null;
 function saveToken(token) {
   try {
-    localStorage.setItem('gfit_auth_v8', JSON.stringify({ token, expiry: Date.now() + 3500000 }));
+    const expiry = Date.now() + 3500000;
+    localStorage.setItem('gfit_auth_v8', JSON.stringify({ token, expiry }));
     localStorage.setItem('gfit_connected', '2');
+    scheduleTokenRefresh(expiry);
   } catch(e) {}
 }
 function loadToken() {
   try {
     const s = JSON.parse(localStorage.getItem('gfit_auth_v8') || 'null');
-    if (s && s.token && s.expiry > Date.now()) return s.token;
+    if (s && s.token && s.expiry > Date.now()) {
+      scheduleTokenRefresh(s.expiry);
+      return s.token;
+    }
   } catch(e) {}
   return null;
+}
+function scheduleTokenRefresh(expiry) {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  const msUntilRefresh = expiry - Date.now() - 5 * 60 * 1000; // refresh 5 min before expiry
+  if (msUntilRefresh <= 0) return;
+  _refreshTimer = setTimeout(() => {
+    if (gTokenClient) gTokenClient.requestAccessToken({ prompt: '' });
+  }, msUntilRefresh);
 }
 function hasConnectedBefore() {
   return !!localStorage.getItem('gfit_connected');
@@ -1664,8 +1685,7 @@ async function fetchGoogleActivities() {
 function populateFuelFromLive(nutrition) {
   if (!nutrition || nutrition.length === 0) return;
   const today = localDate();
-  const yesterday = localDate(new Date(Date.now() - 86400000));
-  const todayData = nutrition.find(n => n.date === today) || nutrition.find(n => n.date === yesterday) || nutrition[0];
+  const todayData = nutrition.find(n => n.date === today) || null;
   if (todayData) {
     setFuelDisplay(todayData.cals, todayData.protein, todayData.carbs, todayData.fat);
     const badge = document.getElementById('fuel-sync-badge');
@@ -1925,7 +1945,7 @@ const avg=arr=>arr.reduce((s,v)=>s+v,0)/arr.length;
 const movAvg=(vals,w=7)=>vals.map((_,i)=>{const s=vals.slice(Math.max(0,i-w+1),i+1);return avg(s);});
 
 // ── WEIGHT ────────────────────────────────────────────────────────
-let _wtDays=30;
+let _wtDays=14;
 function renderWeight(days=_wtDays) {
   const allSorted=asc(D.weight);
   const latestDate=new Date(allSorted[allSorted.length-1].date);
@@ -1936,9 +1956,9 @@ function renderWeight(days=_wtDays) {
   const ma=movAvg(vals);
 
   const mostRecent=allSorted[allSorted.length-1].value;
-  const oldest=allSorted[0].value; // always Feb 5 regardless of range
-  const change=(oldest-mostRecent).toFixed(1);
-  const isDown=mostRecent<oldest;
+  const rangeStart=slice[0].value; // delta relative to selected range start
+  const change=(rangeStart-mostRecent).toFixed(1);
+  const isDown=mostRecent<rangeStart;
 
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   set('wt-display',mostRecent.toFixed(1));
@@ -1948,11 +1968,11 @@ function renderWeight(days=_wtDays) {
 
   const deltaEl=document.getElementById('wt-delta');
   const deltaValEl=document.getElementById('wt-delta-val');
-  if(deltaValEl) deltaValEl.textContent=change+' lbs';
+  if(deltaValEl) deltaValEl.textContent=Math.abs(change)+' lbs';
   if(deltaEl) { deltaEl.className=isDown?'num-delta-pos':'num-delta-neg'; deltaEl.querySelector('svg path').setAttribute('d',isDown?'M12 5v14M5 12l7 7 7-7':'M12 19V5M5 12l7-7 7 7'); }
 
   const subEl=document.getElementById('wt-sub');
-  if(subEl) subEl.textContent='since '+allSorted[0].date.slice(5);
+  if(subEl) subEl.textContent='since '+slice[0].date.slice(5);
 
   mkChart('wt-chart','line',labels,[
     {data:vals,borderColor:'rgba(96,175,255,0.25)',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
@@ -2717,10 +2737,17 @@ Keep it under 100 words. Be direct and specific. No generic advice.`;
 }
 
 // ── FUEL HISTORY CHART ────────────────────────────────────────────
+let _fuelDays = 14;
+function fuelRange(d, btn) {
+  _fuelDays = d;
+  btn.closest('.pills').querySelectorAll('.pill').forEach(p => p.className = 'pill');
+  btn.className = 'pill pill-on';
+  renderFuel();
+}
 function renderFuel() {
   let days, cals;
   if (D.nutrition?.length > 0) {
-    const src = [...D.nutrition].reverse().slice(-30);
+    const src = [...D.nutrition].sort((a,b) => a.date.localeCompare(b.date)).slice(-_fuelDays);
     days = src.map(n => n.date.slice(5));
     cals = src.map(n => n.cals);
     populateFuelFromLive(D.nutrition);
@@ -2844,6 +2871,9 @@ TODAY'S DATA:
 - Steps: ${latestSteps ? latestSteps.toLocaleString() : 'unavailable'}
 - RHR: ${latestRHR ? latestRHR + ' bpm' : 'unavailable'}
 - HRV: ${latestHRV ? latestHRV + ' ms' : 'unavailable'}
+
+RECOVERY NOTES (most recent first):
+${S.recovery?.slice(-5).reverse().map(r => `- ${r.date}: ${r.note}`).join('\n') || 'None logged'}
 
 Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the numbers. No generic advice. Focus on what matters most right now.`;
 
