@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v72</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v73</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1528,10 +1528,17 @@ function ptVal(pt) {
 async function fetchGoogleWeight() {
   const byDate = {};
 
-  // Source 1: Health Connect v4 — try ALL weight type names (MF and VeSync use different ones)
-  for (const typeName of ['weight', 'bodyWeight', 'bodyMass', 'body.weight']) {
+  // Source 1: Health Connect v4 — try all weight type names with large pageSize + newest-first
+  // so MacroFactor's recent entries aren't cut off by a page limit behind old VeSync entries.
+  const hcStart = new Date(Date.now() - 120 * 86400000).toISOString();
+  const hcEnd   = new Date().toISOString();
+  const hcFilter = encodeURIComponent(`startTime >= "${hcStart}" AND startTime < "${hcEnd}"`);
+  for (const typeName of ['weight', 'bodyWeight', 'bodyMass', 'body.weight', 'BodyWeight']) {
     try {
-      const data = await healthList(typeName, 120);
+      const url = `${HEALTH_BASE}/dataTypes/${typeName}/dataPoints:list?filter=${hcFilter}&pageSize=1000&orderBy=startTime%20desc`;
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${gToken}` } });
+      if (!res.ok) continue;
+      const data = await res.json();
       for (const pt of (data.dataPoints || [])) {
         const kg = ptVal(pt);
         if (!kg || kg <= 0) continue;
