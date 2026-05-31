@@ -2,7 +2,7 @@
   "name": "Signal",
   "short_name": "Signal",
   "description": "Personal health intelligence",
-  "start_url": "/Signal/",
+  "start_url": "/Signal/#worker=https://signal-auth.paul-jewkes.workers.dev&wsecret=signal-pj-2026",
   "scope": "/Signal/",
   "display": "standalone",
   "background_color": "#0A0A0F",
