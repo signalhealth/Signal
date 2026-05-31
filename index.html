@@ -2623,15 +2623,16 @@ Keep it under 100 words. Be direct and specific. No generic advice.`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
-        model: 'claude-opus-4-8',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
-    
+
     const data = await response.json();
     if (!response.ok) {
-      result.textContent = data.error?.message || `API error ${response.status}`;
+      const errType = data.error?.type ? `[${data.error.type}] ` : '';
+      result.textContent = `Error ${response.status}: ${errType}${data.error?.message || 'Unknown error'}`;
     } else {
       const text = data.content?.map(c => c.text || '').join('') || '';
       result.innerHTML = text.replace(/\n/g, '<br>');
@@ -2781,14 +2782,15 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
-        model: 'claude-opus-4-8',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 200,
         messages: [{ role: 'user', content: prompt }]
       })
     });
     const data = await response.json();
     if (!response.ok) {
-      const msg = data.error?.message || `API error ${response.status}`;
+      const errType = data.error?.type ? `[${data.error.type}] ` : '';
+      const msg = `Error ${response.status}: ${errType}${data.error?.message || 'Unknown error'}`;
       content.innerHTML = `<div style="font-size:13px;color:var(--gray2);margin-top:4px;">${msg}</div>`;
     } else {
       const text = data.content?.map(c => c.text || '').join('') || '';
