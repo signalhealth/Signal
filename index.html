@@ -1314,7 +1314,10 @@ function loadToken() {
   return null;
 }
 function hasConnectedBefore() {
-  return localStorage.getItem('gfit_connected') === '2';
+  return !!localStorage.getItem('gfit_connected');
+}
+function needsScopeUpgrade() {
+  return localStorage.getItem('gfit_connected') !== '2';
 }
 function showApp() {
   document.getElementById('pg-landing').style.display = 'none';
@@ -2756,15 +2759,15 @@ async function init() {
     return;
   }
 
-  // Token expired but user has connected before — skip landing page, silent re-auth
+  // Token expired but user has connected before — skip landing page, re-auth in background
   if (hasConnectedBefore()) {
     showApp();
     showConnected();
     waitForGIS().then(ready => {
-      if (ready) {
-        if (!gTokenClient) window.onGoogleLibraryLoad();
-        gTokenClient.requestAccessToken({ prompt: '' });
-      }
+      if (!ready) return;
+      if (!gTokenClient) window.onGoogleLibraryLoad();
+      // Silent if scope is current; one-time consent prompt if scope needs upgrade
+      gTokenClient.requestAccessToken({ prompt: needsScopeUpgrade() ? 'consent' : '' });
     });
     return;
   }
