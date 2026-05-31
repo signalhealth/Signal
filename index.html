@@ -1346,20 +1346,38 @@ function localDate(d) {
   return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0') + '-' + String(x.getDate()).padStart(2,'0');
 }
 
-async function getWorkerToken() {
-  // Read config from URL hash first (survives pull-to-refresh), then localStorage
-  let url = null, secret = null;
+function _saveWorkerCreds(url, secret) {
+  try {
+    const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+    document.cookie = `swurl=${encodeURIComponent(url)};expires=${exp.toUTCString()};path=/Signal/;SameSite=Strict`;
+    document.cookie = `swsec=${encodeURIComponent(secret)};expires=${exp.toUTCString()};path=/Signal/;SameSite=Strict`;
+    localStorage.setItem('signal_worker_url', url);
+    localStorage.setItem('signal_worker_secret', secret);
+  } catch(e) {}
+}
+function _readWorkerCreds() {
+  // 1. URL hash (setup URL / bookmarked hash URL)
   try {
     const p = new URLSearchParams(window.location.hash.slice(1));
-    url = p.get('worker'); secret = p.get('wsecret');
+    const u = p.get('worker'), s = p.get('wsecret');
+    if (u && s) return { url: u, secret: s };
   } catch(e) {}
-  if (!url) url = localStorage.getItem('signal_worker_url');
-  if (!secret) secret = localStorage.getItem('signal_worker_secret');
-  if (!url || !secret) return null;
-  // Keep localStorage in sync
-  try { localStorage.setItem('signal_worker_url', url); localStorage.setItem('signal_worker_secret', secret); } catch(e) {}
+  // 2. Cookies (survive PWA relaunches and storage clears)
   try {
-    const res = await fetch(url + '/token', { headers: { 'Authorization': 'Bearer ' + secret } });
+    const cx = Object.fromEntries(document.cookie.split(';').map(c => { const [k,...v]=c.trim().split('='); return [k, v.join('=')]; }));
+    if (cx.swurl && cx.swsec) return { url: decodeURIComponent(cx.swurl), secret: decodeURIComponent(cx.swsec) };
+  } catch(e) {}
+  // 3. localStorage fallback
+  const u = localStorage.getItem('signal_worker_url'), s = localStorage.getItem('signal_worker_secret');
+  if (u && s) return { url: u, secret: s };
+  return null;
+}
+async function getWorkerToken() {
+  const creds = _readWorkerCreds();
+  if (!creds) return null;
+  _saveWorkerCreds(creds.url, creds.secret); // refresh all storage on every successful read
+  try {
+    const res = await fetch(creds.url + '/token', { headers: { 'Authorization': 'Bearer ' + creds.secret } });
     if (!res.ok) return null;
     const d = await res.json();
     return d.access_token || null;
