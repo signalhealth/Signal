@@ -287,7 +287,7 @@ nav .nav-inner { display: flex; padding: 10px 0 6px; }
     <h1>Signal</h1>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v83</span>
+    <span style="font-size:9px;color:rgba(255,255,255,0.2);font-family:monospace;letter-spacing:0.05em;user-select:none;">v84</span>
     <button id="refresh-btn" onclick="refreshData()" style="display:none;padding:5px 10px;border-radius:6px;border:1px solid rgba(28,105,212,0.3);background:transparent;color:rgba(100,160,255,0.75);font-family:Space Grotesk,sans-serif;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.07em;" title="Pull fresh data from Google Health">REFRESH</button>
     <div class="header-google" id="header-google" onclick="signInWithGoogle()" title="Google Health connected — click to re-auth">
       <div class="header-google-dot"></div>
@@ -1523,7 +1523,7 @@ window.onGoogleLibraryLoad = function() {
 };
 
 async function silentRefresh() {
-  // Worker-based refresh — completely silent, no Chrome Custom Tab
+  // Try Worker first — completely silent
   const wToken = await getWorkerToken();
   if (wToken) {
     gToken = wToken;
@@ -1532,14 +1532,12 @@ async function silentRefresh() {
     if (dot) dot.style.background = '';
     return;
   }
-  // Worker configured but failing — amber dot, no GIS fallback (prevents CCT flash loop)
-  if (_readWorkerCreds()) {
+  // Worker failed — fall back to GIS prompt:none (never shows any UI)
+  if (!gTokenClient) {
     const dot = document.querySelector('.header-google-dot');
     if (dot) dot.style.background = '#f59e0b';
     return;
   }
-  // No Worker configured — fall back to GIS silent auth
-  if (!gTokenClient) return;
   const hint = localStorage.getItem('gfit_hint');
   _silentAttempt = 1;
   gTokenClient.requestAccessToken({ prompt: 'none', ...(hint ? { login_hint: hint } : {}) });
@@ -3169,10 +3167,16 @@ async function init() {
       await fetchAndMergeGoogleFitData();
       return;
     }
-    // Worker configured but not responding — show app, amber dot, never fall through to GIS
-    showApp(); showConnected();
+    // Worker not responding — show app, amber dot, then try GIS prompt:none (no UI)
+    showConnected();
     const dot = document.querySelector('.header-google-dot');
     if (dot) dot.style.background = '#f59e0b';
+    waitForGIS().then(ready => {
+      if (!ready || !gTokenClient) return;
+      const hint = localStorage.getItem('gfit_hint');
+      _silentAttempt = 1;
+      gTokenClient.requestAccessToken({ prompt: 'none', ...(hint ? { login_hint: hint } : {}) });
+    });
     return;
   }
 
