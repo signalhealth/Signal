@@ -7,6 +7,9 @@
     "platforms": ["android"],
     "android": {
       "package": "com.signalhealth.app",
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "minSdkVersion": 26,
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_WEIGHT",
@@ -18,6 +21,18 @@
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_RESTING_HEART_RATE"
       ]
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ]
   }
 }
