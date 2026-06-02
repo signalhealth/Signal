@@ -18,7 +18,7 @@ interface HealthContextValue {
   permissionGranted: boolean;
   refresh: () => Promise<void>;
   updateAppState: (state: AppState) => void;
-  openPermissions: () => void;
+  openPermissions: () => Promise<void>;
 }
 
 const emptyHealthData: HealthData = {
@@ -46,7 +46,7 @@ export const HealthContext = createContext<HealthContextValue>({
   permissionGranted: false,
   refresh: async () => {},
   updateAppState: () => {},
-  openPermissions: () => {},
+  openPermissions: async () => {},
 });
 
 export function HealthProvider({ children }: { children: ReactNode }) {
@@ -103,7 +103,21 @@ export function HealthProvider({ children }: { children: ReactNode }) {
         permissionGranted,
         refresh,
         updateAppState,
-        openPermissions: openHealthConnectPermissions,
+        openPermissions: async () => {
+          setLoading(true);
+          try {
+            const granted = await requestHealthPermissions();
+            setPermissionGranted(granted);
+            if (granted) {
+              const data = await readAllHealthData();
+              setHealthData(data);
+            } else {
+              openHealthConnectPermissions();
+            }
+          } finally {
+            setLoading(false);
+          }
+        },
       }}
     >
       {children}

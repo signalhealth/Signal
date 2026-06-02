@@ -20,17 +20,18 @@ const withHealthConnectMainActivity = (config) => {
       );
     }
 
-    // If onCreate already exists, inject after super.onCreate
-    if (contents.includes('super.onCreate(savedInstanceState)')) {
+    // If onCreate already exists, inject after any super.onCreate(...) call
+    const superOnCreateMatch = contents.match(/super\.onCreate\([^)]*\)/);
+    if (superOnCreateMatch) {
       contents = contents.replace(
-        'super.onCreate(savedInstanceState)',
-        'super.onCreate(savedInstanceState)\n    HealthConnectPermissionDelegate.setPermissionDelegate(this)'
+        superOnCreateMatch[0],
+        superOnCreateMatch[0] + '\n    HealthConnectPermissionDelegate.setPermissionDelegate(this)'
       );
     } else {
       // No onCreate yet — add it before getMainComponentName
       contents = contents.replace(
         '  override fun getMainComponentName',
-        `  override fun onCreate(savedInstanceState: android.os.Bundle?) {\n    super.onCreate(savedInstanceState)\n    HealthConnectPermissionDelegate.setPermissionDelegate(this)\n  }\n\n  override fun getMainComponentName`
+        `  override fun onCreate(savedInstanceState: android.os.Bundle?) {\n    super.onCreate(null)\n    HealthConnectPermissionDelegate.setPermissionDelegate(this)\n  }\n\n  override fun getMainComponentName`
       );
     }
 
