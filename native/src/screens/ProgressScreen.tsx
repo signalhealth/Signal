@@ -297,32 +297,38 @@ export function ProgressScreen() {
       <Card>
         <Text style={styles.lbl}>BODY COMPOSITION</Text>
         {latestDexa ? (
-          <Text style={styles.dexaDate}>DEXA · {latestDexa.date}</Text>
-        ) : null}
-        <ProgressBar
-          label="Body Fat"
-          value={latestDexa?.bodyFat ?? 26.2}
-          max={50}
-          unit="%"
-          color={COLORS.red}
-          subLabel={`Goal 15% · ${latestDexa ? "" : "was 37% · −10.8 pts"}`}
-        />
-        <ProgressBar
-          label="Lean Mass"
-          value={latestDexa?.leanMass ?? 116.9}
-          max={190}
-          unit="lbs"
-          color={COLORS.blue}
-          subLabel="Goal 132 lbs"
-        />
-        <ProgressBar
-          label="Scale Weight"
-          value={latestWt ?? 162.8}
-          max={210}
-          unit="lbs"
-          color="rgba(255,255,255,0.55)"
-          subLabel="Goal 155 lbs"
-        />
+          <>
+            <Text style={styles.dexaDate}>DEXA · {latestDexa.date}</Text>
+            <ProgressBar
+              label="Body Fat"
+              value={latestDexa.bodyFat}
+              max={50}
+              unit="%"
+              color={COLORS.red}
+              subLabel="Goal 15%"
+            />
+            <ProgressBar
+              label="Lean Mass"
+              value={latestDexa.leanMass}
+              max={190}
+              unit="lbs"
+              color={COLORS.blue}
+              subLabel="Goal 132 lbs"
+            />
+            <ProgressBar
+              label="Scale Weight"
+              value={latestWt ?? latestDexa.weight}
+              max={210}
+              unit="lbs"
+              color="rgba(255,255,255,0.55)"
+              subLabel="Goal 155 lbs"
+            />
+          </>
+        ) : (
+          <Text style={styles.emptyNote}>
+            Add a DEXA scan below to see body composition.
+          </Text>
+        )}
       </Card>
 
       {/* ── DEXA Timeline ── */}

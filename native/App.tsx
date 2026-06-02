@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
 
 import { HealthProvider, HealthContext } from "./src/context/HealthContext";
@@ -104,6 +104,7 @@ function PermissionsPrompt() {
 
 function AppShell() {
   const { loading, permissionGranted } = useContext(HealthContext);
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.shell}>
@@ -121,7 +122,7 @@ function AppShell() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarStyle: styles.tabBar,
+          tabBarStyle: [styles.tabBar, { paddingBottom: insets.bottom + 6, height: 60 + insets.bottom }],
           tabBarActiveTintColor: "#0066CC",
           tabBarInactiveTintColor: "rgba(255,255,255,0.35)",
           tabBarLabelStyle: styles.tabLabel,
@@ -170,8 +171,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(0,102,204,0.25)",
     paddingTop: 10,
-    paddingBottom: 6,
-    height: 70,
   },
   tabLabel: {
     fontSize: 10,

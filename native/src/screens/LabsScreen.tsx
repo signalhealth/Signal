@@ -12,25 +12,6 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LabResult } from "../types/health";
 
-const BASE_LABS: Array<Omit<LabResult, "id">> = [
-  { date: "2026-04", name: "LDL Cholesterol", value: "189", reference: "<100", status: "red" },
-  { date: "2026-04", name: "Lp(a)", value: "108.6", reference: "0–30", status: "red" },
-  { date: "2026-04", name: "Estradiol (E2)", value: "<5", reference: "11.3–43.2", status: "red" },
-  { date: "2026-04", name: "Total Cholesterol", value: "265", reference: "<200", status: "red" },
-  { date: "2026-04", name: "ApoB", value: "123", reference: "66–133", status: "amber" },
-  { date: "2026-04", name: "Lp-PLA2", value: "234", reference: "<225", status: "amber" },
-  { date: "2026-04", name: "Testosterone Total", value: "446", reference: "238–1048", status: "amber" },
-  { date: "2026-04", name: "Hematocrit", value: "48.3", reference: "38.3–48.6", status: "amber" },
-  { date: "2026-04", name: "Vitamin D", value: "35", reference: "30–100", status: "amber" },
-  { date: "2026-04", name: "DHEA-S", value: "118", reference: "88.9–427", status: "amber" },
-  { date: "2026-04", name: "HbA1c", value: "5.2", reference: "<5.7", status: "green" },
-  { date: "2026-04", name: "Fasting Insulin", value: "5.9", reference: "<10", status: "green" },
-  { date: "2026-04", name: "Triglycerides", value: "76", reference: "<150", status: "green" },
-  { date: "2026-04", name: "HDL", value: "63", reference: ">60", status: "green" },
-  { date: "2026-04", name: "PSA", value: "0.423", reference: "<4.0", status: "green" },
-  { date: "2026-04", name: "Homocysteine", value: "9.8", reference: "<15", status: "green" },
-  { date: "2026-04", name: "Cortisol", value: "16.2", reference: "6–18.4", status: "green" },
-];
 
 const STATUS_CONFIG = {
   red: {
@@ -109,10 +90,7 @@ export function LabsScreen() {
     "green"
   );
 
-  const allLabs = [
-    ...BASE_LABS.map((l, i) => ({ ...l, id: `base-${i}` })),
-    ...appState.labs,
-  ];
+  const allLabs = appState.labs;
 
   function addLab() {
     if (!labName.trim() || !labValue.trim()) {
@@ -182,64 +160,67 @@ export function LabsScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Flagged */}
-      <Card>
-        <Text style={[styles.sectionLabel, { color: "#FF3B30" }]}>
-          FLAGGED
-        </Text>
-        {allLabs
-          .filter((l) => l.status === "red")
-          .map((lab, i) => (
-            <LabRow
-              key={lab.id || i}
-              lab={lab}
-              onDelete={
-                lab.id?.startsWith("custom-")
-                  ? () => deleteLab(lab.id!)
-                  : undefined
-              }
-            />
-          ))}
-      </Card>
+      {allLabs.some((l) => l.status === "red") && (
+        <Card>
+          <Text style={[styles.sectionLabel, { color: "#FF3B30" }]}>
+            FLAGGED
+          </Text>
+          {allLabs
+            .filter((l) => l.status === "red")
+            .map((lab, i) => (
+              <LabRow
+                key={lab.id || i}
+                lab={lab}
+                onDelete={() => deleteLab(lab.id)}
+              />
+            ))}
+        </Card>
+      )}
 
       {/* Monitor */}
-      <Card>
-        <Text style={[styles.sectionLabel, { color: "#F5A623" }]}>
-          MONITOR
-        </Text>
-        {allLabs
-          .filter((l) => l.status === "amber")
-          .map((lab, i) => (
-            <LabRow
-              key={lab.id || i}
-              lab={lab}
-              onDelete={
-                lab.id?.startsWith("custom-")
-                  ? () => deleteLab(lab.id!)
-                  : undefined
-              }
-            />
-          ))}
-      </Card>
+      {allLabs.some((l) => l.status === "amber") && (
+        <Card>
+          <Text style={[styles.sectionLabel, { color: "#F5A623" }]}>
+            MONITOR
+          </Text>
+          {allLabs
+            .filter((l) => l.status === "amber")
+            .map((lab, i) => (
+              <LabRow
+                key={lab.id || i}
+                lab={lab}
+                onDelete={() => deleteLab(lab.id)}
+              />
+            ))}
+        </Card>
+      )}
 
       {/* Optimal */}
-      <Card>
-        <Text style={[styles.sectionLabel, { color: "#00D084" }]}>
-          OPTIMAL
-        </Text>
-        {allLabs
-          .filter((l) => l.status === "green")
-          .map((lab, i) => (
-            <LabRow
-              key={lab.id || i}
-              lab={lab}
-              onDelete={
-                lab.id?.startsWith("custom-")
-                  ? () => deleteLab(lab.id!)
-                  : undefined
-              }
-            />
-          ))}
-      </Card>
+      {allLabs.some((l) => l.status === "green") && (
+        <Card>
+          <Text style={[styles.sectionLabel, { color: "#00D084" }]}>
+            OPTIMAL
+          </Text>
+          {allLabs
+            .filter((l) => l.status === "green")
+            .map((lab, i) => (
+              <LabRow
+                key={lab.id || i}
+                lab={lab}
+                onDelete={() => deleteLab(lab.id)}
+              />
+            ))}
+        </Card>
+      )}
+
+      {allLabs.length === 0 && (
+        <Card>
+          <Text style={styles.sectionLabel}>LAB RESULTS</Text>
+          <Text style={styles.emptyNote}>
+            No lab results yet. Add your first result below.
+          </Text>
+        </Card>
+      )}
 
       {/* Add Result */}
       <Card>
@@ -408,5 +389,10 @@ const styles = StyleSheet.create({
   customLabText: {
     fontSize: 12,
     color: "rgba(255,255,255,0.35)",
+  },
+  emptyNote: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.3)",
+    marginVertical: 8,
   },
 });

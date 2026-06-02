@@ -194,14 +194,14 @@ export function FuelScreen() {
           <MacroBox
             label="Calories"
             value={todayNutrition?.cals}
-            target="1,800"
+            target={MACRO_TARGETS.calories.toLocaleString()}
             unit="kcal"
             color="#FFFFFF"
           />
           <MacroBox
             label="Protein"
             value={todayNutrition?.protein}
-            target="180g"
+            target={`${MACRO_TARGETS.protein}g`}
             unit=""
             color={COLORS.green}
           />
@@ -210,14 +210,14 @@ export function FuelScreen() {
           <MacroBox
             label="Carbs"
             value={todayNutrition?.carbs}
-            target="160g"
+            target={`${MACRO_TARGETS.carbs}g`}
             unit=""
             color={COLORS.blue}
           />
           <MacroBox
             label="Fat"
             value={todayNutrition?.fat}
-            target="60g"
+            target={`${MACRO_TARGETS.fat}g`}
             unit=""
             color={COLORS.amber}
           />
@@ -388,16 +388,16 @@ export function FuelScreen() {
           <>
             <Text style={styles.calHistoryLabel}>
               Avg: {Math.round(avg(calHistory.map((n) => n.cals)))} kcal ·
-              Target: 1,800 kcal
+              Target: {MACRO_TARGETS.calories.toLocaleString()} kcal
             </Text>
             <LineChart
               data={calHistory.map((n) => ({ date: n.date, value: n.cals }))}
               height={140}
               barMode
               barColorFn={(v) =>
-                v >= 1700 && v <= 1900
+                v >= MACRO_TARGETS.calories - 100 && v <= MACRO_TARGETS.calories + 100
                   ? "rgba(96,175,255,0.8)"
-                  : v > 1900
+                  : v > MACRO_TARGETS.calories + 100
                   ? "rgba(255,59,48,0.7)"
                   : "rgba(255,170,0,0.7)"
               }
