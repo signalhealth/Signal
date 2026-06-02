@@ -5,6 +5,7 @@ import {
 } from "../types/health";
 import {
   initializeHealthConnect,
+  requestHealthPermissions,
   openHealthConnectPermissions,
   readAllHealthData,
 } from "../services/healthConnect";
@@ -67,10 +68,12 @@ export function HealthProvider({ children }: { children: ReactNode }) {
 
     const initialized = await initializeHealthConnect();
     if (initialized) {
-      const data = await readAllHealthData();
-      setHealthData(data);
-      const hasData = Object.values(data).some((arr) => arr.length > 0);
-      setPermissionGranted(hasData);
+      const granted = await requestHealthPermissions();
+      setPermissionGranted(granted);
+      if (granted) {
+        const data = await readAllHealthData();
+        setHealthData(data);
+      }
     }
 
     setLoading(false);

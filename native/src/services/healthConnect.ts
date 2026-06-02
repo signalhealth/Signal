@@ -1,8 +1,21 @@
 import {
   initialize,
+  requestPermission,
   readRecords,
+  Permission,
 } from "react-native-health-connect";
 import { Linking } from "react-native";
+
+const PERMISSIONS: Permission[] = [
+  { accessType: "read", recordType: "Weight" },
+  { accessType: "read", recordType: "Steps" },
+  { accessType: "read", recordType: "SleepSession" },
+  { accessType: "read", recordType: "HeartRateVariabilityRmssd" },
+  { accessType: "read", recordType: "RestingHeartRate" },
+  { accessType: "read", recordType: "Nutrition" },
+  { accessType: "read", recordType: "ExerciseSession" },
+  { accessType: "read", recordType: "BodyFat" },
+];
 import {
   DataPoint,
   ExerciseSession,
@@ -24,6 +37,15 @@ export async function initializeHealthConnect(): Promise<boolean> {
   try {
     const result = await initialize();
     return result;
+  } catch {
+    return false;
+  }
+}
+
+export async function requestHealthPermissions(): Promise<boolean> {
+  try {
+    const granted = await requestPermission(PERMISSIONS);
+    return granted.length > 0;
   } catch {
     return false;
   }
