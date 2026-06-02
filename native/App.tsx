@@ -1,5 +1,12 @@
 import React, { useContext } from "react";
-import { View, StatusBar, StyleSheet } from "react-native";
+import {
+  View,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -78,8 +85,26 @@ function LabsIcon({ color }: { color: string }) {
 
 // ── App Shell ─────────────────────────────────────────────────────
 
+function PermissionsPrompt() {
+  const { openPermissions } = useContext(HealthContext);
+  return (
+    <View style={styles.permissionsContainer}>
+      <Text style={styles.permissionsTitle}>Connect Health Data</Text>
+      <Text style={styles.permissionsBody}>
+        Signal reads your health data directly from Health Connect on your
+        device — no login required.{"\n\n"}Tap below to open Health Connect,
+        find Signal under App permissions, and grant all permissions. Then
+        return here and pull down to refresh.
+      </Text>
+      <TouchableOpacity style={styles.permissionsButton} onPress={openPermissions}>
+        <Text style={styles.permissionsButtonText}>Open Health Connect</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function AppShell() {
-  const { loading } = useContext(HealthContext);
+  const { loading, permissionGranted } = useContext(HealthContext);
 
   return (
     <View style={styles.shell}>
@@ -87,6 +112,13 @@ function AppShell() {
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <Header loading={loading} />
       </SafeAreaView>
+      {loading ? (
+        <View style={styles.permissionsContainer}>
+          <ActivityIndicator color="#0066CC" size="large" />
+        </View>
+      ) : !permissionGranted ? (
+        <PermissionsPrompt />
+      ) : null}
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
@@ -148,5 +180,36 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
     marginTop: 2,
+  },
+  permissionsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  permissionsTitle: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  permissionsBody: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+    marginBottom: 32,
+  },
+  permissionsButton: {
+    backgroundColor: "#0066CC",
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+  },
+  permissionsButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
