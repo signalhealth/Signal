@@ -1,6 +1,7 @@
 import {
   initialize,
   requestPermission,
+  getGrantedPermissions,
   readRecords,
   Permission,
 } from "react-native-health-connect";
@@ -42,20 +43,33 @@ export async function initializeHealthConnect(): Promise<boolean> {
   }
 }
 
-export async function requestHealthPermissions(): Promise<boolean> {
+export async function checkGrantedPermissions(): Promise<boolean> {
   try {
-    const granted = await requestPermission(PERMISSIONS);
+    const granted = await getGrantedPermissions();
     return granted.length > 0;
   } catch {
     return false;
   }
 }
 
+export async function requestHealthPermissions(): Promise<boolean> {
+  try {
+    const granted = await requestPermission(PERMISSIONS);
+    return granted.length > 0;
+  } catch {
+    // Delegate not set up — fall through, caller will open HC manually
+    return false;
+  }
+}
+
 export function openHealthConnectPermissions(): void {
-  Linking.openURL("package:com.google.android.apps.healthdata").catch(() => {
-    Linking.openURL(
-      "market://details?id=com.google.android.apps.healthdata"
-    ).catch(() => {});
+  // Open HC directly to Signal's permission management page
+  Linking.openURL(
+    "intent:#Intent;action=androidx.health.ACTION_MANAGE_HEALTH_PERMISSIONS;" +
+    "S.android.intent.extra.PACKAGE_NAME=com.signalhealth.app;" +
+    "package=com.google.android.apps.healthdata;end"
+  ).catch(() => {
+    Linking.openURL("package:com.google.android.apps.healthdata").catch(() => {});
   });
 }
 

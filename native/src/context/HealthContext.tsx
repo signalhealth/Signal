@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useState, useEffect, useRef, ReactNode } from "react";
+import { AppState as RNAppState } from "react-native";
 import {
   HealthData,
   AppState,
@@ -7,6 +8,7 @@ import {
 } from "../types/health";
 import {
   initializeHealthConnect,
+  checkGrantedPermissions,
   requestHealthPermissions,
   openHealthConnectPermissions,
   readAllHealthData,
@@ -66,10 +68,32 @@ export function HealthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     bootstrap();
   }, []);
+
+  // When app returns to foreground, re-check permissions in case user just
+  // granted them manually in Health Connect
+  useEffect(() => {
+    const sub = RNAppState.addEventListener("change", async (state) => {
+      if (state === "active" && initializedRef.current && !permissionGranted) {
+        const granted = await checkGrantedPermissions();
+        if (granted) {
+          setPermissionGranted(true);
+          setLoading(true);
+          try {
+            const data = await readAllHealthData();
+            setHealthData(data);
+          } finally {
+            setLoading(false);
+          }
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [permissionGranted]);
 
   async function bootstrap() {
     setLoading(true);
@@ -83,7 +107,12 @@ export function HealthProvider({ children }: { children: ReactNode }) {
 
     const initialized = await initializeHealthConnect();
     if (initialized) {
-      const granted = await requestHealthPermissions();
+      // Check existing grants first (no dialog, no delegate required)
+      let granted = await checkGrantedPermissions();
+      if (!granted) {
+        // Try the permission dialog (works if delegate is set up correctly)
+        granted = await requestHealthPermissions();
+      }
       setPermissionGranted(granted);
       if (granted) {
         const data = await readAllHealthData();
@@ -91,6 +120,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    initializedRef.current = true;
     setLoading(false);
   }
 
