@@ -21,7 +21,6 @@
     },
     "plugins": [
       "./plugins/withHealthConnectSetup",
-      "expo-health-connect",
       [
         "expo-build-properties",
         {
