@@ -7,25 +7,20 @@
     "platforms": ["android"],
     "android": {
       "package": "com.signalhealth.app",
-      "permissions": []
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_HEART_RATE_VARIABILITY",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_NUTRITION",
+        "android.permission.health.READ_BODY_FAT",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_RESTING_HEART_RATE"
+      ]
     },
     "plugins": [
-      [
-        "react-native-health-connect",
-        {
-          "healthConnectPermissions": [
-            "android.permission.health.READ_STEPS",
-            "android.permission.health.READ_WEIGHT",
-            "android.permission.health.READ_HEART_RATE",
-            "android.permission.health.READ_HEART_RATE_VARIABILITY",
-            "android.permission.health.READ_SLEEP",
-            "android.permission.health.READ_NUTRITION",
-            "android.permission.health.READ_BODY_FAT",
-            "android.permission.health.READ_EXERCISE",
-            "android.permission.health.READ_RESTING_HEART_RATE"
-          ]
-        }
-      ]
+      "react-native-health-connect"
     ]
   }
 }
