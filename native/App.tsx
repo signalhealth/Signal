@@ -92,9 +92,8 @@ function PermissionsPrompt() {
       <Text style={styles.permissionsTitle}>Connect Health Data</Text>
       <Text style={styles.permissionsBody}>
         Signal reads your health data directly from Health Connect on your
-        device — no login required.{"\n\n"}Tap below to open Health Connect,
-        find Signal under App permissions, and grant all permissions. Then
-        return here and pull down to refresh.
+        device — no login required.{"\n\n"}Tap below to grant Health Connect
+        permissions.
       </Text>
       <TouchableOpacity style={styles.permissionsButton} onPress={openPermissions}>
         <Text style={styles.permissionsButtonText}>Open Health Connect</Text>
