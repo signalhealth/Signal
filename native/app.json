@@ -20,6 +20,7 @@
       ]
     },
     "plugins": [
+      "./plugins/withHealthConnectSetup",
       "react-native-health-connect",
       [
         "expo-build-properties",
