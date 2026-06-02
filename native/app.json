@@ -18,9 +18,6 @@
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_RESTING_HEART_RATE"
       ]
-    },
-    "plugins": [
-      "react-native-health-connect"
-    ]
+    }
   }
 }
