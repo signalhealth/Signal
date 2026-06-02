@@ -79,7 +79,7 @@ const macroStyles = StyleSheet.create({
 });
 
 export function FuelScreen() {
-  const { healthData } = useContext(HealthContext);
+  const { healthData, appState, userProfile } = useContext(HealthContext);
   const [fuelCtx, setFuelCtx] = useState<FuelCtx>({
     trained: null,
     sleep: null,
@@ -122,7 +122,7 @@ export function FuelScreen() {
     }
     setFuelLoading(true);
     setFuelResult("Analyzing…");
-    const result = await analyzeWithAI(key, healthData, fuelCtx);
+    const result = await analyzeWithAI(key, healthData, fuelCtx, appState, userProfile);
     setFuelLoading(false);
     if (result.authError) {
       await removeAnthropicKey();

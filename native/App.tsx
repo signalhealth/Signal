@@ -14,6 +14,7 @@ import Svg, { Path, Circle } from "react-native-svg";
 
 import { HealthProvider, HealthContext } from "./src/context/HealthContext";
 import { Header } from "./src/components/Header";
+import { ProfileModal } from "./src/components/ProfileModal";
 import { ProgressScreen } from "./src/screens/ProgressScreen";
 import { RecoveryScreen } from "./src/screens/RecoveryScreen";
 import { FuelScreen } from "./src/screens/FuelScreen";
@@ -105,13 +106,15 @@ function PermissionsPrompt() {
 function AppShell() {
   const { loading, permissionGranted } = useContext(HealthContext);
   const insets = useSafeAreaInsets();
+  const [showProfile, setShowProfile] = React.useState(false);
 
   return (
     <View style={styles.shell}>
       <StatusBar barStyle="light-content" backgroundColor="#07070D" />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <Header loading={loading} />
+        <Header loading={loading} onProfilePress={() => setShowProfile(true)} />
       </SafeAreaView>
+      <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
       {loading ? (
         <View style={styles.permissionsContainer}>
           <ActivityIndicator color="#0066CC" size="large" />

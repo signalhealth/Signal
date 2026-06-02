@@ -2,6 +2,8 @@ import React, { createContext, useState, useEffect, ReactNode } from "react";
 import {
   HealthData,
   AppState,
+  UserProfile,
+  DEFAULT_PROFILE,
 } from "../types/health";
 import {
   initializeHealthConnect,
@@ -9,15 +11,22 @@ import {
   openHealthConnectPermissions,
   readAllHealthData,
 } from "../services/healthConnect";
-import { loadAppState, saveAppState } from "../services/storage";
+import {
+  loadAppState,
+  saveAppState,
+  loadUserProfile,
+  saveUserProfile,
+} from "../services/storage";
 
 interface HealthContextValue {
   healthData: HealthData;
   appState: AppState;
+  userProfile: UserProfile;
   loading: boolean;
   permissionGranted: boolean;
   refresh: () => Promise<void>;
   updateAppState: (state: AppState) => void;
+  updateUserProfile: (profile: UserProfile) => void;
   openPermissions: () => Promise<void>;
 }
 
@@ -42,16 +51,19 @@ const defaultAppState: AppState = {
 export const HealthContext = createContext<HealthContextValue>({
   healthData: emptyHealthData,
   appState: defaultAppState,
+  userProfile: DEFAULT_PROFILE,
   loading: false,
   permissionGranted: false,
   refresh: async () => {},
   updateAppState: () => {},
+  updateUserProfile: () => {},
   openPermissions: async () => {},
 });
 
 export function HealthProvider({ children }: { children: ReactNode }) {
   const [healthData, setHealthData] = useState<HealthData>(emptyHealthData);
   const [appState, setAppState] = useState<AppState>(defaultAppState);
+  const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
   const [permissionGranted, setPermissionGranted] = useState(false);
 
@@ -62,9 +74,12 @@ export function HealthProvider({ children }: { children: ReactNode }) {
   async function bootstrap() {
     setLoading(true);
 
-    // Load persisted app state
-    const savedState = await loadAppState();
+    const [savedState, savedProfile] = await Promise.all([
+      loadAppState(),
+      loadUserProfile(),
+    ]);
     setAppState(savedState);
+    setUserProfile(savedProfile);
 
     const initialized = await initializeHealthConnect();
     if (initialized) {
@@ -94,15 +109,22 @@ export function HealthProvider({ children }: { children: ReactNode }) {
     saveAppState(newState);
   }
 
+  function updateUserProfile(profile: UserProfile) {
+    setUserProfile(profile);
+    saveUserProfile(profile);
+  }
+
   return (
     <HealthContext.Provider
       value={{
         healthData,
         appState,
+        userProfile,
         loading,
         permissionGranted,
         refresh,
         updateAppState,
+        updateUserProfile,
         openPermissions: async () => {
           setLoading(true);
           try {

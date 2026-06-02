@@ -1,4 +1,4 @@
-import { HealthData, AppState, FuelCtx, MACRO_TARGETS } from "../types/health";
+import { HealthData, AppState, FuelCtx, UserProfile, MACRO_TARGETS } from "../types/health";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
@@ -17,6 +17,30 @@ export interface AnthropicResult {
   text?: string;
   error?: string;
   authError?: boolean;
+}
+
+function buildProfileSection(profile: UserProfile): string {
+  const lines: string[] = [];
+  if (profile.goal) lines.push(`Goal: ${profile.goal}`);
+  const targets: string[] = [];
+  if (profile.targetWeight) targets.push(`${profile.targetWeight} lbs`);
+  if (profile.targetBodyFat) targets.push(`${profile.targetBodyFat}% body fat`);
+  if (profile.targetDate) targets.push(`by ${profile.targetDate}`);
+  if (targets.length) lines.push(`Target: ${targets.join(" / ")}`);
+  if (profile.startingWeight && profile.startingDate) {
+    lines.push(`Started: ${profile.startingWeight} lbs (${profile.startingDate})`);
+  }
+  if (profile.onTRT) {
+    lines.push(`Protocol: TRT${profile.trtStartDate ? ` (started ${profile.trtStartDate})` : ""}`);
+  }
+  const training: string[] = [];
+  if (profile.trainingDaysPerWeek) training.push(`${profile.trainingDaysPerWeek}x/week`);
+  if (profile.trainingProgram) training.push(profile.trainingProgram);
+  if (training.length) lines.push(`Training: ${training.join(", ")}`);
+  if (profile.additionalContext) lines.push(`Note: ${profile.additionalContext}`);
+
+  if (!lines.length) return "";
+  return "USER PROFILE:\n" + lines.map((l) => `- ${l}`).join("\n");
 }
 
 async function callAnthropic(
@@ -69,22 +93,32 @@ async function callAnthropic(
 export async function getInsight(
   apiKey: string,
   data: HealthData,
-  appState: AppState
+  appState: AppState,
+  profile: UserProfile
 ): Promise<AnthropicResult> {
   const today = localDate();
-  const latestWeight = data.weight[0]?.value || null;
-  const latestHRV = data.hrv[0]?.value || null;
-  const latestSleep = data.sleep[0]?.value || null;
-  const latestSteps = data.steps[0]?.value || null;
-  const todayNutrition = data.nutrition.find((n) => n.date === today) || null;
+  const weightSorted = [...data.weight].sort((a, b) => a.date.localeCompare(b.date));
+  const latestWeight = weightSorted[weightSorted.length - 1]?.value ?? null;
 
-  // Deduplicate RHR
+  const hrvSorted = [...data.hrv].sort((a, b) => a.date.localeCompare(b.date));
+  const latestHRV = hrvSorted[hrvSorted.length - 1]?.value ?? null;
+
+  const sleepSorted = [...data.sleep].sort((a, b) => a.date.localeCompare(b.date));
+  const latestSleep = sleepSorted[sleepSorted.length - 1]?.value ?? null;
+
+  const stepsSorted = [...data.steps].sort((a, b) => a.date.localeCompare(b.date));
+  const latestSteps = stepsSorted.find((s) => s.date === today)?.value ?? null;
+
+  const todayNutrition = data.nutrition.find((n) => n.date === today) ?? null;
+
   const seenRhr = new Map<string, number>();
   for (const pt of data.rhr) {
     if (!seenRhr.has(pt.date)) seenRhr.set(pt.date, pt.value);
   }
-  const rhrVals = Array.from(seenRhr.values());
-  const latestRHR = rhrVals[0] || null;
+  const rhrSorted = Array.from(seenRhr.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const latestRHR = rhrSorted[rhrSorted.length - 1]?.[1] ?? null;
+
+  const latestDexa = appState.dexa[appState.dexa.length - 1] ?? null;
 
   const recoveryNotes = appState.recovery
     .slice(-5)
@@ -92,21 +126,20 @@ export async function getInsight(
     .map((r) => `- ${r.date}: ${r.note}`)
     .join("\n");
 
-  const prompt = `You are Signal, a precision health intelligence advisor for Paul. Deliver one sharp, personalized coaching insight based on his current data.
+  const profileSection = buildProfileSection(profile);
+  const userName = profile.name ? profile.name : "the user";
 
-PAUL'S PROFILE:
-- Goal: Body recomp — reach 155 lbs / 15% body fat by May 2027
-- Started ~177 lbs in February 2026, cutting with lean mass preserved on TRT (started May 15, 2026)
-- Daily targets: 1,800 kcal, 180g protein, 160g carbs, 60g fat, ~4 days/week lifting (C1 program)
-
+  const prompt = `You are Signal, a precision health intelligence advisor${profile.name ? ` for ${profile.name}` : ""}. Deliver one sharp, personalized coaching insight based on current data.
+${profileSection ? "\n" + profileSection + "\n" : ""}
 TODAY'S DATA:
-- Weight: ${latestWeight ? latestWeight + " lbs" : "unavailable"}
-- Calories: ${todayNutrition ? todayNutrition.cals + " kcal" : "unavailable"}
-- Protein: ${todayNutrition ? todayNutrition.protein + "g" : "unavailable"}
-- Sleep: ${latestSleep ? latestSleep + "h" : "unavailable"}
-- Steps: ${latestSteps ? latestSteps.toLocaleString() : "unavailable"}
-- RHR: ${latestRHR ? latestRHR + " bpm" : "unavailable"}
-- HRV: ${latestHRV ? latestHRV + " ms" : "unavailable"}
+- Weight: ${latestWeight !== null ? latestWeight + " lbs" : "unavailable"}
+${latestDexa ? `- Body composition: ${latestDexa.bodyFat}% body fat, ${latestDexa.leanMass} lbs lean mass (DEXA ${latestDexa.date})` : ""}
+- Calories: ${todayNutrition ? todayNutrition.cals + " kcal (target: " + MACRO_TARGETS.calories + ")" : "unavailable"}
+- Protein: ${todayNutrition ? todayNutrition.protein + "g (target: " + MACRO_TARGETS.protein + "g)" : "unavailable"}
+- Sleep: ${latestSleep !== null ? latestSleep + "h" : "unavailable"}
+- Steps: ${latestSteps !== null ? latestSteps.toLocaleString() : "unavailable"}
+- RHR: ${latestRHR !== null ? latestRHR + " bpm" : "unavailable"}
+- HRV: ${latestHRV !== null ? latestHRV + " ms" : "unavailable"}
 
 RECOVERY NOTES (most recent first):
 ${recoveryNotes || "None logged"}
@@ -119,19 +152,28 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
 export async function analyzeFuel(
   apiKey: string,
   data: HealthData,
-  fuelCtx: FuelCtx
+  fuelCtx: FuelCtx,
+  appState: AppState,
+  profile: UserProfile
 ): Promise<AnthropicResult> {
   const today = localDate();
-  const todayNutrition = data.nutrition.find((n) => n.date === today) || null;
+  const todayNutrition = data.nutrition.find((n) => n.date === today) ?? null;
 
-  const cals = todayNutrition?.cals || 0;
-  const protein = todayNutrition?.protein || 0;
-  const carbs = todayNutrition?.carbs || 0;
-  const fat = todayNutrition?.fat || 0;
+  const cals = todayNutrition?.cals ?? 0;
+  const protein = todayNutrition?.protein ?? 0;
+  const carbs = todayNutrition?.carbs ?? 0;
+  const fat = todayNutrition?.fat ?? 0;
 
-  const latestWeight = data.weight[0]?.value || 162.8;
-  const latestHRV = data.hrv[0]?.value || 65;
-  const latestSleep = data.sleep[0]?.value || 7.5;
+  const weightSorted = [...data.weight].sort((a, b) => a.date.localeCompare(b.date));
+  const latestWeight = weightSorted[weightSorted.length - 1]?.value ?? null;
+
+  const hrvSorted = [...data.hrv].sort((a, b) => a.date.localeCompare(b.date));
+  const latestHRV = hrvSorted[hrvSorted.length - 1]?.value ?? null;
+
+  const sleepSorted = [...data.sleep].sort((a, b) => a.date.localeCompare(b.date));
+  const latestSleep = sleepSorted[sleepSorted.length - 1]?.value ?? null;
+
+  const latestDexa = appState.dexa[appState.dexa.length - 1] ?? null;
 
   const recentTraining = data.exercise
     .slice(0, 3)
@@ -143,32 +185,30 @@ export async function analyzeFuel(
     protein: Math.max(0, MACRO_TARGETS.protein - protein),
   };
 
+  const profileSection = buildProfileSection(profile);
+
   const prompt = `You are Signal, a precision health intelligence advisor. Give a specific, actionable nutrition recommendation.
-
-PAUL'S PROFILE:
-- Goal: Body recomp — reach 155 lbs / 15% body fat by May 2027
-- Current: ${latestWeight} lbs, ~26% body fat, 116.9 lbs lean mass
-- Daily targets: 1,800 kcal, 180g protein, 160g carbs, 60g fat, maintain lean mass on TRT (started May 15, 2026)
-
-TODAY SO FAR:
-- Calories consumed: ${cals} kcal (remaining: ${remaining.cals} kcal)
-- Protein: ${protein}g (remaining: ${remaining.protein}g)
-- Carbs: ${carbs}g
-- Fat: ${fat}g
-- Trained today: ${fuelCtx.trained || "unknown"}
-- Sleep last night: ${latestSleep}h (${fuelCtx.sleep || "unknown"} quality)
-- HRV: ${latestHRV}ms
+${profileSection ? "\n" + profileSection + "\n" : ""}
+TODAY'S DATA:
+- Weight: ${latestWeight !== null ? latestWeight + " lbs" : "unavailable"}
+${latestDexa ? `- Body composition: ${latestDexa.bodyFat}% body fat, ${latestDexa.leanMass} lbs lean mass (DEXA ${latestDexa.date})` : ""}
+- Calories consumed: ${cals} kcal (remaining: ${remaining.cals} kcal of ${MACRO_TARGETS.calories} target)
+- Protein: ${protein}g (remaining: ${remaining.protein}g of ${MACRO_TARGETS.protein}g target)
+- Carbs: ${carbs}g (target: ${MACRO_TARGETS.carbs}g)
+- Fat: ${fat}g (target: ${MACRO_TARGETS.fat}g)
+- Trained today: ${fuelCtx.trained ?? "unknown"}
+- Sleep last night: ${latestSleep !== null ? latestSleep + "h" : "unavailable"} (${fuelCtx.sleep ?? "unknown"} quality)
+- HRV: ${latestHRV !== null ? latestHRV + " ms" : "unavailable"}
 - Recent workouts: ${recentTraining || "none logged"}
-- Today's goal priority: ${fuelCtx.goal}
+- Goal priority today: ${fuelCtx.goal}
 
-YOUR TASK:
-Give Paul a specific recommendation for his NEXT meal or eating window. Include:
+Give a specific recommendation for the next meal or eating window. Include:
 1. What to eat (specific foods or meal type)
 2. Approximate macros to hit
 3. When to eat it
-4. One sentence of reasoning based on his data
+4. One sentence of reasoning based on the data
 
 Keep it under 100 words. Be direct and specific. No generic advice.`;
 
-  return callAnthropic(apiKey, prompt, 1000);
+  return callAnthropic(apiKey, prompt, 300);
 }

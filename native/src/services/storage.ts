@@ -6,12 +6,15 @@ import {
   MicroGoal,
   RecoveryNote,
   DEFAULT_MICROS,
+  UserProfile,
+  DEFAULT_PROFILE,
 } from "../types/health";
 
 const KEYS = {
   ANTHROPIC_KEY: "anthropic_key",
   APP_STATE: "signal_app_state_v1",
   MICROS: "signal_micros_v1",
+  USER_PROFILE: "signal_user_profile_v1",
 } as const;
 
 // ── Anthropic API Key ──────────────────────────────────────────────
@@ -61,6 +64,26 @@ export async function loadAppState(): Promise<AppState> {
 export async function saveAppState(state: AppState): Promise<void> {
   try {
     await AsyncStorage.setItem(KEYS.APP_STATE, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+// ── User Profile ──────────────────────────────────────────────────
+
+export async function loadUserProfile(): Promise<UserProfile> {
+  try {
+    const raw = await AsyncStorage.getItem(KEYS.USER_PROFILE);
+    if (raw) return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
+  } catch {
+    // ignore
+  }
+  return { ...DEFAULT_PROFILE };
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.USER_PROFILE, JSON.stringify(profile));
   } catch {
     // ignore
   }

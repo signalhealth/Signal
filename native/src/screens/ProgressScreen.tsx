@@ -36,7 +36,7 @@ function avg(arr: number[]) {
 }
 
 export function ProgressScreen() {
-  const { healthData, appState } = useContext(HealthContext);
+  const { healthData, appState, userProfile } = useContext(HealthContext);
   const [wtDays, setWtDays] = useState(14);
   const [insight, setInsight] = useState<string>(
     "Your personalized coaching insight will appear here."
@@ -118,7 +118,7 @@ export function ProgressScreen() {
     }
     setInsightLoading(true);
     setInsight("Analyzing your data…");
-    const result = await getInsight(key, healthData, appState);
+    const result = await getInsight(key, healthData, appState, userProfile);
     setInsightLoading(false);
     if (result.authError) {
       await removeAnthropicKey();

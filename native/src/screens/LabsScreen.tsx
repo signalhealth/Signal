@@ -12,7 +12,6 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LabResult } from "../types/health";
 
-
 const STATUS_CONFIG = {
   red: {
     bg: "rgba(255,59,48,0.15)",
@@ -44,8 +43,8 @@ function LabRow({
   lab,
   onDelete,
 }: {
-  lab: Omit<LabResult, "id"> & { id?: string };
-  onDelete?: () => void;
+  lab: LabResult;
+  onDelete: () => void;
 }) {
   const cfg = STATUS_CONFIG[lab.status];
   return (

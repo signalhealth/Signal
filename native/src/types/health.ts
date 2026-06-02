@@ -1,3 +1,33 @@
+export interface UserProfile {
+  name: string;
+  goal: string;
+  targetWeight: string;
+  targetBodyFat: string;
+  targetDate: string;
+  startingWeight: string;
+  startingDate: string;
+  onTRT: boolean;
+  trtStartDate: string;
+  trainingDaysPerWeek: string;
+  trainingProgram: string;
+  additionalContext: string;
+}
+
+export const DEFAULT_PROFILE: UserProfile = {
+  name: "",
+  goal: "",
+  targetWeight: "",
+  targetBodyFat: "",
+  targetDate: "",
+  startingWeight: "",
+  startingDate: "",
+  onTRT: false,
+  trtStartDate: "",
+  trainingDaysPerWeek: "",
+  trainingProgram: "",
+  additionalContext: "",
+};
+
 export interface DataPoint {
   date: string; // "YYYY-MM-DD"
   value: number;
