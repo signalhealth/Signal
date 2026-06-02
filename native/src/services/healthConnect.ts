@@ -1,26 +1,14 @@
 import {
   initialize,
-  requestPermission,
   readRecords,
-  Permission,
 } from "react-native-health-connect";
+import { Linking } from "react-native";
 import {
   DataPoint,
   ExerciseSession,
   NutritionEntry,
   HealthData,
 } from "../types/health";
-
-const PERMISSIONS: Permission[] = [
-  { accessType: "read", recordType: "Weight" },
-  { accessType: "read", recordType: "Steps" },
-  { accessType: "read", recordType: "SleepSession" },
-  { accessType: "read", recordType: "HeartRateVariabilityRmssd" },
-  { accessType: "read", recordType: "RestingHeartRate" },
-  { accessType: "read", recordType: "Nutrition" },
-  { accessType: "read", recordType: "ExerciseSession" },
-  { accessType: "read", recordType: "BodyFat" },
-];
 
 function daysAgoISO(days: number): string {
   const d = new Date();
@@ -41,13 +29,14 @@ export async function initializeHealthConnect(): Promise<boolean> {
   }
 }
 
-export async function requestHealthPermissions(): Promise<boolean> {
-  try {
-    const granted = await requestPermission(PERMISSIONS);
-    return granted.length > 0;
-  } catch {
-    return false;
-  }
+export function openHealthConnectPermissions(): void {
+  // requestPermission() crashes (requires ActivityResultLauncher in MainActivity).
+  // Send user to Health Connect to grant permissions manually instead.
+  Linking.openURL("package:com.google.android.apps.healthdata").catch(() => {
+    Linking.openURL(
+      "market://details?id=com.google.android.apps.healthdata"
+    ).catch(() => {});
+  });
 }
 
 async function readWeight(days = 45): Promise<DataPoint[]> {

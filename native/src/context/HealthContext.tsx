@@ -5,7 +5,7 @@ import {
 } from "../types/health";
 import {
   initializeHealthConnect,
-  requestHealthPermissions,
+  openHealthConnectPermissions,
   readAllHealthData,
 } from "../services/healthConnect";
 import { loadAppState, saveAppState } from "../services/storage";
@@ -17,6 +17,7 @@ interface HealthContextValue {
   permissionGranted: boolean;
   refresh: () => Promise<void>;
   updateAppState: (state: AppState) => void;
+  openPermissions: () => void;
 }
 
 const emptyHealthData: HealthData = {
@@ -44,6 +45,7 @@ export const HealthContext = createContext<HealthContextValue>({
   permissionGranted: false,
   refresh: async () => {},
   updateAppState: () => {},
+  openPermissions: () => {},
 });
 
 export function HealthProvider({ children }: { children: ReactNode }) {
@@ -63,15 +65,16 @@ export function HealthProvider({ children }: { children: ReactNode }) {
     const savedState = await loadAppState();
     setAppState(savedState);
 
-    // Initialize Health Connect
+    // Initialize Health Connect and read data directly.
+    // requestPermission() is not called — it crashes in Expo managed workflow
+    // because the ActivityResultLauncher isn't wired up. Users grant permissions
+    // via openPermissions() → Health Connect settings → return and refresh.
     const initialized = await initializeHealthConnect();
     if (initialized) {
-      const granted = await requestHealthPermissions();
-      setPermissionGranted(granted);
-      if (granted) {
-        const data = await readAllHealthData();
-        setHealthData(data);
-      }
+      const data = await readAllHealthData();
+      setHealthData(data);
+      const hasData = Object.values(data).some((arr) => arr.length > 0);
+      setPermissionGranted(hasData);
     }
 
     setLoading(false);
@@ -101,6 +104,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
         permissionGranted,
         refresh,
         updateAppState,
+        openPermissions: openHealthConnectPermissions,
       }}
     >
       {children}
