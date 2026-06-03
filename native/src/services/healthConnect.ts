@@ -107,7 +107,7 @@ async function readSteps(days = 45): Promise<DataPoint[]> {
     // Aggregate by day
     const map = new Map<string, number>();
     for (const r of result.records) {
-      const dateStr = toDateStr(r.startTime);
+      const dateStr = toDateStr(r.endTime);
       map.set(dateStr, (map.get(dateStr) || 0) + r.count);
     }
     return Array.from(map.entries())
