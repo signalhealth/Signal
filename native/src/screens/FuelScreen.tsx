@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
@@ -99,12 +100,19 @@ export function FuelScreen() {
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyError, setApiKeyError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       refresh();
     }, [])
   );
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }
 
   const today = localDateStr();
   const todayNutrition = healthData.nutrition.find((n) => n.date === today);
@@ -189,6 +197,14 @@ export function FuelScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#60AFFF"
+          colors={["#60AFFF"]}
+        />
+      }
     >
       {/* ── Today's Intake ── */}
       <Card>
