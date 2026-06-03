@@ -25,6 +25,11 @@
         "android.permission.health.READ_RESTING_HEART_RATE"
       ]
     },
+    "extra": {
+      "eas": {
+        "projectId": "4502e4e9-10ee-47f1-a471-8178f1d49f70"
+      }
+    },
     "plugins": [
       "react-native-health-connect",
       "./plugins/withHealthConnectManifest",
