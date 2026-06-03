@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Svg, { Path, Polyline, Line, Text as SvgText } from "react-native-svg";
 import { DataPoint } from "../types/health";
+import { useTheme } from "../context/ThemeContext";
 
 const SCREEN_W = Dimensions.get("window").width;
 
@@ -38,10 +39,12 @@ function buildPath(
 }
 
 export function WeightChart({ data, height = 120 }: WeightChartProps) {
+  const { theme } = useTheme();
+
   if (!data.length) {
     return (
       <View style={[styles.empty, { height }]}>
-        <Text style={styles.emptyText}>No data</Text>
+        <Text style={{ color: theme.textQuaternary, fontSize: 12 }}>No data</Text>
       </View>
     );
   }
@@ -97,8 +100,8 @@ export function WeightChart({ data, height = 120 }: WeightChartProps) {
         />
       </Svg>
       <View style={styles.axisRow}>
-        <Text style={styles.axisLabel}>{startLabel}</Text>
-        <Text style={styles.axisLabel}>{endLabel}</Text>
+        <Text style={{ fontSize: 11, color: theme.textTertiary }}>{startLabel}</Text>
+        <Text style={{ fontSize: 11, color: theme.textTertiary }}>{endLabel}</Text>
       </View>
     </View>
   );
@@ -125,6 +128,7 @@ export function SparkBars({
   color = "#0066CC",
   target,
 }: SparkBarsProps) {
+  const { theme } = useTheme();
   const labelH = 28;
   // Use last 14 actual data points — no calendar grid
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
@@ -143,7 +147,7 @@ export function SparkBars({
   if (!recent.length) {
     return (
       <View style={[{ width: chartW, height: totalH }, { justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No step data</Text>
+        <Text style={{ color: theme.textQuaternary, fontSize: 12 }}>No step data</Text>
       </View>
     );
   }
@@ -180,7 +184,7 @@ export function SparkBars({
                   x={barCenterX}
                   y={barY > 10 ? barY - 3 : 9}
                   fontSize={8}
-                  fill="rgba(255,255,255,0.45)"
+                  fill={theme.textSecondary}
                   textAnchor="middle"
                 >
                   {fmtStepCount(v)}
@@ -191,7 +195,7 @@ export function SparkBars({
                 x={barCenterX}
                 y={height + 16}
                 fontSize={8}
-                fill={isToday ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)"}
+                fill={isToday ? theme.textSecondary : theme.textQuaternary}
                 textAnchor="middle"
               >
                 {dow}
@@ -230,10 +234,12 @@ export function LineChart({
   barMode = false,
   barColorFn,
 }: LineChartProps) {
+  const { theme } = useTheme();
+
   if (!data.length) {
     return (
       <View style={[styles.empty, { height }]}>
-        <Text style={styles.emptyText}>No data</Text>
+        <Text style={{ color: theme.textQuaternary, fontSize: 12 }}>No data</Text>
       </View>
     );
   }
@@ -324,17 +330,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyText: {
-    color: "rgba(255,255,255,0.2)",
-    fontSize: 12,
-  },
   axisRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 4,
-  },
-  axisLabel: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
   },
 });

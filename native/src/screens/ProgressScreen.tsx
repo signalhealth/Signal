@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from "react";
+import React, { useState, useContext, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import {
   setAnthropicKey,
   removeAnthropicKey,
 } from "../services/storage";
+import { useTheme } from "../context/ThemeContext";
+import { ThemeColors } from "../context/ThemeContext";
 
 function localDateStr(): string {
   const d = new Date();
@@ -32,16 +34,6 @@ function fmtDate(iso: string): string {
   return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
 }
 
-const COLORS = {
-  green: "#00D084",
-  amber: "#F5A623",
-  red: "#FF3B30",
-  blue: "#0066CC",
-  white: "#FFFFFF",
-  gray2: "rgba(255,255,255,0.6)",
-  gray3: "rgba(255,255,255,0.35)",
-};
-
 function avg(arr: number[]) {
   if (!arr.length) return 0;
   return arr.reduce((s, v) => s + v, 0) / arr.length;
@@ -49,6 +41,19 @@ function avg(arr: number[]) {
 
 export function ProgressScreen() {
   const { healthData, appState, userProfile, refresh, loading } = useContext(HealthContext);
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
+
+  const COLORS = {
+    green: theme.green,
+    amber: theme.amber,
+    red: theme.red,
+    blue: theme.accent,
+    white: theme.text,
+    gray2: theme.textSecondary,
+    gray3: theme.textTertiary,
+  };
+
   const [wtDays, setWtDays] = useState(14);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -202,8 +207,8 @@ export function ProgressScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#60AFFF"
-          colors={["#60AFFF"]}
+          tintColor={theme.accentBright}
+          colors={[theme.accentBright]}
         />
       }
     >
@@ -386,6 +391,7 @@ export function ProgressScreen() {
                     color={bfColor}
                     startLabel="Start 36%"
                     goalLabel="Goal 15%"
+                    theme={theme}
                   />
                   <GoalProgressBar
                     label="Lean Mass"
@@ -395,6 +401,7 @@ export function ProgressScreen() {
                     color={lmColor}
                     startLabel="Start 117.5 lbs"
                     goalLabel="Goal 132 lbs"
+                    theme={theme}
                   />
                   <GoalProgressBar
                     label="Scale Weight"
@@ -404,6 +411,7 @@ export function ProgressScreen() {
                     color={swColor}
                     startLabel="Start 189 lbs"
                     goalLabel="Goal 155 lbs"
+                    theme={theme}
                   />
                 </>
               );
@@ -438,7 +446,7 @@ export function ProgressScreen() {
               </View>
             ))
         )}
-        <DexaAddForm />
+        <DexaAddForm theme={theme} styles={styles} />
       </Card>
 
       {/* ── Signal Insight ── */}
@@ -453,7 +461,7 @@ export function ProgressScreen() {
             <TextInput
               style={styles.apiKeyInput}
               placeholder="sk-ant-api03-…"
-              placeholderTextColor="#5A7090"
+              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
               value={apiKeyInput}
               onChangeText={setApiKeyInput}
               secureTextEntry
@@ -476,7 +484,7 @@ export function ProgressScreen() {
         <View style={styles.insightBtnRow}>
           <TouchableOpacity
             style={[styles.insightBtn, insightLoading && { opacity: 0.6 }]}
-            onPress={handleGetInsight}
+            onPress={() => handleGetInsight()}
             disabled={insightLoading}
           >
             <Text style={styles.insightBtnText}>
@@ -503,8 +511,9 @@ export function ProgressScreen() {
 
 // ── Inline DEXA add form ──────────────────────────────────────────
 
-function DexaAddForm() {
+function DexaAddForm({ theme, styles }: { theme: ThemeColors; styles: ReturnType<typeof makeStyles> }) {
   const { appState, updateAppState } = useContext(HealthContext);
+  const { isDark } = useTheme();
   const [date, setDate] = useState(localDateStr());
   const [weight, setWeight] = useState("");
   const [bodyFat, setBodyFat] = useState("");
@@ -538,7 +547,7 @@ function DexaAddForm() {
         <TextInput
           style={[styles.formInput, { flex: 1 }]}
           placeholder="Date (YYYY-MM-DD)"
-          placeholderTextColor="#5A7090"
+          placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
           value={date}
           onChangeText={setDate}
         />
@@ -547,7 +556,7 @@ function DexaAddForm() {
         <TextInput
           style={[styles.formInput, { flex: 1, marginRight: 8 }]}
           placeholder="Weight (lbs)"
-          placeholderTextColor="#5A7090"
+          placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
           keyboardType="decimal-pad"
           value={weight}
           onChangeText={setWeight}
@@ -555,7 +564,7 @@ function DexaAddForm() {
         <TextInput
           style={[styles.formInput, { flex: 1 }]}
           placeholder="Body Fat %"
-          placeholderTextColor="#5A7090"
+          placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
           keyboardType="decimal-pad"
           value={bodyFat}
           onChangeText={setBodyFat}
@@ -564,7 +573,7 @@ function DexaAddForm() {
       <TextInput
         style={styles.formInput}
         placeholder="Lean Mass (lbs)"
-        placeholderTextColor="#5A7090"
+        placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
         keyboardType="decimal-pad"
         value={leanMass}
         onChangeText={setLeanMass}
@@ -585,19 +594,20 @@ interface GoalProgressBarProps {
   color: string;
   startLabel: string;
   goalLabel: string;
+  theme: ThemeColors;
 }
 
-function GoalProgressBar({ label, value, fill, unit, color, startLabel, goalLabel }: GoalProgressBarProps) {
+function GoalProgressBar({ label, value, fill, unit, color, startLabel, goalLabel, theme }: GoalProgressBarProps) {
   const pct = Math.min(100, Math.max(0, fill * 100));
   return (
     <View style={gpbStyles.wrap}>
       <View style={gpbStyles.row}>
-        <Text style={gpbStyles.label}>{label}</Text>
+        <Text style={[gpbStyles.label, { color: theme.textSecondary }]}>{label}</Text>
         <Text style={[gpbStyles.valueText, { color }]}>
           {value}{unit ? ` ${unit}` : ""}
         </Text>
       </View>
-      <View style={gpbStyles.track}>
+      <View style={[gpbStyles.track, { backgroundColor: theme.sectionBorder }]}>
         <View
           style={[
             gpbStyles.fill,
@@ -606,8 +616,8 @@ function GoalProgressBar({ label, value, fill, unit, color, startLabel, goalLabe
         />
       </View>
       <View style={gpbStyles.barEndRow}>
-        <Text style={gpbStyles.barEnd}>{startLabel}</Text>
-        <Text style={gpbStyles.barEnd}>{goalLabel}</Text>
+        <Text style={[gpbStyles.barEnd, { color: theme.textQuaternary }]}>{startLabel}</Text>
+        <Text style={[gpbStyles.barEnd, { color: theme.textQuaternary }]}>{goalLabel}</Text>
       </View>
     </View>
   );
@@ -621,7 +631,7 @@ const gpbStyles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 7,
   },
-  label: { fontSize: 14, color: "rgba(255,255,255,0.6)" },
+  label: { fontSize: 14 },
   valueText: { fontSize: 14, fontWeight: "700" },
   barEndRow: {
     flexDirection: "row",
@@ -630,308 +640,307 @@ const gpbStyles = StyleSheet.create({
   },
   barEnd: {
     fontSize: 10,
-    color: "rgba(255,255,255,0.25)",
     letterSpacing: 0.3,
   },
   track: {
     height: 4,
-    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 99,
     overflow: "hidden",
   },
   fill: { height: "100%", borderRadius: 99 },
   sub: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
     marginTop: 5,
     letterSpacing: 0.3,
   },
 });
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#07070D" },
-  content: { padding: 16, paddingBottom: 32, gap: 12 },
-  lbl: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "rgba(255,255,255,0.35)",
-    marginBottom: 12,
-    textTransform: "uppercase",
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  pills: { flexDirection: "row", gap: 4 },
-  pill: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    backgroundColor: "transparent",
-  },
-  pillOn: { backgroundColor: "#0066CC", borderColor: "#0066CC" },
-  pillText: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.6)" },
-  pillTextOn: { color: "#FFFFFF" },
+function makeStyles(theme: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bg },
+    content: { padding: 16, paddingBottom: 32, gap: 12 },
+    lbl: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.textTertiary,
+      marginBottom: 12,
+      textTransform: "uppercase",
+    },
+    cardHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    pills: { flexDirection: "row", gap: 4 },
+    pill: {
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.pillBorder,
+      backgroundColor: "transparent",
+    },
+    pillOn: { backgroundColor: theme.pillActiveBg, borderColor: theme.accent },
+    pillText: { fontSize: 10, fontWeight: "600", color: theme.textSecondary },
+    pillTextOn: { color: theme.text },
 
-  weightCenter: { alignItems: "center", paddingVertical: 8 },
-  weightNumRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  weightNum: {
-    fontSize: 60,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    lineHeight: 64,
-    letterSpacing: -2,
-  },
-  weightUnit: {
-    fontSize: 20,
-    color: "rgba(255,255,255,0.6)",
-    fontWeight: "400",
-    paddingBottom: 8,
-  },
-  weightDateLabel: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
-    marginTop: 2,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  deltaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 10,
-  },
-  delta: { fontSize: 14, fontWeight: "500" },
-  deltaSince: { fontSize: 13, color: "rgba(255,255,255,0.35)" },
-  avgLabel: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.35)",
-    marginTop: 6,
-  },
-  avgVal: { color: "rgba(255,255,255,0.6)", fontWeight: "600" },
+    weightCenter: { alignItems: "center", paddingVertical: 8 },
+    weightNumRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 6,
+    },
+    weightNum: {
+      fontSize: 60,
+      fontWeight: "700",
+      color: theme.text,
+      lineHeight: 64,
+      letterSpacing: -2,
+    },
+    weightUnit: {
+      fontSize: 20,
+      color: theme.textSecondary,
+      fontWeight: "400",
+      paddingBottom: 8,
+    },
+    weightDateLabel: {
+      fontSize: 11,
+      color: theme.textTertiary,
+      marginTop: 2,
+      letterSpacing: 0.5,
+      textTransform: "uppercase",
+    },
+    deltaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 10,
+    },
+    delta: { fontSize: 14, fontWeight: "500" },
+    deltaSince: { fontSize: 13, color: theme.textTertiary },
+    avgLabel: {
+      fontSize: 13,
+      color: theme.textTertiary,
+      marginTop: 6,
+    },
+    avgVal: { color: theme.textSecondary, fontWeight: "600" },
 
-  vitalsGrid: {
-    flexDirection: "row",
-    marginTop: 4,
-  },
-  vitalCell: { flex: 1 },
-  vitalBorderRight: {
-    borderRightWidth: 1,
-    borderRightColor: "rgba(0,102,204,0.25)",
-  },
-  vitalLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1,
-    color: "rgba(255,255,255,0.35)",
-    textTransform: "uppercase",
-  },
-  vitalNum: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginTop: 6,
-    lineHeight: 38,
-  },
-  vitalUnit: { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 3 },
-  vitalDate: {
-    fontSize: 10,
-    color: "rgba(255,255,255,0.3)",
-    marginTop: 3,
-    letterSpacing: 0.3,
-  },
-  vitalStatus: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
-    marginTop: 8,
-  },
+    vitalsGrid: {
+      flexDirection: "row",
+      marginTop: 4,
+    },
+    vitalCell: { flex: 1 },
+    vitalBorderRight: {
+      borderRightWidth: 1,
+      borderRightColor: theme.cardBorder,
+    },
+    vitalLabel: {
+      fontSize: 11,
+      fontWeight: "600",
+      letterSpacing: 1,
+      color: theme.textTertiary,
+      textTransform: "uppercase",
+    },
+    vitalNum: {
+      fontSize: 34,
+      fontWeight: "700",
+      color: theme.text,
+      marginTop: 6,
+      lineHeight: 38,
+    },
+    vitalUnit: { fontSize: 11, color: theme.textTertiary, marginTop: 3 },
+    vitalDate: {
+      fontSize: 10,
+      color: theme.textTertiary,
+      marginTop: 3,
+      letterSpacing: 0.3,
+    },
+    vitalStatus: {
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 0.7,
+      textTransform: "uppercase",
+      marginTop: 8,
+    },
 
-  stepsNumRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 10,
-  },
-  stepsNum: {
-    fontSize: 48,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    lineHeight: 52,
-    letterSpacing: -1,
-  },
-  stepsGoal: { fontSize: 14, color: "rgba(255,255,255,0.35)", paddingBottom: 4 },
-  dateLabel: { fontSize: 11, color: "rgba(255,255,255,0.35)" },
-  track: {
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 99,
-    overflow: "hidden",
-    marginBottom: 4,
-  },
-  trackFill: { height: "100%", borderRadius: 99 },
+    stepsNumRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 8,
+      marginBottom: 10,
+    },
+    stepsNum: {
+      fontSize: 48,
+      fontWeight: "700",
+      color: theme.text,
+      lineHeight: 52,
+      letterSpacing: -1,
+    },
+    stepsGoal: { fontSize: 14, color: theme.textTertiary, paddingBottom: 4 },
+    dateLabel: { fontSize: 11, color: theme.textTertiary },
+    track: {
+      height: 4,
+      backgroundColor: theme.sectionBorder,
+      borderRadius: 99,
+      overflow: "hidden",
+      marginBottom: 4,
+    },
+    trackFill: { height: "100%", borderRadius: 99 },
 
-  dexaDate: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.35)",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    marginTop: 4,
-    marginBottom: 20,
-  },
+    dexaDate: {
+      fontSize: 11,
+      color: theme.textTertiary,
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+      marginTop: 4,
+      marginBottom: 20,
+    },
 
-  dexaRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#182030",
-    marginBottom: 4,
-  },
-  dexaDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#0066CC",
-    marginTop: 4,
-  },
-  dexaDateText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
-  dexaStats: { fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 },
-  emptyNote: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.3)",
-    marginVertical: 8,
-  },
+    dexaRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 12,
+      paddingBottom: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionBorder,
+      marginBottom: 4,
+    },
+    dexaDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.accent,
+      marginTop: 4,
+    },
+    dexaDateText: { fontSize: 12, fontWeight: "600", color: theme.text },
+    dexaStats: { fontSize: 12, color: theme.textSecondary, marginTop: 2 },
+    emptyNote: {
+      fontSize: 13,
+      color: theme.textTertiary,
+      marginVertical: 8,
+    },
 
-  addFormWrap: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,102,204,0.25)",
-  },
-  addFormLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1,
-    color: "rgba(255,255,255,0.35)",
-    textTransform: "uppercase",
-    marginBottom: 10,
-  },
-  formRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  formInput: {
-    backgroundColor: "#0A1628",
-    borderWidth: 1,
-    borderColor: "#1A3A5C",
-    borderRadius: 8,
-    padding: 9,
-    paddingHorizontal: 12,
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 13,
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  addBtn: {
-    backgroundColor: "#0066CC",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  addBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 14,
-    letterSpacing: 0.3,
-  },
+    addFormWrap: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.cardBorder,
+    },
+    addFormLabel: {
+      fontSize: 11,
+      fontWeight: "600",
+      letterSpacing: 1,
+      color: theme.textTertiary,
+      textTransform: "uppercase",
+      marginBottom: 10,
+    },
+    formRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+    formInput: {
+      backgroundColor: theme.inputBg,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+      borderRadius: 8,
+      padding: 9,
+      paddingHorizontal: 12,
+      fontFamily: "SpaceGrotesk_400Regular",
+      fontSize: 13,
+      color: theme.text,
+      marginBottom: 8,
+    },
+    addBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 8,
+      paddingVertical: 12,
+      alignItems: "center",
+      marginTop: 4,
+    },
+    addBtnText: {
+      color: theme.text,
+      fontWeight: "600",
+      fontSize: 14,
+      letterSpacing: 0.3,
+    },
 
-  insightCard: {
-    backgroundColor: "#0A2050",
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    borderRadius: 16,
-    padding: 24,
-  },
-  insightLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "rgba(0,102,204,0.7)",
-    marginBottom: 10,
-  },
-  insightText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 4,
-  },
-  insightBtnRow: { flexDirection: "row", gap: 8, marginTop: 16 },
-  insightBtn: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.35)",
-    backgroundColor: "rgba(0,102,204,0.12)",
-    alignItems: "center",
-  },
-  insightBtnText: {
-    color: "rgba(100,170,255,0.9)",
-    fontWeight: "700",
-    fontSize: 12,
-    letterSpacing: 1,
-  },
-  insightSettingsBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  insightSettingsIcon: {
-    color: "rgba(255,255,255,0.3)",
-    fontSize: 14,
-  },
-  apiKeyInstructions: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  apiKeyInput: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(28,105,212,0.35)",
-    borderRadius: 8,
-    padding: 10,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  apiKeyError: { fontSize: 11, color: "#FF3B30", marginBottom: 8 },
-  apiKeySaveBtn: {
-    backgroundColor: "rgba(28,105,212,0.85)",
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  apiKeySaveBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 13,
-  },
-});
+    insightCard: {
+      backgroundColor: theme.insightCard,
+      borderWidth: 1,
+      borderColor: theme.insightCardBorder,
+      borderRadius: 16,
+      padding: 24,
+    },
+    insightLabel: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.accent,
+      marginBottom: 10,
+    },
+    insightText: {
+      fontSize: 15,
+      lineHeight: 22,
+      color: theme.textSecondary,
+      marginTop: 4,
+    },
+    insightBtnRow: { flexDirection: "row", gap: 8, marginTop: 16 },
+    insightBtn: {
+      flex: 1,
+      paddingVertical: 11,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      backgroundColor: isDark ? "rgba(0,102,204,0.12)" : "rgba(0,102,204,0.08)",
+      alignItems: "center",
+    },
+    insightBtnText: {
+      color: theme.accentBright,
+      fontWeight: "700",
+      fontSize: 12,
+      letterSpacing: 1,
+    },
+    insightSettingsBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 11,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      backgroundColor: "transparent",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    insightSettingsIcon: {
+      color: theme.textTertiary,
+      fontSize: 14,
+    },
+    apiKeyInstructions: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      lineHeight: 19,
+      marginBottom: 10,
+    },
+    apiKeyInput: {
+      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      borderRadius: 8,
+      padding: 10,
+      paddingHorizontal: 12,
+      fontSize: 13,
+      color: theme.text,
+      marginBottom: 8,
+    },
+    apiKeyError: { fontSize: 11, color: theme.red, marginBottom: 8 },
+    apiKeySaveBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 8,
+      paddingVertical: 10,
+      alignItems: "center",
+    },
+    apiKeySaveBtnText: {
+      color: theme.text,
+      fontWeight: "600",
+      fontSize: 13,
+    },
+  });
+}

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from "react";
+import React, { useState, useContext, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,18 +19,13 @@ import {
   setAnthropicKey,
   removeAnthropicKey,
 } from "../services/storage";
+import { useTheme } from "../context/ThemeContext";
+import { ThemeColors } from "../context/ThemeContext";
 
 function localDateStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-
-const COLORS = {
-  green: "#00D084",
-  amber: "#F5A623",
-  blue: "#0066CC",
-  red: "#FF3B30",
-};
 
 function avg(arr: number[]) {
   if (!arr.length) return 0;
@@ -43,20 +38,22 @@ function MacroBox({
   target,
   unit,
   color,
+  theme,
 }: {
   label: string;
   value: number | undefined;
   target: string;
   unit: string;
   color: string;
+  theme: ThemeColors;
 }) {
   return (
-    <View style={macroStyles.box}>
-      <Text style={macroStyles.label}>{label.toUpperCase()}</Text>
+    <View style={[macroStyles.box, { backgroundColor: theme.cardAlt }]}>
+      <Text style={[macroStyles.label, { color: theme.textTertiary }]}>{label.toUpperCase()}</Text>
       <Text style={[macroStyles.value, { color }]}>
         {value !== undefined ? value : "—"}
       </Text>
-      <Text style={macroStyles.target}>
+      <Text style={[macroStyles.target, { color: theme.textTertiary }]}>
         / {target} {unit}
       </Text>
     </View>
@@ -66,14 +63,12 @@ function MacroBox({
 const macroStyles = StyleSheet.create({
   box: {
     flex: 1,
-    backgroundColor: "#0F2040",
     borderRadius: 12,
     padding: 14,
   },
   label: {
     fontSize: 11,
     fontWeight: "600",
-    color: "rgba(255,255,255,0.35)",
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -82,11 +77,21 @@ const macroStyles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 36,
   },
-  target: { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 4 },
+  target: { fontSize: 12, marginTop: 4 },
 });
 
 export function FuelScreen() {
   const { healthData, appState, userProfile, refresh } = useContext(HealthContext);
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
+
+  const COLORS = {
+    green: theme.green,
+    amber: theme.amber,
+    blue: theme.accent,
+    red: theme.red,
+  };
+
   const [fuelCtx, setFuelCtx] = useState<FuelCtx>({
     trained: null,
     sleep: null,
@@ -199,8 +204,8 @@ export function FuelScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#60AFFF"
-          colors={["#60AFFF"]}
+          tintColor={theme.accentBright}
+          colors={[theme.accentBright]}
         />
       }
     >
@@ -228,7 +233,8 @@ export function FuelScreen() {
             value={todayNutrition?.cals}
             target={MACRO_TARGETS.calories.toLocaleString()}
             unit="kcal"
-            color="#FFFFFF"
+            color={theme.text}
+            theme={theme}
           />
           <MacroBox
             label="Protein"
@@ -236,6 +242,7 @@ export function FuelScreen() {
             target={`${MACRO_TARGETS.protein}g`}
             unit=""
             color={COLORS.green}
+            theme={theme}
           />
         </View>
         <View style={[styles.macroGrid, { marginTop: 10 }]}>
@@ -245,6 +252,7 @@ export function FuelScreen() {
             target={`${MACRO_TARGETS.carbs}g`}
             unit=""
             color={COLORS.blue}
+            theme={theme}
           />
           <MacroBox
             label="Fat"
@@ -252,6 +260,7 @@ export function FuelScreen() {
             target={`${MACRO_TARGETS.fat}g`}
             unit=""
             color={COLORS.amber}
+            theme={theme}
           />
         </View>
 
@@ -263,6 +272,7 @@ export function FuelScreen() {
               max={MACRO_TARGETS.calories}
               color={COLORS.blue}
               displayVal={`${todayNutrition.cals} / ${MACRO_TARGETS.calories}`}
+              theme={theme}
             />
             <MacroProgressBar
               label="Protein"
@@ -270,6 +280,7 @@ export function FuelScreen() {
               max={MACRO_TARGETS.protein}
               color={COLORS.green}
               displayVal={`${todayNutrition.protein}g / ${MACRO_TARGETS.protein}g`}
+              theme={theme}
             />
             <MacroProgressBar
               label="Carbs"
@@ -277,6 +288,7 @@ export function FuelScreen() {
               max={MACRO_TARGETS.carbs}
               color={COLORS.blue}
               displayVal={`${todayNutrition.carbs}g / ${MACRO_TARGETS.carbs}g`}
+              theme={theme}
             />
             <MacroProgressBar
               label="Fat"
@@ -285,6 +297,7 @@ export function FuelScreen() {
               color={COLORS.amber}
               displayVal={`${todayNutrition.fat}g / ${MACRO_TARGETS.fat}g`}
               last
+              theme={theme}
             />
           </View>
         )}
@@ -362,7 +375,7 @@ export function FuelScreen() {
             <TextInput
               style={styles.apiKeyInput}
               placeholder="sk-ant-api03-…"
-              placeholderTextColor="#5A7090"
+              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
               value={apiKeyInput}
               onChangeText={setApiKeyInput}
               secureTextEntry
@@ -462,21 +475,24 @@ export function FuelScreen() {
       <Card>
         <Text style={styles.lbl}>30-DAY AVERAGES</Text>
         <View style={styles.avgGrid}>
-          <AvgStat value={last30.length ? avgCals : "—"} unit="kcal" />
+          <AvgStat value={last30.length ? avgCals : "—"} unit="kcal" theme={theme} />
           <AvgStat
             value={last30.length ? avgProtein : "—"}
             unit="protein"
             color={COLORS.green}
+            theme={theme}
           />
           <AvgStat
             value={last30.length ? avgCarbs : "—"}
             unit="carbs"
             color={COLORS.blue}
+            theme={theme}
           />
           <AvgStat
             value={last30.length ? avgFat : "—"}
             unit="fat"
             color={COLORS.amber}
+            theme={theme}
           />
         </View>
       </Card>
@@ -508,16 +524,18 @@ export function FuelScreen() {
 function AvgStat({
   value,
   unit,
-  color = "#FFFFFF",
+  color,
+  theme,
 }: {
   value: number | string;
   unit: string;
   color?: string;
+  theme: ThemeColors;
 }) {
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Text style={[avgStyles.num, { color }]}>{value}</Text>
-      <Text style={avgStyles.unit}>{unit}</Text>
+      <Text style={[avgStyles.num, { color: color ?? theme.text }]}>{value}</Text>
+      <Text style={[avgStyles.unit, { color: theme.textTertiary }]}>{unit}</Text>
     </View>
   );
 }
@@ -532,7 +550,6 @@ const avgStyles = StyleSheet.create({
   unit: {
     fontSize: 11,
     fontWeight: "600",
-    color: "rgba(255,255,255,0.35)",
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginTop: 5,
@@ -546,6 +563,7 @@ function MacroProgressBar({
   color,
   displayVal,
   last = false,
+  theme,
 }: {
   label: string;
   value: number;
@@ -553,15 +571,16 @@ function MacroProgressBar({
   color: string;
   displayVal: string;
   last?: boolean;
+  theme: ThemeColors;
 }) {
   const pct = Math.min(100, (value / max) * 100);
   return (
     <View style={[mpbStyles.wrap, last && { marginBottom: 0 }]}>
       <View style={mpbStyles.row}>
-        <Text style={mpbStyles.label}>{label}</Text>
+        <Text style={[mpbStyles.label, { color: theme.textSecondary }]}>{label}</Text>
         <Text style={[mpbStyles.val, { color }]}>{displayVal}</Text>
       </View>
-      <View style={mpbStyles.track}>
+      <View style={[mpbStyles.track, { backgroundColor: theme.sectionBorder }]}>
         <View
           style={[
             mpbStyles.fill,
@@ -581,195 +600,196 @@ const mpbStyles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 7,
   },
-  label: { fontSize: 14, color: "rgba(255,255,255,0.6)" },
+  label: { fontSize: 14 },
   val: { fontSize: 13, fontWeight: "600" },
   track: {
     height: 4,
-    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 99,
     overflow: "hidden",
   },
   fill: { height: "100%", borderRadius: 99 },
 });
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#07070D" },
-  content: { padding: 16, paddingBottom: 110, gap: 12 },
-  lbl: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "rgba(255,255,255,0.35)",
-    textTransform: "uppercase",
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 16,
-  },
-  dateText: { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 3 },
-  syncBadge: {
-    fontSize: 11,
-    color: "#00D084",
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  macroGrid: { flexDirection: "row", gap: 10 },
+function makeStyles(theme: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bg },
+    content: { padding: 16, paddingBottom: 110, gap: 12 },
+    lbl: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.textTertiary,
+      textTransform: "uppercase",
+    },
+    cardHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 16,
+    },
+    dateText: { fontSize: 12, color: theme.textTertiary, marginTop: 3 },
+    syncBadge: {
+      fontSize: 11,
+      color: theme.green,
+      fontWeight: "700",
+      letterSpacing: 0.6,
+      textTransform: "uppercase",
+    },
+    macroGrid: { flexDirection: "row", gap: 10 },
 
-  ctxGrid: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 0 },
-  ctxCol: { flex: 1 },
-  ctxGroupLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.35)",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    marginBottom: 7,
-  },
-  ctxRow: { flexDirection: "row", gap: 6 },
-  ctxBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    backgroundColor: "transparent",
-    alignItems: "center",
-  },
-  ctxBtnActive: {
-    borderColor: "#0066CC",
-    backgroundColor: "rgba(0,102,204,0.15)",
-  },
-  ctxBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.6)",
-  },
-  ctxBtnTextActive: { color: "#0066CC" },
+    ctxGrid: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 0 },
+    ctxCol: { flex: 1 },
+    ctxGroupLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: theme.textTertiary,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      marginBottom: 7,
+    },
+    ctxRow: { flexDirection: "row", gap: 6 },
+    ctxBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.pillBorder,
+      backgroundColor: "transparent",
+      alignItems: "center",
+    },
+    ctxBtnActive: {
+      borderColor: theme.accent,
+      backgroundColor: isDark ? "rgba(0,102,204,0.15)" : "rgba(0,102,204,0.08)",
+    },
+    ctxBtnText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.textSecondary,
+    },
+    ctxBtnTextActive: { color: theme.accent },
 
-  fuelAdvisorCard: {
-    backgroundColor: "#0D1F3C",
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    borderRadius: 16,
-    padding: 20,
-  },
-  fuelAdvisorLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "rgba(0,102,204,0.8)",
-    textTransform: "uppercase",
-    marginBottom: 12,
-  },
-  fuelResultText: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
-    lineHeight: 22,
-    minHeight: 60,
-  },
-  analyzeBtnRow: { flexDirection: "row", gap: 8, marginTop: 16 },
-  analyzeBtn: {
-    flex: 1,
-    backgroundColor: "#0066CC",
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  analyzeBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 14,
-    letterSpacing: 1,
-  },
-  settingsBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsIcon: { color: "rgba(255,255,255,0.3)", fontSize: 14 },
-  apiKeyInstructions: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  apiKeyInput: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderWidth: 1,
-    borderColor: "rgba(28,105,212,0.35)",
-    borderRadius: 8,
-    padding: 10,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  apiKeyError: { fontSize: 11, color: "#FF3B30", marginBottom: 8 },
-  apiKeySaveBtn: {
-    backgroundColor: "rgba(28,105,212,0.85)",
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  apiKeySaveBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 13,
-  },
+    fuelAdvisorCard: {
+      backgroundColor: theme.insightCard,
+      borderWidth: 1,
+      borderColor: theme.insightCardBorder,
+      borderRadius: 16,
+      padding: 20,
+    },
+    fuelAdvisorLabel: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.accent,
+      textTransform: "uppercase",
+      marginBottom: 12,
+    },
+    fuelResultText: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      lineHeight: 22,
+      minHeight: 60,
+    },
+    analyzeBtnRow: { flexDirection: "row", gap: 8, marginTop: 16 },
+    analyzeBtn: {
+      flex: 1,
+      backgroundColor: theme.accent,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    analyzeBtnText: {
+      color: theme.text,
+      fontWeight: "700",
+      fontSize: 14,
+      letterSpacing: 1,
+    },
+    settingsBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    settingsIcon: { color: theme.textTertiary, fontSize: 14 },
+    apiKeyInstructions: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      lineHeight: 19,
+      marginBottom: 10,
+    },
+    apiKeyInput: {
+      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      borderRadius: 8,
+      padding: 10,
+      paddingHorizontal: 12,
+      fontSize: 13,
+      color: theme.text,
+      marginBottom: 8,
+    },
+    apiKeyError: { fontSize: 11, color: theme.red, marginBottom: 8 },
+    apiKeySaveBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 8,
+      paddingVertical: 10,
+      alignItems: "center",
+    },
+    apiKeySaveBtnText: {
+      color: theme.text,
+      fontWeight: "600",
+      fontSize: 13,
+    },
 
-  calHistoryLabel: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
-    marginBottom: 12,
-  },
-  noData: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.3)",
-    textAlign: "center",
-    paddingVertical: 20,
-  },
+    calHistoryLabel: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      marginBottom: 12,
+    },
+    noData: {
+      fontSize: 13,
+      color: theme.textTertiary,
+      textAlign: "center",
+      paddingVertical: 20,
+    },
 
-  avgGrid: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 4,
-  },
+    avgGrid: {
+      flexDirection: "row",
+      gap: 12,
+      marginTop: 4,
+    },
 
-  pills: { flexDirection: "row", gap: 4 },
-  pill: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    backgroundColor: "transparent",
-  },
-  pillOn: { backgroundColor: "#0066CC", borderColor: "#0066CC" },
-  pillText: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.6)" },
-  pillTextOn: { color: "#FFFFFF" },
+    pills: { flexDirection: "row", gap: 4 },
+    pill: {
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.pillBorder,
+      backgroundColor: "transparent",
+    },
+    pillOn: { backgroundColor: theme.pillActiveBg, borderColor: theme.accent },
+    pillText: { fontSize: 10, fontWeight: "600", color: theme.textSecondary },
+    pillTextOn: { color: theme.text },
 
-  microRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,102,204,0.15)",
-  },
-  microName: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
-  },
-  microTarget: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.45)",
-  },
-});
+    microRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 11,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionBorder,
+    },
+    microName: {
+      fontSize: 14,
+      color: theme.text,
+    },
+    microTarget: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.textSecondary,
+    },
+  });
+}

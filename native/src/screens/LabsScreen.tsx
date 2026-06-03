@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LabResult } from "../types/health";
+import { useTheme } from "../context/ThemeContext";
+import { ThemeColors } from "../context/ThemeContext";
 
 const STATUS_CONFIG = {
   red: {
@@ -83,10 +85,12 @@ function LabRow({
   lab,
   allLabs,
   onDelete,
+  styles,
 }: {
   lab: LabResult;
   allLabs: LabResult[];
   onDelete: () => void;
+  styles: ReturnType<typeof makeStyles>;
 }) {
   const cfg = STATUS_CONFIG[lab.status];
   const trend = getTrendArrow(lab, allLabs);
@@ -127,6 +131,9 @@ function LabRow({
 
 export function LabsScreen() {
   const { appState, updateAppState } = useContext(HealthContext);
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
+
   const [labDate, setLabDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -224,7 +231,7 @@ export function LabsScreen() {
       {/* Flagged */}
       {allLabs.some((l) => l.status === "red") && (
         <Card>
-          <Text style={[styles.sectionLabel, { color: "#FF3B30" }]}>
+          <Text style={[styles.sectionLabel, { color: theme.red }]}>
             FLAGGED
           </Text>
           {allLabs
@@ -235,6 +242,7 @@ export function LabsScreen() {
                 lab={lab}
                 allLabs={allLabs}
                 onDelete={() => deleteLab(lab.id)}
+                styles={styles}
               />
             ))}
         </Card>
@@ -243,7 +251,7 @@ export function LabsScreen() {
       {/* Monitor */}
       {allLabs.some((l) => l.status === "amber") && (
         <Card>
-          <Text style={[styles.sectionLabel, { color: "#F5A623" }]}>
+          <Text style={[styles.sectionLabel, { color: theme.amber }]}>
             MONITOR
           </Text>
           {allLabs
@@ -254,6 +262,7 @@ export function LabsScreen() {
                 lab={lab}
                 allLabs={allLabs}
                 onDelete={() => deleteLab(lab.id)}
+                styles={styles}
               />
             ))}
         </Card>
@@ -262,7 +271,7 @@ export function LabsScreen() {
       {/* Optimal */}
       {allLabs.some((l) => l.status === "green") && (
         <Card>
-          <Text style={[styles.sectionLabel, { color: "#00D084" }]}>
+          <Text style={[styles.sectionLabel, { color: theme.green }]}>
             OPTIMAL
           </Text>
           {allLabs
@@ -273,6 +282,7 @@ export function LabsScreen() {
                 lab={lab}
                 allLabs={allLabs}
                 onDelete={() => deleteLab(lab.id)}
+                styles={styles}
               />
             ))}
         </Card>
@@ -294,14 +304,14 @@ export function LabsScreen() {
           <TextInput
             style={[styles.formInput, { flex: 1, marginRight: 8 }]}
             placeholder="Date (YYYY-MM-DD)"
-            placeholderTextColor="#5A7090"
+            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={labDate}
             onChangeText={setLabDate}
           />
           <TextInput
             style={[styles.formInput, { flex: 1 }]}
             placeholder="Marker name"
-            placeholderTextColor="#5A7090"
+            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={labName}
             onChangeText={setLabName}
           />
@@ -310,14 +320,14 @@ export function LabsScreen() {
           <TextInput
             style={[styles.formInput, { flex: 1, marginRight: 8 }]}
             placeholder="Value"
-            placeholderTextColor="#5A7090"
+            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={labValue}
             onChangeText={setLabValue}
           />
           <TextInput
             style={[styles.formInput, { flex: 1 }]}
             placeholder="Reference range"
-            placeholderTextColor="#5A7090"
+            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={labRef}
             onChangeText={setLabRef}
           />
@@ -337,118 +347,120 @@ export function LabsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#07070D" },
-  content: { padding: 16, paddingBottom: 110, gap: 12 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    marginBottom: 14,
-    color: "rgba(255,255,255,0.35)",
-  },
-  labRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,102,204,0.25)",
-  },
-  labLeft: { flex: 1 },
-  labName: { fontSize: 15, color: "#FFFFFF", fontWeight: "500" },
-  labRef: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.35)",
-    marginTop: 3,
-    letterSpacing: 0.3,
-  },
-  labTrend: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 3,
-    letterSpacing: 0.2,
-  },
-  labRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  labValue: {
-    fontWeight: "700",
-    fontSize: 15,
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
-    borderWidth: 1,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.9,
-    textTransform: "uppercase",
-  },
-  delBtn: {
-    fontSize: 18,
-    color: "rgba(255,255,255,0.3)",
-    paddingHorizontal: 4,
-  },
+function makeStyles(theme: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bg },
+    content: { padding: 16, paddingBottom: 110, gap: 12 },
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      marginBottom: 14,
+      color: theme.textTertiary,
+    },
+    labRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.cardBorder,
+    },
+    labLeft: { flex: 1 },
+    labName: { fontSize: 15, color: theme.text, fontWeight: "500" },
+    labRef: {
+      fontSize: 12,
+      color: theme.textTertiary,
+      marginTop: 3,
+      letterSpacing: 0.3,
+    },
+    labTrend: {
+      fontSize: 11,
+      fontWeight: "600",
+      marginTop: 3,
+      letterSpacing: 0.2,
+    },
+    labRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    labValue: {
+      fontWeight: "700",
+      fontSize: 15,
+    },
+    badge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 5,
+      borderWidth: 1,
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 0.9,
+      textTransform: "uppercase",
+    },
+    delBtn: {
+      fontSize: 18,
+      color: theme.textTertiary,
+      paddingHorizontal: 4,
+    },
 
-  formRow: { flexDirection: "row", marginBottom: 8 },
-  formInput: {
-    backgroundColor: "#0A1628",
-    borderWidth: 1,
-    borderColor: "#1A3A5C",
-    borderRadius: 8,
-    padding: 9,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: "#FFFFFF",
-  },
-  statusRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 8,
-  },
-  statusBtn: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    alignItems: "center",
-  },
-  statusBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.6)",
-  },
-  addBtn: {
-    backgroundColor: "#0066CC",
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  addBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 14 },
-  customLabItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#182030",
-  },
-  customLabText: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.35)",
-  },
-  emptyNote: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.3)",
-    marginVertical: 8,
-  },
-});
+    formRow: { flexDirection: "row", marginBottom: 8 },
+    formInput: {
+      backgroundColor: theme.inputBg,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+      borderRadius: 8,
+      padding: 9,
+      paddingHorizontal: 12,
+      fontSize: 13,
+      color: theme.text,
+    },
+    statusRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 8,
+    },
+    statusBtn: {
+      flex: 1,
+      paddingVertical: 9,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.pillBorder,
+      alignItems: "center",
+    },
+    statusBtnText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: theme.textSecondary,
+    },
+    addBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 8,
+      paddingVertical: 12,
+      alignItems: "center",
+      marginTop: 4,
+    },
+    addBtnText: { color: theme.text, fontWeight: "600", fontSize: 14 },
+    customLabItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionBorder,
+    },
+    customLabText: {
+      fontSize: 12,
+      color: theme.textTertiary,
+    },
+    emptyNote: {
+      fontSize: 13,
+      color: theme.textTertiary,
+      marginVertical: 8,
+    },
+  });
+}

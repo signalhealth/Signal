@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import { useTheme } from "../context/ThemeContext";
 
 interface MetricCardProps {
   label: string;
@@ -27,12 +28,19 @@ export function MetricCard({
   style,
   children,
 }: MetricCardProps) {
+  const { theme } = useTheme();
   return (
-    <View style={[styles.card, style]}>
-      <Text style={styles.label}>{label.toUpperCase()}</Text>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.card, borderColor: theme.cardBorder },
+        style,
+      ]}
+    >
+      <Text style={[styles.label, { color: theme.textTertiary }]}>{label.toUpperCase()}</Text>
       <View style={styles.valueRow}>
-        <Text style={styles.value}>{value}</Text>
-        {unit && <Text style={styles.unit}>{unit}</Text>}
+        <Text style={[styles.value, { color: theme.text }]}>{value}</Text>
+        {unit && <Text style={[styles.unit, { color: theme.textSecondary }]}>{unit}</Text>}
       </View>
       {status && statusLabel && (
         <Text
@@ -56,18 +64,28 @@ export function Card({
   children: React.ReactNode;
   style?: ViewStyle;
 }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  const { theme } = useTheme();
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.card, borderColor: theme.cardBorder },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 export function SectionLabel({ children }: { children: string }) {
-  return <Text style={styles.sectionLabel}>{children}</Text>;
+  const { theme } = useTheme();
+  return <Text style={[styles.sectionLabel, { color: theme.textTertiary }]}>{children}</Text>;
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#0D1B36",
     borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
     borderRadius: 16,
     padding: 20,
     shadowColor: "#000",
@@ -80,7 +98,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 1.5,
-    color: "rgba(255,255,255,0.35)",
     marginBottom: 8,
   },
   valueRow: {
@@ -91,13 +108,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 34,
     fontWeight: "700",
-    color: "#FFFFFF",
     lineHeight: 38,
     letterSpacing: -0.5,
   },
   unit: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.6)",
     fontWeight: "400",
   },
   status: {
@@ -110,7 +125,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.5,
-    color: "rgba(255,255,255,0.35)",
     textTransform: "uppercase",
     marginBottom: 10,
   },

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from "react";
+import React, { useState, useContext, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,15 +18,8 @@ import {
   HRV_NORMAL_HIGH,
   SLEEP_TARGET,
 } from "../types/health";
-
-const COLORS = {
-  green: "#00D084",
-  amber: "#F5A623",
-  red: "#FF3B30",
-  blue: "#0066CC",
-  gray2: "rgba(255,255,255,0.6)",
-  gray3: "rgba(255,255,255,0.35)",
-};
+import { useTheme } from "../context/ThemeContext";
+import { ThemeColors } from "../context/ThemeContext";
 
 function avg(arr: number[]) {
   if (!arr.length) return 0;
@@ -51,6 +44,19 @@ function daysAgoStr(days: number): string {
 
 export function RecoveryScreen() {
   const { healthData, appState, updateAppState, refresh } = useContext(HealthContext);
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
+  const pillStylesMemo = useMemo(() => makePillStyles(theme), [theme]);
+
+  const COLORS = {
+    green: theme.green,
+    amber: theme.amber,
+    red: theme.red,
+    blue: theme.accent,
+    gray2: theme.textSecondary,
+    gray3: theme.textTertiary,
+  };
+
   const [hrvDays, setHrvDays] = useState(14);
   const [sleepDays, setSleepDays] = useState(14);
   const [rhrDays, setRhrDays] = useState(14);
@@ -161,9 +167,9 @@ export function RecoveryScreen() {
   }
 
   const BADGE_COLORS = {
-    green: { bg: "rgba(0,208,132,0.15)", text: "#00D084", border: "rgba(0,200,120,0.25)" },
-    amber: { bg: "rgba(245,166,35,0.1)", text: "#F5A623", border: "rgba(245,166,35,0.25)" },
-    red: { bg: "rgba(255,59,48,0.15)", text: "#FF3B30", border: "rgba(233,40,58,0.25)" },
+    green: { bg: "rgba(0,208,132,0.15)", text: theme.green, border: "rgba(0,200,120,0.25)" },
+    amber: { bg: "rgba(245,166,35,0.1)", text: theme.amber, border: "rgba(245,166,35,0.25)" },
+    red: { bg: "rgba(255,59,48,0.15)", text: theme.red, border: "rgba(233,40,58,0.25)" },
   };
 
   return (
@@ -175,8 +181,8 @@ export function RecoveryScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#60AFFF"
-          colors={["#60AFFF"]}
+          tintColor={theme.accentBright}
+          colors={[theme.accentBright]}
         />
       }
     >
@@ -184,7 +190,7 @@ export function RecoveryScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.lbl}>HEART RATE VARIABILITY</Text>
-          <PillGroup value={hrvDays} onChange={setHrvDays} />
+          <PillGroup value={hrvDays} onChange={setHrvDays} pillStyles={pillStylesMemo} />
         </View>
         <View style={styles.metricRow}>
           <View>
@@ -241,7 +247,7 @@ export function RecoveryScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.lbl}>SLEEP DURATION</Text>
-          <PillGroup value={sleepDays} onChange={setSleepDays} />
+          <PillGroup value={sleepDays} onChange={setSleepDays} pillStyles={pillStylesMemo} />
         </View>
         <View style={styles.metricRow}>
           <View>
@@ -293,7 +299,7 @@ export function RecoveryScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.lbl}>RESTING HEART RATE</Text>
-          <PillGroup value={rhrDays} onChange={setRhrDays} />
+          <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />
         </View>
         <View style={styles.metricRow}>
           <View>
@@ -333,14 +339,14 @@ export function RecoveryScreen() {
           <TextInput
             style={[styles.formInput, { width: 130 }]}
             placeholder="Date"
-            placeholderTextColor="#5A7090"
+            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={recDate}
             onChangeText={setRecDate}
           />
           <TextInput
             style={[styles.formInput, { flex: 1 }]}
             placeholder="e.g. 79ms — full recovery"
-            placeholderTextColor="#5A7090"
+            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={recNote}
             onChangeText={setRecNote}
           />
@@ -376,9 +382,11 @@ export function RecoveryScreen() {
 function PillGroup({
   value,
   onChange,
+  pillStyles,
 }: {
   value: number;
   onChange: (v: number) => void;
+  pillStyles: ReturnType<typeof makePillStyles>;
 }) {
   return (
     <View style={pillStyles.pills}>
@@ -402,113 +410,117 @@ function PillGroup({
   );
 }
 
-const pillStyles = StyleSheet.create({
-  pills: { flexDirection: "row", gap: 4 },
-  pill: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0,102,204,0.4)",
-    backgroundColor: "transparent",
-  },
-  pillOn: { backgroundColor: "#0066CC", borderColor: "#0066CC" },
-  pillText: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.6)" },
-  pillTextOn: { color: "#FFFFFF" },
-});
+function makePillStyles(theme: ThemeColors) {
+  return StyleSheet.create({
+    pills: { flexDirection: "row", gap: 4 },
+    pill: {
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.pillBorder,
+      backgroundColor: "transparent",
+    },
+    pillOn: { backgroundColor: theme.pillActiveBg, borderColor: theme.accent },
+    pillText: { fontSize: 10, fontWeight: "600", color: theme.textSecondary },
+    pillTextOn: { color: theme.text },
+  });
+}
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#07070D" },
-  content: { padding: 16, paddingBottom: 110, gap: 12 },
-  lbl: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "rgba(255,255,255,0.35)",
-    marginBottom: 0,
-    textTransform: "uppercase",
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  metricRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  numRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
-  numLg: {
-    fontSize: 40,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    lineHeight: 44,
-    letterSpacing: -0.8,
-  },
-  numUnit: { fontSize: 15, color: "rgba(255,255,255,0.6)" },
-  subText: { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 4 },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 5,
-    borderWidth: 1,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.9,
-    textTransform: "uppercase",
-  },
-  formRow: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    marginTop: 6,
-    marginBottom: 8,
-  },
-  formInput: {
-    backgroundColor: "#0A1628",
-    borderWidth: 1,
-    borderColor: "#1A3A5C",
-    borderRadius: 8,
-    padding: 9,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: "#FFFFFF",
-  },
-  addBtn: {
-    backgroundColor: "#0066CC",
-    borderRadius: 8,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  addBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13 },
-  recItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#182030",
-  },
-  recItemLeft: { flex: 1 },
-  recDate: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.6)",
-  },
-  recNote: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
-    marginTop: 2,
-  },
-  delBtn: {
-    fontSize: 18,
-    color: "rgba(255,255,255,0.3)",
-    paddingHorizontal: 4,
-  },
-});
+function makeStyles(theme: ThemeColors, isDark: boolean) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bg },
+    content: { padding: 16, paddingBottom: 110, gap: 12 },
+    lbl: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.textTertiary,
+      marginBottom: 0,
+      textTransform: "uppercase",
+    },
+    cardHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    metricRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 12,
+    },
+    numRow: { flexDirection: "row", alignItems: "baseline", gap: 8 },
+    numLg: {
+      fontSize: 40,
+      fontWeight: "700",
+      color: theme.text,
+      lineHeight: 44,
+      letterSpacing: -0.8,
+    },
+    numUnit: { fontSize: 15, color: theme.textSecondary },
+    subText: { fontSize: 12, color: theme.textTertiary, marginTop: 4 },
+    badge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 5,
+      borderWidth: 1,
+    },
+    badgeText: {
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 0.9,
+      textTransform: "uppercase",
+    },
+    formRow: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "center",
+      marginTop: 6,
+      marginBottom: 8,
+    },
+    formInput: {
+      backgroundColor: theme.inputBg,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+      borderRadius: 8,
+      padding: 9,
+      paddingHorizontal: 12,
+      fontSize: 13,
+      color: theme.text,
+    },
+    addBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 8,
+      paddingVertical: 9,
+      paddingHorizontal: 16,
+      alignItems: "center",
+    },
+    addBtnText: { color: theme.text, fontWeight: "600", fontSize: 13 },
+    recItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionBorder,
+    },
+    recItemLeft: { flex: 1 },
+    recDate: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: theme.textSecondary,
+    },
+    recNote: {
+      fontSize: 12,
+      color: theme.textTertiary,
+      marginTop: 2,
+    },
+    delBtn: {
+      fontSize: 18,
+      color: theme.textTertiary,
+      paddingHorizontal: 4,
+    },
+  });
+}

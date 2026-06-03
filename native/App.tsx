@@ -13,6 +13,7 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-
 import Svg, { Path, Circle } from "react-native-svg";
 
 import { HealthProvider, HealthContext } from "./src/context/HealthContext";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { Header } from "./src/components/Header";
 import { ProfileModal } from "./src/components/ProfileModal";
 import { ProgressScreen } from "./src/screens/ProgressScreen";
@@ -88,18 +89,19 @@ function LabsIcon({ color }: { color: string }) {
 
 function PermissionsPrompt() {
   const { openPermissions } = useContext(HealthContext);
+  const { theme } = useTheme();
   return (
     <View style={styles.permissionsContainer}>
-      <Text style={styles.permissionsTitle}>Connect Health Data</Text>
-      <Text style={styles.permissionsBody}>
+      <Text style={[styles.permissionsTitle, { color: theme.text }]}>Connect Health Data</Text>
+      <Text style={[styles.permissionsBody, { color: theme.textSecondary }]}>
         Tap below to open Health Connect, then:{"\n\n"}
-        1. Tap <Text style={{ color: "#FFFFFF" }}>App permissions</Text>{"\n"}
-        2. Tap <Text style={{ color: "#FFFFFF" }}>Signal</Text>{"\n"}
+        1. Tap <Text style={{ color: theme.text }}>App permissions</Text>{"\n"}
+        2. Tap <Text style={{ color: theme.text }}>Signal</Text>{"\n"}
         3. Allow all health categories{"\n\n"}
         Return here — Signal connects automatically.
       </Text>
-      <TouchableOpacity style={styles.permissionsButton} onPress={openPermissions}>
-        <Text style={styles.permissionsButtonText}>Open Health Connect</Text>
+      <TouchableOpacity style={[styles.permissionsButton, { backgroundColor: theme.accent }]} onPress={openPermissions}>
+        <Text style={[styles.permissionsButtonText, { color: theme.text }]}>Open Health Connect</Text>
       </TouchableOpacity>
     </View>
   );
@@ -107,29 +109,48 @@ function PermissionsPrompt() {
 
 function AppShell() {
   const { loading, permissionGranted } = useContext(HealthContext);
+  const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showProfile, setShowProfile] = React.useState(false);
 
   return (
-    <View style={styles.shell}>
-      <StatusBar barStyle="light-content" backgroundColor="#07070D" />
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <View style={[styles.shell, { backgroundColor: theme.bg }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.tabBar }]} edges={["top"]}>
         <Header loading={loading} onProfilePress={() => setShowProfile(true)} />
       </SafeAreaView>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
       {loading ? (
         <View style={styles.permissionsContainer}>
-          <ActivityIndicator color="#0066CC" size="large" />
+          <ActivityIndicator color={theme.accent} size="large" />
         </View>
       ) : !permissionGranted ? (
         <PermissionsPrompt />
       ) : null}
       <Tab.Navigator
         screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarStyle: [styles.tabBar, { paddingBottom: insets.bottom + 6, height: 60 + insets.bottom }],
-          tabBarActiveTintColor: "#0066CC",
-          tabBarInactiveTintColor: "rgba(255,255,255,0.35)",
+          headerShown: true,
+          headerStyle: { backgroundColor: theme.tabBar },
+          headerTintColor: theme.text,
+          headerTitleStyle: { color: theme.text, fontSize: 16, fontWeight: "600" },
+          headerRight: () => (
+            <TouchableOpacity onPress={toggleTheme} style={{ paddingHorizontal: 16 }}>
+              <Text style={{ fontSize: 18, color: theme.text }}>
+                {isDark ? "☀" : "☽"}
+              </Text>
+            </TouchableOpacity>
+          ),
+          tabBarStyle: [
+            styles.tabBar,
+            {
+              backgroundColor: theme.tabBar,
+              borderTopColor: theme.tabBarBorder,
+              paddingBottom: insets.bottom + 6,
+              height: 60 + insets.bottom,
+            },
+          ],
+          tabBarActiveTintColor: theme.accent,
+          tabBarInactiveTintColor: theme.textTertiary,
           tabBarLabelStyle: styles.tabLabel,
           tabBarIcon: ({ color }) => {
             if (route.name === "Progress") return <ProgressIcon color={color} />;
@@ -154,11 +175,13 @@ function AppShell() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <HealthProvider>
-        <NavigationContainer>
-          <AppShell />
-        </NavigationContainer>
-      </HealthProvider>
+      <ThemeProvider>
+        <HealthProvider>
+          <NavigationContainer>
+            <AppShell />
+          </NavigationContainer>
+        </HealthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -166,15 +189,10 @@ export default function App() {
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: "#07070D",
   },
-  safeArea: {
-    backgroundColor: "rgba(9,9,14,0.96)",
-  },
+  safeArea: {},
   tabBar: {
-    backgroundColor: "rgba(17,17,24,0.96)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,102,204,0.25)",
     paddingTop: 10,
   },
   tabLabel: {
@@ -191,27 +209,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   permissionsTitle: {
-    color: "#FFFFFF",
     fontSize: 22,
     fontWeight: "700",
     marginBottom: 16,
     textAlign: "center",
   },
   permissionsBody: {
-    color: "rgba(255,255,255,0.6)",
     fontSize: 15,
     lineHeight: 22,
     textAlign: "center",
     marginBottom: 32,
   },
   permissionsButton: {
-    backgroundColor: "#0066CC",
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 12,
   },
   permissionsButtonText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
