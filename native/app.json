@@ -11,7 +11,7 @@
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#2563AE"
+        "backgroundColor": "#16588E"
       },
       "permissions": [
         "android.permission.health.READ_STEPS",
