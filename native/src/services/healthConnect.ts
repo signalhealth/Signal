@@ -203,27 +203,42 @@ async function readRHR(days = 45): Promise<DataPoint[]> {
 
 async function readNutrition(days = 45): Promise<NutritionEntry[]> {
   try {
-    const results = await aggregateGroupByPeriod({
-      recordType: "Nutrition",
+    const result = await readRecords("Nutrition", {
       timeRangeFilter: {
         operator: "between",
         startTime: localMidnightISO(days),
         endTime: new Date().toISOString(),
       },
-      timeRangeSlicer: { period: "DAYS", length: 1 },
     });
-    return results
-      .filter((r) => ((r.result as any).ENERGY_TOTAL?.inKilocalories ?? 0) > 0)
-      .map((r) => {
-        const res = r.result as any;
-        return {
-          date: toDateStr(r.startTime),
-          cals: Math.round(res.ENERGY_TOTAL?.inKilocalories ?? 0),
-          protein: Math.round(res.PROTEIN_TOTAL?.inGrams ?? 0),
-          carbs: Math.round(res.TOTAL_CARBOHYDRATE_TOTAL?.inGrams ?? 0),
-          fat: Math.round(res.TOTAL_FAT_TOTAL?.inGrams ?? 0),
-        };
-      })
+
+    // Deduplicate across apps (MacroFactor + Google Health both write to HC).
+    // Group by dataOrigin+startTime as a unique key, then sum per local date.
+    const seen = new Set<string>();
+    const map = new Map<string, { cals: number; protein: number; carbs: number; fat: number }>();
+
+    for (const r of result.records) {
+      const dedupKey = `${r.metadata?.dataOrigin ?? ""}|${r.startTime}|${r.endTime}`;
+      if (seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+
+      const d = new Date(r.startTime);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const existing = map.get(dateStr) || { cals: 0, protein: 0, carbs: 0, fat: 0 };
+      existing.cals += r.energy?.inKilocalories || 0;
+      existing.protein += r.protein?.inGrams || 0;
+      existing.carbs += r.totalCarbohydrate?.inGrams || 0;
+      existing.fat += r.totalFat?.inGrams || 0;
+      map.set(dateStr, existing);
+    }
+
+    return Array.from(map.entries())
+      .map(([date, v]) => ({
+        date,
+        cals: Math.round(v.cals),
+        protein: Math.round(v.protein),
+        carbs: Math.round(v.carbs),
+        fat: Math.round(v.fat),
+      }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
