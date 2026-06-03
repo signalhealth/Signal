@@ -63,6 +63,7 @@ export interface LabResult {
   value: string;
   reference: string;
   status: "green" | "amber" | "red";
+  direction?: "high" | "low";
 }
 
 export interface RecoveryNote {

@@ -19,7 +19,6 @@ const STATUS_CONFIG = {
     bg: "rgba(255,59,48,0.15)",
     text: "#FF3B30",
     border: "rgba(233,40,58,0.25)",
-    badgeLabel: "HIGH",
     headerColor: "#FF3B30",
     sectionTitle: "Flagged",
   },
@@ -104,6 +103,12 @@ function LabRow({
 }) {
   const cfg = STATUS_CONFIG[lab.status];
   const trend = getTrendArrow(lab, allLabs);
+  const badgeLabel =
+    lab.status === "red"
+      ? lab.direction === "low" ? "LOW" : "HIGH"
+      : lab.status === "amber"
+      ? "MONITOR"
+      : "OK";
   return (
     <View style={styles.labRow}>
       <View style={styles.labLeft}>
@@ -126,7 +131,7 @@ function LabRow({
           ]}
         >
           <Text style={[styles.badgeText, { color: cfg.text }]}>
-            {cfg.badgeLabel}
+            {badgeLabel}
           </Text>
         </View>
         {onDelete && (
@@ -151,9 +156,8 @@ export function LabsScreen() {
   const [labName, setLabName] = useState("");
   const [labValue, setLabValue] = useState("");
   const [labRef, setLabRef] = useState("");
-  const [labStatus, setLabStatus] = useState<"green" | "amber" | "red">(
-    "green"
-  );
+  const [labStatus, setLabStatus] = useState<"green" | "amber" | "red">("green");
+  const [labDirection, setLabDirection] = useState<"high" | "low">("high");
 
   const allLabs = [...appState.labs].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -169,6 +173,7 @@ export function LabsScreen() {
       value: labValue.trim(),
       reference: labRef.trim(),
       status: labStatus,
+      ...(labStatus === "red" && { direction: labDirection }),
     };
     const updated = {
       ...appState,
@@ -348,6 +353,23 @@ export function LabsScreen() {
           <StatusToggle value="amber" label="⚠ Monitor" color="#F5A623" />
           <StatusToggle value="red" label="✗ Flagged" color="#FF3B30" />
         </View>
+
+        {labStatus === "red" && (
+          <View style={[styles.statusRow, { marginTop: 0 }]}>
+            <TouchableOpacity
+              style={[styles.statusBtn, labDirection === "high" && { borderColor: "#FF3B30", backgroundColor: "rgba(255,59,48,0.12)" }]}
+              onPress={() => setLabDirection("high")}
+            >
+              <Text style={[styles.statusBtnText, labDirection === "high" && { color: "#FF3B30" }]}>↑ Too High</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.statusBtn, labDirection === "low" && { borderColor: "#FF3B30", backgroundColor: "rgba(255,59,48,0.12)" }]}
+              onPress={() => setLabDirection("low")}
+            >
+              <Text style={[styles.statusBtnText, labDirection === "low" && { color: "#FF3B30" }]}>↓ Too Low</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <TouchableOpacity style={styles.addBtn} onPress={addLab}>
           <Text style={styles.addBtnText}>Add Lab Result</Text>
