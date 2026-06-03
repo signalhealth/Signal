@@ -31,7 +31,8 @@ function daysAgoISO(days: number): string {
 }
 
 function toDateStr(isoStr: string): string {
-  return isoStr.slice(0, 10);
+  const d = new Date(isoStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export async function initializeHealthConnect(): Promise<boolean> {

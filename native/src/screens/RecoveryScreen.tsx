@@ -39,6 +39,11 @@ function localDateStr(offsetDays = 0): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function fmtDate(iso: string): string {
+  const [yr, mm, dd] = iso.split("-").map(Number);
+  return `${mm}/${dd}/${yr}`;
+}
+
 function daysAgoStr(days: number): string {
   return localDateStr(days);
 }
@@ -348,7 +353,7 @@ export function RecoveryScreen() {
           .map((r, i) => (
             <View key={i} style={styles.recItem}>
               <View style={styles.recItemLeft}>
-                <Text style={styles.recDate}>{r.date}</Text>
+                <Text style={styles.recDate}>{fmtDate(r.date)}</Text>
                 <Text style={styles.recNote}>{r.note}</Text>
               </View>
               <TouchableOpacity

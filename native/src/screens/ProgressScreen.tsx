@@ -26,6 +26,11 @@ function localDateStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function fmtDate(iso: string): string {
+  const [yr, mm, dd] = iso.split("-").map(Number);
+  return `${mm}/${dd}/${yr}`;
+}
+
 const COLORS = {
   green: "#00D084",
   amber: "#F5A623",
@@ -94,7 +99,7 @@ export function ProgressScreen() {
       ? "Today"
       : latestWtDate === yesterday
       ? "Yesterday"
-      : latestWtDate?.slice(5) || "";
+      : latestWtDate ? fmtDate(latestWtDate) : "";
 
   // ── Vitals ──────────────────────────────────────────────────────
   const latestHRV = healthData.hrv[0]?.value;
@@ -239,7 +244,7 @@ export function ProgressScreen() {
                 {isDown ? "▼" : "▲"} {Math.abs(parseFloat(wtChange))} lbs
               </Text>
               <Text style={styles.deltaSince}>
-                since {wtSlice[0]?.date?.slice(5)}
+                since {wtSlice[0]?.date ? fmtDate(wtSlice[0].date) : ""}
               </Text>
             </View>
           )}
@@ -321,7 +326,7 @@ export function ProgressScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.lbl}>STEPS</Text>
-          <Text style={styles.dateLabel}>{today.slice(5)}</Text>
+          <Text style={styles.dateLabel}>{fmtDate(today)}</Text>
         </View>
         <View style={styles.stepsNumRow}>
           <Text style={styles.stepsNum}>
@@ -350,7 +355,7 @@ export function ProgressScreen() {
         <Text style={styles.lbl}>BODY COMPOSITION</Text>
         {latestDexa ? (
           <>
-            <Text style={styles.dexaDate}>DEXA · {latestDexa.date}</Text>
+            <Text style={styles.dexaDate}>DEXA · {fmtDate(latestDexa.date)}</Text>
             {(() => {
               const bf = latestDexa.bodyFat;
               const bfColor = bf > 22 ? COLORS.red : bf > 18 ? COLORS.amber : COLORS.green;
@@ -414,7 +419,7 @@ export function ProgressScreen() {
               <View key={i} style={styles.dexaRow}>
                 <View style={styles.dexaDot} />
                 <View>
-                  <Text style={styles.dexaDateText}>{scan.date}</Text>
+                  <Text style={styles.dexaDateText}>{fmtDate(scan.date)}</Text>
                   <Text style={styles.dexaStats}>
                     {scan.weight} lbs · {scan.bodyFat}% BF · {scan.leanMass}{" "}
                     lbs lean
