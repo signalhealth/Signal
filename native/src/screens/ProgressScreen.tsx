@@ -373,7 +373,7 @@ export function ProgressScreen() {
               const lmFill = Math.min(1, Math.max(0, (lm - 117.5) / (132 - 117.5)));
 
               const sw = latestWt ?? latestDexa.weight;
-              const swColor = sw > 165 ? COLORS.red : sw > 159 ? COLORS.amber : COLORS.green;
+              const swColor = sw > 167 ? COLORS.red : sw > 163 ? COLORS.amber : COLORS.green;
               const swFill = Math.min(1, Math.max(0, (189 - sw) / (189 - 155)));
 
               return (

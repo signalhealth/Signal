@@ -119,18 +119,6 @@ function fmtStepCount(v: number): string {
   return String(v);
 }
 
-function buildDateGrid(numDays: number): string[] {
-  const dates: string[] = [];
-  for (let i = numDays - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-    );
-  }
-  return dates;
-}
-
 export function SparkBars({
   data,
   height = 60,
@@ -138,28 +126,38 @@ export function SparkBars({
   target,
 }: SparkBarsProps) {
   const labelH = 28;
-  const dataMap = new Map(data.map((d) => [d.date, d.value]));
-  const grid = buildDateGrid(14);
-  const vals = grid.map((date) => dataMap.get(date) ?? 0);
+  // Use last 14 actual data points — no calendar grid
+  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+  const recent = sorted.slice(-14);
+  const todayStr = new Date().toISOString().slice(0, 10);
 
+  const vals = recent.map((d) => d.value);
   const maxVal = Math.max(...vals.filter((v) => v > 0), target || 0) * 1.1 || (target || 10000);
 
   const chartW = SCREEN_W - 40 - 40;
-  const n = grid.length;
+  const n = Math.max(recent.length, 1);
   const barW = Math.max(2, (chartW / n) * 0.7);
-  const gap = (chartW - barW * n) / (n - 1);
+  const gap = n > 1 ? (chartW - barW * n) / (n - 1) : 0;
   const totalH = height + labelH;
+
+  if (!recent.length) {
+    return (
+      <View style={[{ width: chartW, height: totalH }, { justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ color: "rgba(255,255,255,0.2)", fontSize: 12 }}>No step data</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ width: chartW }}>
       <Svg width={chartW} height={totalH}>
-        {grid.map((dateStr, i) => {
-          const v = vals[i];
-          const hasData = dataMap.has(dateStr);
+        {recent.map((entry, i) => {
+          const v = entry.value;
+          const dateStr = entry.date;
           const barH = maxVal > 0 && v > 0 ? (v / maxVal) * height : 0;
           const x = i * (barW + gap);
           const barY = height - barH;
-          const isToday = i === n - 1;
+          const isToday = dateStr === todayStr;
           const barColor = isToday
             ? "#60AFFF"
             : v >= (target || 10000)
@@ -171,15 +169,13 @@ export function SparkBars({
 
           return (
             <React.Fragment key={i}>
-              {/* Bar — only draw if there's data */}
-              {hasData && barH > 0 && (
+              {barH > 0 && (
                 <Path
                   d={`M${x},${height} L${x},${barY} L${x + barW},${barY} L${x + barW},${height} Z`}
                   fill={barColor}
                 />
               )}
-              {/* Step count above bar — only if data exists */}
-              {hasData && v > 0 && (
+              {v > 0 && (
                 <SvgText
                   x={barCenterX}
                   y={barY > 10 ? barY - 3 : 9}
