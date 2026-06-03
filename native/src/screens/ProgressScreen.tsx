@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  RefreshControl,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { WeightChart, SparkBars } from "../components/WeightChart";
@@ -40,8 +42,21 @@ function avg(arr: number[]) {
 }
 
 export function ProgressScreen() {
-  const { healthData, appState, userProfile } = useContext(HealthContext);
+  const { healthData, appState, userProfile, refresh, loading } = useContext(HealthContext);
   const [wtDays, setWtDays] = useState(14);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }
   const [insight, setInsight] = useState<string>(
     "Your personalized coaching insight will appear here."
   );
@@ -171,6 +186,14 @@ export function ProgressScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#60AFFF"
+          colors={["#60AFFF"]}
+        />
+      }
     >
       {/* ── Weight Card ── */}
       <Card>
@@ -331,15 +354,15 @@ export function ProgressScreen() {
             {(() => {
               const bf = latestDexa.bodyFat;
               const bfColor = bf > 22 ? COLORS.red : bf > 18 ? COLORS.amber : COLORS.green;
-              const bfFill = Math.min(1, Math.max(0, (26 - bf) / (26 - 15)));
+              const bfFill = Math.min(1, Math.max(0, (36 - bf) / (36 - 15)));
 
               const lm = latestDexa.leanMass;
               const lmColor = lm < 121 ? COLORS.red : lm < 127 ? COLORS.amber : COLORS.green;
-              const lmFill = Math.min(1, Math.max(0, (lm - 116.9) / (132 - 116.9)));
+              const lmFill = Math.min(1, Math.max(0, (lm - 117.5) / (132 - 117.5)));
 
               const sw = latestWt ?? latestDexa.weight;
               const swColor = sw > 161 ? COLORS.red : sw > 158 ? COLORS.amber : COLORS.green;
-              const swFill = Math.min(1, Math.max(0, (164 - sw) / (164 - 155)));
+              const swFill = Math.min(1, Math.max(0, (189 - sw) / (189 - 155)));
 
               return (
                 <>

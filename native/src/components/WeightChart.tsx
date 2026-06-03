@@ -119,68 +119,83 @@ function fmtStepCount(v: number): string {
   return String(v);
 }
 
+function buildDateGrid(numDays: number): string[] {
+  const dates: string[] = [];
+  for (let i = numDays - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    );
+  }
+  return dates;
+}
+
 export function SparkBars({
   data,
   height = 60,
   color = "#0066CC",
   target,
 }: SparkBarsProps) {
-  const labelH = 28; // space for count above + day below bar
-  const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
-  // Always render — even if empty, show placeholder
-  const vals = sorted.map((d) => d.value);
-  const maxVal = vals.length ? Math.max(...vals, target || 0) * 1.1 : (target || 10000);
+  const labelH = 28;
+  const dataMap = new Map(data.map((d) => [d.date, d.value]));
+  const grid = buildDateGrid(14);
+  const vals = grid.map((date) => dataMap.get(date) ?? 0);
+
+  const maxVal = Math.max(...vals.filter((v) => v > 0), target || 0) * 1.1 || (target || 10000);
 
   const chartW = SCREEN_W - 40 - 40;
-  const barW = Math.max(2, (chartW / Math.max(vals.length, 1)) * 0.7);
-  const gap = vals.length > 1
-    ? (chartW - barW * vals.length) / (vals.length - 1)
-    : 0;
-
+  const n = grid.length;
+  const barW = Math.max(2, (chartW / n) * 0.7);
+  const gap = (chartW - barW * n) / (n - 1);
   const totalH = height + labelH;
 
   return (
     <View style={{ width: chartW }}>
       <Svg width={chartW} height={totalH}>
-        {vals.map((v, i) => {
-          const barH = maxVal > 0 ? (v / maxVal) * height : 0;
+        {grid.map((dateStr, i) => {
+          const v = vals[i];
+          const hasData = dataMap.has(dateStr);
+          const barH = maxVal > 0 && v > 0 ? (v / maxVal) * height : 0;
           const x = i * (barW + gap);
           const barY = height - barH;
-          const isToday = i === vals.length - 1;
+          const isToday = i === n - 1;
           const barColor = isToday
             ? "#60AFFF"
             : v >= (target || 10000)
             ? "rgba(96,175,255,0.6)"
             : "rgba(96,175,255,0.3)";
-          // Day of week label
-          const dateStr = sorted[i].date; // "YYYY-MM-DD"
           const [yr, mo, dy] = dateStr.split("-").map(Number);
           const dow = DOW[new Date(yr, mo - 1, dy).getDay()];
           const barCenterX = x + barW / 2;
 
           return (
             <React.Fragment key={i}>
-              {/* Bar */}
-              <Path
-                d={`M${x},${height} L${x},${barY} L${x + barW},${barY} L${x + barW},${height} Z`}
-                fill={barColor}
-              />
-              {/* Step count above bar */}
-              <SvgText
-                x={barCenterX}
-                y={barY > 10 ? barY - 3 : 9}
-                fontSize={8}
-                fill="rgba(255,255,255,0.45)"
-                textAnchor="middle"
-              >
-                {fmtStepCount(v)}
-              </SvgText>
-              {/* Day label below */}
+              {/* Bar — only draw if there's data */}
+              {hasData && barH > 0 && (
+                <Path
+                  d={`M${x},${height} L${x},${barY} L${x + barW},${barY} L${x + barW},${height} Z`}
+                  fill={barColor}
+                />
+              )}
+              {/* Step count above bar — only if data exists */}
+              {hasData && v > 0 && (
+                <SvgText
+                  x={barCenterX}
+                  y={barY > 10 ? barY - 3 : 9}
+                  fontSize={8}
+                  fill="rgba(255,255,255,0.45)"
+                  textAnchor="middle"
+                >
+                  {fmtStepCount(v)}
+                </SvgText>
+              )}
+              {/* Day label — always shown */}
               <SvgText
                 x={barCenterX}
                 y={height + 16}
                 fontSize={8}
-                fill="rgba(255,255,255,0.35)"
+                fill={isToday ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.25)"}
                 textAnchor="middle"
               >
                 {dow}

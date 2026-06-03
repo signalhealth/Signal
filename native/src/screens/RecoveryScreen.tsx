@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  RefreshControl,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
@@ -31,21 +33,36 @@ function avg(arr: number[]) {
   return arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
-function daysAgoStr(days: number): string {
+function localDateStr(offsetDays = 0): string {
   const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  if (offsetDays) d.setDate(d.getDate() - offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function daysAgoStr(days: number): string {
+  return localDateStr(days);
 }
 
 export function RecoveryScreen() {
-  const { healthData, appState, updateAppState } = useContext(HealthContext);
+  const { healthData, appState, updateAppState, refresh } = useContext(HealthContext);
   const [hrvDays, setHrvDays] = useState(14);
   const [sleepDays, setSleepDays] = useState(14);
   const [rhrDays, setRhrDays] = useState(14);
-  const [recDate, setRecDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
+  const [recDate, setRecDate] = useState(localDateStr());
   const [recNote, setRecNote] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }
 
   // ── HRV ─────────────────────────────────────────────────────────
   const hrvSorted = [...healthData.hrv].sort((a, b) =>
@@ -62,10 +79,10 @@ export function RecoveryScreen() {
     latestHRV === undefined
       ? null
       : latestHRV >= HRV_NORMAL_HIGH
-      ? { text: "Elevated", cls: "green" as const }
+      ? { text: `ELEVATED ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, cls: "green" as const }
       : latestHRV >= HRV_NORMAL_LOW
-      ? { text: "In Range", cls: "green" as const }
-      : { text: "Below Range", cls: "amber" as const };
+      ? { text: `IN RANGE ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, cls: "green" as const }
+      : { text: `BELOW ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, cls: "amber" as const };
 
   // ── Sleep ────────────────────────────────────────────────────────
   const sleepSorted = [...healthData.sleep].sort((a, b) =>
@@ -82,10 +99,10 @@ export function RecoveryScreen() {
     lastNightSleep === undefined
       ? null
       : lastNightSleep >= SLEEP_TARGET
-      ? { text: "On Target", cls: "green" as const }
+      ? { text: `ON TARGET ${SLEEP_TARGET}H`, cls: "green" as const }
       : lastNightSleep >= 7.0
-      ? { text: "Near Target", cls: "amber" as const }
-      : { text: "Below Target", cls: "red" as const };
+      ? { text: `NEAR TARGET ${SLEEP_TARGET}H`, cls: "amber" as const }
+      : { text: `BELOW ${SLEEP_TARGET}H TARGET`, cls: "red" as const };
 
   // ── RHR ──────────────────────────────────────────────────────────
   // Deduplicate by date
@@ -107,10 +124,10 @@ export function RecoveryScreen() {
     latestRHR === undefined
       ? null
       : latestRHR <= 55
-      ? { text: "Excellent", cls: "green" as const }
+      ? { text: "EXCELLENT ≤55", cls: "green" as const }
       : latestRHR <= 65
-      ? { text: "Normal", cls: "amber" as const }
-      : { text: "Elevated", cls: "red" as const };
+      ? { text: "NORMAL 56–65", cls: "amber" as const }
+      : { text: "ELEVATED >65", cls: "red" as const };
 
   // ── Recovery Notes ───────────────────────────────────────────────
   function addRecoveryNote() {
@@ -148,6 +165,14 @@ export function RecoveryScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#60AFFF"
+          colors={["#60AFFF"]}
+        />
+      }
     >
       {/* ── HRV Card ── */}
       <Card>
