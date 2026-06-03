@@ -281,7 +281,7 @@ async function readBodyFat(days = 45): Promise<DataPoint[]> {
 export async function readAllHealthData(): Promise<HealthData> {
   const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat] =
     await Promise.allSettled([
-      readWeight(45),
+      readWeight(90),
       readSteps(45),
       readSleep(45),
       readHRV(45),

@@ -50,7 +50,8 @@ export function ProgressScreen() {
   const weightSorted = [...healthData.weight].sort((a, b) =>
     a.date.localeCompare(b.date)
   );
-  const wtSlice = weightSorted.slice(-wtDays);
+  const windowStart = new Date(Date.now() - wtDays * 86400000).toISOString().slice(0, 10);
+  const wtSlice = weightSorted.filter((d) => d.date >= windowStart);
   const latestWt = weightSorted[weightSorted.length - 1]?.value;
   const wtStart = wtSlice[0]?.value;
   const wtChange = latestWt && wtStart ? (wtStart - latestWt).toFixed(1) : null;
