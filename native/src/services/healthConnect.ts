@@ -31,6 +31,13 @@ function daysAgoISO(days: number): string {
   return d.toISOString();
 }
 
+function localMidnightISO(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
 function toDateStr(isoStr: string): string {
   return isoStr.slice(0, 10);
 }
@@ -101,19 +108,17 @@ async function readSteps(days = 45): Promise<DataPoint[]> {
       recordType: "Steps",
       timeRangeFilter: {
         operator: "between",
-        startTime: daysAgoISO(days),
+        startTime: localMidnightISO(days),
         endTime: new Date().toISOString(),
       },
       timeRangeSlicer: { period: "DAYS", length: 1 },
     });
     return results
       .filter((r) => (r.result as any).COUNT_TOTAL > 0)
-      .map((r) => {
-        const mid = (new Date(r.startTime).getTime() + new Date(r.endTime).getTime()) / 2;
-        const d = new Date(mid);
-        const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        return { date: localDate, value: (r.result as any).COUNT_TOTAL as number };
-      })
+      .map((r) => ({
+        date: toDateStr(r.startTime),
+        value: (r.result as any).COUNT_TOTAL as number,
+      }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
