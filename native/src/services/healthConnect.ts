@@ -108,10 +108,12 @@ async function readSteps(days = 45): Promise<DataPoint[]> {
     });
     return results
       .filter((r) => (r.result as any).COUNT_TOTAL > 0)
-      .map((r) => ({
-        date: toDateStr(r.startTime),
-        value: (r.result as any).COUNT_TOTAL as number,
-      }))
+      .map((r) => {
+        const mid = (new Date(r.startTime).getTime() + new Date(r.endTime).getTime()) / 2;
+        const d = new Date(mid);
+        const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return { date: localDate, value: (r.result as any).COUNT_TOTAL as number };
+      })
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
