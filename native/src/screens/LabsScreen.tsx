@@ -11,6 +11,8 @@ import {
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LabResult } from "../types/health";
+import { analyzeLab } from "../services/anthropic";
+import { getAnthropicKey, setAnthropicKey, removeAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
@@ -94,11 +96,15 @@ function LabRow({
   lab,
   allLabs,
   onDelete,
+  onPress,
+  selected,
   styles,
 }: {
   lab: LabResult;
   allLabs: LabResult[];
   onDelete: () => void;
+  onPress: () => void;
+  selected: boolean;
   styles: ReturnType<typeof makeStyles>;
 }) {
   const cfg = STATUS_CONFIG[lab.status];
@@ -110,7 +116,11 @@ function LabRow({
       ? "MONITOR"
       : "OK";
   return (
-    <View style={styles.labRow}>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.labRow, selected && styles.labRowSelected]}
+      activeOpacity={0.7}
+    >
       <View style={styles.labLeft}>
         <Text style={styles.labName}>{lab.name}</Text>
         <Text style={styles.labRef}>ref {lab.reference}</Text>
@@ -135,17 +145,17 @@ function LabRow({
           </Text>
         </View>
         {onDelete && (
-          <TouchableOpacity onPress={onDelete}>
+          <TouchableOpacity onPress={(e) => { e.stopPropagation?.(); onDelete(); }}>
             <Text style={styles.delBtn}>×</Text>
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export function LabsScreen() {
-  const { appState, updateAppState } = useContext(HealthContext);
+  const { appState, updateAppState, userProfile } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
 
@@ -158,6 +168,13 @@ export function LabsScreen() {
   const [labRef, setLabRef] = useState("");
   const [labStatus, setLabStatus] = useState<"green" | "amber" | "red">("green");
   const [labDirection, setLabDirection] = useState<"high" | "low">("high");
+
+  const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
+  const [labAnalysis, setLabAnalysis] = useState("Tap any lab result above, then tap Analyze for a plain-language explanation and actionable guidance.");
+  const [labAnalysisLoading, setLabAnalysisLoading] = useState(false);
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [apiKeyError, setApiKeyError] = useState("");
 
   const allLabs = [...appState.labs].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -207,6 +224,45 @@ export function LabsScreen() {
     );
   }
 
+  async function handleAnalyzeLab() {
+    const lab = allLabs.find((l) => l.id === selectedLabId);
+    if (!lab) {
+      setLabAnalysis("Tap a lab result first, then tap Analyze.");
+      return;
+    }
+    const key = await getAnthropicKey();
+    if (!key) {
+      setShowApiKeyInput(true);
+      return;
+    }
+    setLabAnalysisLoading(true);
+    setLabAnalysis("Analyzing…");
+    const result = await analyzeLab(key, lab, allLabs, userProfile);
+    setLabAnalysisLoading(false);
+    if (result.authError) {
+      setLabAnalysis("API key rejected — tap ⚙ to update it.");
+    } else if (result.success && result.text) {
+      setLabAnalysis(result.text);
+    } else {
+      setLabAnalysis(result.error || "An error occurred.");
+    }
+  }
+
+  async function handleSaveApiKey() {
+    const k = apiKeyInput.trim().replace(/\s+/g, "");
+    if (!k.startsWith("sk-ant-")) {
+      setApiKeyError("Key should start with sk-ant- — check for typos");
+      return;
+    }
+    await setAnthropicKey(k);
+    setShowApiKeyInput(false);
+    setApiKeyInput("");
+    setApiKeyError("");
+    handleAnalyzeLab();
+  }
+
+  const selectedLab = allLabs.find((l) => l.id === selectedLabId);
+
   const StatusToggle = ({
     value,
     label,
@@ -246,62 +302,111 @@ export function LabsScreen() {
       {/* Flagged */}
       {allLabs.some((l) => l.status === "red") && (
         <Card>
-          <Text style={[styles.sectionLabel, { color: theme.red }]}>
-            FLAGGED
-          </Text>
-          {allLabs
-            .filter((l) => l.status === "red")
-            .map((lab, i) => (
-              <LabRow
-                key={lab.id || i}
-                lab={lab}
-                allLabs={allLabs}
-                onDelete={() => deleteLab(lab.id)}
-                styles={styles}
-              />
-            ))}
+          <Text style={[styles.sectionLabel, { color: theme.red }]}>FLAGGED</Text>
+          {allLabs.filter((l) => l.status === "red").map((lab, i) => (
+            <LabRow
+              key={lab.id || i}
+              lab={lab}
+              allLabs={allLabs}
+              onDelete={() => deleteLab(lab.id)}
+              onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
+              selected={lab.id === selectedLabId}
+              styles={styles}
+            />
+          ))}
         </Card>
       )}
 
       {/* Monitor */}
       {allLabs.some((l) => l.status === "amber") && (
         <Card>
-          <Text style={[styles.sectionLabel, { color: theme.amber }]}>
-            MONITOR
-          </Text>
-          {allLabs
-            .filter((l) => l.status === "amber")
-            .map((lab, i) => (
-              <LabRow
-                key={lab.id || i}
-                lab={lab}
-                allLabs={allLabs}
-                onDelete={() => deleteLab(lab.id)}
-                styles={styles}
-              />
-            ))}
+          <Text style={[styles.sectionLabel, { color: theme.amber }]}>MONITOR</Text>
+          {allLabs.filter((l) => l.status === "amber").map((lab, i) => (
+            <LabRow
+              key={lab.id || i}
+              lab={lab}
+              allLabs={allLabs}
+              onDelete={() => deleteLab(lab.id)}
+              onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
+              selected={lab.id === selectedLabId}
+              styles={styles}
+            />
+          ))}
         </Card>
       )}
 
       {/* Optimal */}
       {allLabs.some((l) => l.status === "green") && (
         <Card>
-          <Text style={[styles.sectionLabel, { color: theme.green }]}>
-            OPTIMAL
-          </Text>
-          {allLabs
-            .filter((l) => l.status === "green")
-            .map((lab, i) => (
-              <LabRow
-                key={lab.id || i}
-                lab={lab}
-                allLabs={allLabs}
-                onDelete={() => deleteLab(lab.id)}
-                styles={styles}
-              />
-            ))}
+          <Text style={[styles.sectionLabel, { color: theme.green }]}>OPTIMAL</Text>
+          {allLabs.filter((l) => l.status === "green").map((lab, i) => (
+            <LabRow
+              key={lab.id || i}
+              lab={lab}
+              allLabs={allLabs}
+              onDelete={() => deleteLab(lab.id)}
+              onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
+              selected={lab.id === selectedLabId}
+              styles={styles}
+            />
+          ))}
         </Card>
       )}
+
+      {/* Signal Lab Advisor */}
+      <View style={styles.advisorCard}>
+        <View style={styles.advisorHeader}>
+          <Text style={styles.advisorLabel}>SIGNAL LAB ADVISOR</Text>
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={async () => {
+              await removeAnthropicKey();
+              setShowApiKeyInput(true);
+              setLabAnalysis("Tap any lab result above, then tap Analyze for a plain-language explanation and actionable guidance.");
+            }}
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        </View>
+        {selectedLab && (
+          <Text style={styles.selectedLabName}>
+            {selectedLab.name} · {selectedLab.value}
+            {selectedLab.status !== "green" ? (selectedLab.direction === "low" ? " ↓ LOW" : " ↑ HIGH") : ""}
+          </Text>
+        )}
+        {showApiKeyInput ? (
+          <View>
+            <Text style={styles.apiKeyInstructions}>Enter your Anthropic API key to enable AI analysis.</Text>
+            <TextInput
+              style={styles.apiKeyInput}
+              placeholder="sk-ant-api03-…"
+              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
+              value={apiKeyInput}
+              onChangeText={setApiKeyInput}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {apiKeyError ? <Text style={styles.apiKeyError}>{apiKeyError}</Text> : null}
+            <TouchableOpacity style={styles.analyzeBtn} onPress={handleSaveApiKey}>
+              <Text style={styles.analyzeBtnText}>Save &amp; Analyze</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.analysisText}>{labAnalysis}</Text>
+            <TouchableOpacity
+              style={[styles.analyzeBtn, (!selectedLabId || labAnalysisLoading) && { opacity: 0.5 }]}
+              onPress={handleAnalyzeLab}
+              disabled={!selectedLabId || labAnalysisLoading}
+            >
+              <Text style={styles.analyzeBtnText}>
+                {labAnalysisLoading ? "ANALYZING..." : selectedLabId ? `ANALYZE ${selectedLab?.name?.toUpperCase()}` : "SELECT A MARKER ABOVE"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
 
       {allLabs.length === 0 && (
         <Card>
@@ -398,6 +503,13 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       paddingVertical: 13,
       borderBottomWidth: 1,
       borderBottomColor: theme.cardBorder,
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      marginHorizontal: -4,
+    },
+    labRowSelected: {
+      backgroundColor: isDark ? "rgba(0,102,204,0.12)" : "rgba(0,102,204,0.07)",
+      borderBottomColor: "transparent",
     },
     labLeft: { flex: 1 },
     labName: { fontSize: 15, color: theme.text, fontWeight: "500" },
@@ -494,5 +606,78 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       color: theme.textTertiary,
       marginVertical: 8,
     },
+
+    advisorCard: {
+      backgroundColor: theme.insightCard,
+      borderWidth: 1,
+      borderColor: theme.insightCardBorder,
+      borderRadius: 16,
+      padding: 20,
+    },
+    advisorHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10,
+    },
+    advisorLabel: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.accent,
+      textTransform: "uppercase",
+    },
+    settingsBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    settingsIcon: { color: theme.textTertiary, fontSize: 13 },
+    selectedLabName: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: theme.text,
+      marginBottom: 10,
+      letterSpacing: 0.3,
+    },
+    analysisText: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      lineHeight: 22,
+      minHeight: 60,
+      marginBottom: 16,
+    },
+    analyzeBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    analyzeBtnText: {
+      color: "#FFFFFF",
+      fontWeight: "700",
+      fontSize: 13,
+      letterSpacing: 0.8,
+    },
+    apiKeyInstructions: {
+      fontSize: 13,
+      color: theme.textSecondary,
+      lineHeight: 19,
+      marginBottom: 10,
+    },
+    apiKeyInput: {
+      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      borderRadius: 8,
+      padding: 10,
+      paddingHorizontal: 12,
+      fontSize: 13,
+      color: theme.text,
+      marginBottom: 8,
+    },
+    apiKeyError: { fontSize: 11, color: theme.red, marginBottom: 8 },
   });
 }

@@ -1,4 +1,4 @@
-import { HealthData, AppState, FuelCtx, UserProfile, MACRO_TARGETS } from "../types/health";
+import { HealthData, AppState, FuelCtx, UserProfile, LabResult, MACRO_TARGETS } from "../types/health";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
@@ -148,6 +148,49 @@ ${recoveryNotes || "None logged"}
 Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the numbers. No generic advice. Focus on what matters most right now.`;
 
   return callAnthropic(apiKey, prompt, 200);
+}
+
+export async function analyzeLab(
+  apiKey: string,
+  lab: LabResult,
+  allLabs: LabResult[],
+  profile: UserProfile
+): Promise<AnthropicResult> {
+  const direction =
+    lab.status === "red"
+      ? lab.direction === "low"
+        ? "below range (LOW)"
+        : "above range (HIGH)"
+      : "borderline (MONITOR)";
+
+  const otherFlagged = allLabs
+    .filter((l) => (l.status === "red" || l.status === "amber") && l.id !== lab.id)
+    .map((l) => `- ${l.name}: ${l.value} (ref ${l.reference}) [${l.direction === "low" ? "LOW" : l.status === "red" ? "HIGH" : "MONITOR"}]`)
+    .join("\n");
+
+  const profileSection = buildProfileSection(profile);
+
+  const prompt = `You are Signal, a precision health intelligence advisor. Explain this lab result clearly and give actionable guidance.
+${profileSection ? "\n" + profileSection + "\n" : ""}
+SELECTED MARKER:
+- Name: ${lab.name}
+- Value: ${lab.value}
+- Reference range: ${lab.reference}
+- Status: ${direction}
+- Draw date: ${lab.date}
+
+OTHER FLAGGED / MONITOR MARKERS (context):
+${otherFlagged || "None"}
+
+Respond with exactly these four sections:
+1. WHAT IT MEASURES — one sentence, plain language
+2. WHAT THIS MEANS — why this result is flagged and what it signals about health
+3. TOP LEVERS — 3 specific, actionable items (foods, supplements with doses, or lifestyle changes)
+4. WORTH ASKING — one follow-up test or question for the doctor (skip if not relevant)
+
+Under 200 words. Be direct and specific. No excessive medical disclaimers.`;
+
+  return callAnthropic(apiKey, prompt, 500);
 }
 
 export async function analyzeFuel(
