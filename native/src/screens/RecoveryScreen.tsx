@@ -39,9 +39,10 @@ function localDateStr(offsetDays = 0): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(iso: string): string {
   const [yr, mm, dd] = iso.split("-").map(Number);
-  return `${mm}/${dd}/${yr}`;
+  return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
 }
 
 function daysAgoStr(days: number): string {

@@ -26,9 +26,10 @@ function localDateStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(iso: string): string {
   const [yr, mm, dd] = iso.split("-").map(Number);
-  return `${mm}/${dd}/${yr}`;
+  return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
 }
 
 const COLORS = {
@@ -377,7 +378,8 @@ export function ProgressScreen() {
                     fill={bfFill}
                     unit="%"
                     color={bfColor}
-                    subLabel="Goal 15%"
+                    startLabel="Start 36%"
+                    goalLabel="Goal 15%"
                   />
                   <GoalProgressBar
                     label="Lean Mass"
@@ -385,7 +387,8 @@ export function ProgressScreen() {
                     fill={lmFill}
                     unit="lbs"
                     color={lmColor}
-                    subLabel="Goal 132 lbs"
+                    startLabel="Start 117.5 lbs"
+                    goalLabel="Goal 132 lbs"
                   />
                   <GoalProgressBar
                     label="Scale Weight"
@@ -393,7 +396,8 @@ export function ProgressScreen() {
                     fill={swFill}
                     unit="lbs"
                     color={swColor}
-                    subLabel="Goal 155 lbs"
+                    startLabel="Start 189 lbs"
+                    goalLabel="Goal 155 lbs"
                   />
                 </>
               );
@@ -570,21 +574,21 @@ function DexaAddForm() {
 interface GoalProgressBarProps {
   label: string;
   value: number;
-  fill: number; // 0–1 representing progress toward goal
+  fill: number;
   unit: string;
   color: string;
-  subLabel?: string;
+  startLabel: string;
+  goalLabel: string;
 }
 
-function GoalProgressBar({ label, value, fill, unit, color, subLabel }: GoalProgressBarProps) {
+function GoalProgressBar({ label, value, fill, unit, color, startLabel, goalLabel }: GoalProgressBarProps) {
   const pct = Math.min(100, Math.max(0, fill * 100));
   return (
     <View style={gpbStyles.wrap}>
       <View style={gpbStyles.row}>
         <Text style={gpbStyles.label}>{label}</Text>
         <Text style={[gpbStyles.valueText, { color }]}>
-          {value}
-          {unit ? ` ${unit}` : ""}
+          {value}{unit ? ` ${unit}` : ""}
         </Text>
       </View>
       <View style={gpbStyles.track}>
@@ -595,7 +599,10 @@ function GoalProgressBar({ label, value, fill, unit, color, subLabel }: GoalProg
           ]}
         />
       </View>
-      {subLabel ? <Text style={gpbStyles.sub}>{subLabel}</Text> : null}
+      <View style={gpbStyles.barEndRow}>
+        <Text style={gpbStyles.barEnd}>{startLabel}</Text>
+        <Text style={gpbStyles.barEnd}>{goalLabel}</Text>
+      </View>
     </View>
   );
 }
@@ -610,6 +617,16 @@ const gpbStyles = StyleSheet.create({
   },
   label: { fontSize: 14, color: "rgba(255,255,255,0.6)" },
   valueText: { fontSize: 14, fontWeight: "700" },
+  barEndRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  barEnd: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.25)",
+    letterSpacing: 0.3,
+  },
   track: {
     height: 4,
     backgroundColor: "rgba(255,255,255,0.1)",
