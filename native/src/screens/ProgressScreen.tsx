@@ -146,7 +146,15 @@ export function ProgressScreen() {
   const stepsSorted = [...healthData.steps].sort((a, b) =>
     a.date.localeCompare(b.date)
   );
-  const todaySteps = stepsSorted.find((s) => s.date === today)?.value;
+  const latestStepEntry = stepsSorted[stepsSorted.length - 1];
+  const todaySteps = latestStepEntry?.value;
+  const stepsDateLabel = latestStepEntry?.date === today
+    ? "Today"
+    : latestStepEntry?.date === yesterday
+    ? "Yesterday"
+    : latestStepEntry?.date
+    ? fmtDate(latestStepEntry.date)
+    : "";
   const stepsLast14 = stepsSorted.slice(-14);
 
   // ── DEXA ────────────────────────────────────────────────────────
@@ -327,7 +335,7 @@ export function ProgressScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.lbl}>STEPS</Text>
-          <Text style={styles.dateLabel}>{fmtDate(today)}</Text>
+          <Text style={styles.dateLabel}>{stepsDateLabel}</Text>
         </View>
         <View style={styles.stepsNumRow}>
           <Text style={styles.stepsNum}>

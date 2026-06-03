@@ -31,8 +31,7 @@ function daysAgoISO(days: number): string {
 }
 
 function toDateStr(isoStr: string): string {
-  const d = new Date(isoStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return isoStr.slice(0, 10);
 }
 
 export async function initializeHealthConnect(): Promise<boolean> {
@@ -107,7 +106,7 @@ async function readSteps(days = 45): Promise<DataPoint[]> {
     // Aggregate by day
     const map = new Map<string, number>();
     for (const r of result.records) {
-      const dateStr = toDateStr(r.endTime);
+      const dateStr = toDateStr(r.startTime);
       map.set(dateStr, (map.get(dateStr) || 0) + r.count);
     }
     return Array.from(map.entries())
