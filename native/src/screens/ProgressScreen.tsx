@@ -9,17 +9,14 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
+// TextInput kept for DexaAddForm
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { WeightChart, SparkBars } from "../components/WeightChart";
 import { HRV_NORMAL_LOW, HRV_NORMAL_HIGH, SLEEP_TARGET } from "../types/health";
 import { getInsight } from "../services/anthropic";
-import {
-  getAnthropicKey,
-  setAnthropicKey,
-  removeAnthropicKey,
-} from "../services/storage";
+import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
@@ -72,9 +69,6 @@ export function ProgressScreen() {
     "Your personalized coaching insight will appear here."
   );
   const [insightLoading, setInsightLoading] = useState(false);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState("");
-  const [apiKeyError, setApiKeyError] = useState("");
 
   // ── Weight ──────────────────────────────────────────────────────
   const weightSorted = [...healthData.weight].sort((a, b) =>
@@ -166,10 +160,10 @@ export function ProgressScreen() {
   const latestDexa = appState.dexa[appState.dexa.length - 1];
 
   // ── AI Insight ──────────────────────────────────────────────────
-  async function handleGetInsight(directKey?: string) {
-    const key = directKey ?? await getAnthropicKey();
+  async function handleGetInsight() {
+    const key = await getAnthropicKey();
     if (!key) {
-      setShowApiKeyInput(true);
+      setInsight("Add your Anthropic API key in ⚙ settings (top right) to enable AI insights.");
       return;
     }
     setInsightLoading(true);
@@ -177,25 +171,12 @@ export function ProgressScreen() {
     const result = await getInsight(key, healthData, appState, userProfile);
     setInsightLoading(false);
     if (result.authError) {
-      setInsight("API key rejected — tap ⚙ to update it.");
+      setInsight("API key rejected — update it in ⚙ settings (top right).");
     } else if (result.success && result.text) {
       setInsight(result.text);
     } else {
       setInsight(result.error || "An error occurred. Check your network and try again.");
     }
-  }
-
-  async function handleSaveApiKey() {
-    const k = apiKeyInput.trim().replace(/\s+/g, "");
-    if (!k.startsWith("sk-ant-")) {
-      setApiKeyError("Key should start with sk-ant- — check for typos");
-      return;
-    }
-    await setAnthropicKey(k);
-    setShowApiKeyInput(false);
-    setApiKeyInput("");
-    setApiKeyError("");
-    handleGetInsight(k);
   }
 
   return (
@@ -452,58 +433,16 @@ export function ProgressScreen() {
       {/* ── Signal Insight ── */}
       <View style={styles.insightCard}>
         <Text style={styles.insightLabel}>SIGNAL INSIGHT</Text>
-        {showApiKeyInput ? (
-          <View>
-            <Text style={styles.apiKeyInstructions}>
-              Enter your Anthropic API key. Stored only on this device, never
-              sent anywhere else.
-            </Text>
-            <TextInput
-              style={styles.apiKeyInput}
-              placeholder="sk-ant-api03-…"
-              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
-              value={apiKeyInput}
-              onChangeText={setApiKeyInput}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {apiKeyError ? (
-              <Text style={styles.apiKeyError}>{apiKeyError}</Text>
-            ) : null}
-            <TouchableOpacity
-              style={styles.apiKeySaveBtn}
-              onPress={handleSaveApiKey}
-            >
-              <Text style={styles.apiKeySaveBtnText}>Save &amp; Analyze</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Text style={styles.insightText}>{insight}</Text>
-        )}
-        <View style={styles.insightBtnRow}>
-          <TouchableOpacity
-            style={[styles.insightBtn, insightLoading && { opacity: 0.6 }]}
-            onPress={() => handleGetInsight()}
-            disabled={insightLoading}
-          >
-            <Text style={styles.insightBtnText}>
-              {insightLoading ? "THINKING..." : "GET INSIGHT"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.insightSettingsBtn}
-            onPress={async () => {
-              await removeAnthropicKey();
-              setShowApiKeyInput(true);
-              setInsight(
-                "Your personalized coaching insight will appear here."
-              );
-            }}
-          >
-            <Text style={styles.insightSettingsIcon}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.insightText}>{insight}</Text>
+        <TouchableOpacity
+          style={[styles.insightBtn, insightLoading && { opacity: 0.6 }]}
+          onPress={handleGetInsight}
+          disabled={insightLoading}
+        >
+          <Text style={styles.insightBtnText}>
+            {insightLoading ? "THINKING..." : "GET INSIGHT"}
+          </Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

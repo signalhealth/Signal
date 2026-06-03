@@ -14,11 +14,7 @@ import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { FuelCtx, MACRO_TARGETS, DEFAULT_MICROS } from "../types/health";
 import { analyzeFuel as analyzeWithAI } from "../services/anthropic";
-import {
-  getAnthropicKey,
-  setAnthropicKey,
-  removeAnthropicKey,
-} from "../services/storage";
+import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
@@ -115,9 +111,6 @@ export function FuelScreen() {
   );
   const [fuelLoading, setFuelLoading] = useState(false);
   const [calDays, setCalDays] = useState(14);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState("");
-  const [apiKeyError, setApiKeyError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -158,7 +151,7 @@ export function FuelScreen() {
   async function handleAnalyze() {
     const key = await getAnthropicKey();
     if (!key) {
-      setShowApiKeyInput(true);
+      setFuelResult("Add your Anthropic API key in ⚙ settings (top right) to enable AI analysis.");
       return;
     }
     setFuelLoading(true);
@@ -166,25 +159,12 @@ export function FuelScreen() {
     const result = await analyzeWithAI(key, healthData, fuelCtx, appState, userProfile);
     setFuelLoading(false);
     if (result.authError) {
-      setFuelResult("API key rejected — tap ⚙ to update it.");
+      setFuelResult("API key rejected — update it in ⚙ settings (top right).");
     } else if (result.success && result.text) {
       setFuelResult(result.text);
     } else {
       setFuelResult(result.error || "An error occurred.");
     }
-  }
-
-  async function handleSaveApiKey() {
-    const k = apiKeyInput.trim().replace(/\s+/g, "");
-    if (!k.startsWith("sk-ant-")) {
-      setApiKeyError("Key should start with sk-ant- — check for typos");
-      return;
-    }
-    await setAnthropicKey(k);
-    setShowApiKeyInput(false);
-    setApiKeyInput("");
-    setApiKeyError("");
-    handleAnalyze();
   }
 
   const CtxBtn = ({
@@ -383,57 +363,16 @@ export function FuelScreen() {
       {/* ── AI Fuel Advisor ── */}
       <View style={styles.fuelAdvisorCard}>
         <Text style={styles.fuelAdvisorLabel}>SIGNAL FUEL ADVISOR</Text>
-        {showApiKeyInput ? (
-          <View>
-            <Text style={styles.apiKeyInstructions}>
-              Enter your Anthropic API key to enable AI analysis.
-            </Text>
-            <TextInput
-              style={styles.apiKeyInput}
-              placeholder="sk-ant-api03-…"
-              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
-              value={apiKeyInput}
-              onChangeText={setApiKeyInput}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {apiKeyError ? (
-              <Text style={styles.apiKeyError}>{apiKeyError}</Text>
-            ) : null}
-            <TouchableOpacity
-              style={styles.apiKeySaveBtn}
-              onPress={handleSaveApiKey}
-            >
-              <Text style={styles.apiKeySaveBtnText}>Save &amp; Analyze</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Text style={styles.fuelResultText}>{fuelResult}</Text>
-        )}
-        <View style={styles.analyzeBtnRow}>
-          <TouchableOpacity
-            style={[styles.analyzeBtn, fuelLoading && { opacity: 0.6 }]}
-            onPress={handleAnalyze}
-            disabled={fuelLoading}
-          >
-            <Text style={styles.analyzeBtnText}>
-              {fuelLoading ? "ANALYZING..." : "ANALYZE"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.settingsBtn}
-            onPress={async () => {
-              await removeAnthropicKey();
-              setShowApiKeyInput(true);
-              setFuelResult(
-                "Enter today's intake and tap Analyze to get a personalized recommendation."
-              );
-            }}
-          >
-            <Text style={styles.settingsIcon}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.fuelResultText}>{fuelResult}</Text>
+        <TouchableOpacity
+          style={[styles.analyzeBtn, fuelLoading && { opacity: 0.6 }]}
+          onPress={handleAnalyze}
+          disabled={fuelLoading}
+        >
+          <Text style={styles.analyzeBtnText}>
+            {fuelLoading ? "ANALYZING..." : "ANALYZE"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Calorie History Chart ── */}
@@ -705,13 +644,12 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       lineHeight: 22,
       minHeight: 60,
     },
-    analyzeBtnRow: { flexDirection: "row", gap: 8, marginTop: 16 },
     analyzeBtn: {
-      flex: 1,
       backgroundColor: theme.accent,
       borderRadius: 10,
       paddingVertical: 14,
       alignItems: "center",
+      marginTop: 16,
     },
     analyzeBtnText: {
       color: "#FFFFFF",
@@ -719,46 +657,6 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       fontSize: 14,
       letterSpacing: 1,
     },
-    settingsBtn: {
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    settingsIcon: { color: theme.textTertiary, fontSize: 14 },
-    apiKeyInstructions: {
-      fontSize: 13,
-      color: theme.textSecondary,
-      lineHeight: 19,
-      marginBottom: 10,
-    },
-    apiKeyInput: {
-      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      borderRadius: 8,
-      padding: 10,
-      paddingHorizontal: 12,
-      fontSize: 13,
-      color: theme.text,
-      marginBottom: 8,
-    },
-    apiKeyError: { fontSize: 11, color: theme.red, marginBottom: 8 },
-    apiKeySaveBtn: {
-      backgroundColor: theme.accent,
-      borderRadius: 8,
-      paddingVertical: 10,
-      alignItems: "center",
-    },
-    apiKeySaveBtnText: {
-      color: "#FFFFFF",
-      fontWeight: "600",
-      fontSize: 13,
-    },
-
     calHistoryLabel: {
       fontSize: 13,
       color: theme.textSecondary,

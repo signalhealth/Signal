@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   Modal,
   View,
@@ -13,6 +13,11 @@ import {
 } from "react-native";
 import { HealthContext } from "../context/HealthContext";
 import { UserProfile } from "../types/health";
+import {
+  getAnthropicKey,
+  setAnthropicKey,
+  removeAnthropicKey,
+} from "../services/storage";
 
 interface Props {
   visible: boolean;
@@ -55,19 +60,40 @@ function Field({
 export function ProfileModal({ visible, onClose }: Props) {
   const { userProfile, updateUserProfile } = useContext(HealthContext);
   const [draft, setDraft] = useState<UserProfile>(userProfile);
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [newApiKey, setNewApiKey] = useState("");
+  const [apiKeyError, setApiKeyError] = useState("");
 
-  // Sync draft when modal opens with latest saved profile
-  React.useEffect(() => {
-    if (visible) setDraft(userProfile);
+  useEffect(() => {
+    if (visible) {
+      setDraft(userProfile);
+      setNewApiKey("");
+      setApiKeyError("");
+      getAnthropicKey().then((k) => setApiKeySaved(!!k));
+    }
   }, [visible]);
 
   function set<K extends keyof UserProfile>(key: K, val: UserProfile[K]) {
     setDraft((prev) => ({ ...prev, [key]: val }));
   }
 
-  function handleSave() {
+  async function handleSave() {
+    if (newApiKey.trim()) {
+      const k = newApiKey.trim().replace(/\s+/g, "");
+      if (!k.startsWith("sk-ant-")) {
+        setApiKeyError("Key should start with sk-ant- — check for typos");
+        return;
+      }
+      await setAnthropicKey(k);
+    }
     updateUserProfile(draft);
     onClose();
+  }
+
+  async function handleRemoveKey() {
+    await removeAnthropicKey();
+    setApiKeySaved(false);
+    setNewApiKey("");
   }
 
   return (
@@ -200,6 +226,37 @@ export function ProfileModal({ visible, onClose }: Props) {
             placeholder="Dietary restrictions, medical context, notes…"
             multiline
           />
+
+          <Text style={styles.section}>AI ANALYSIS</Text>
+          {apiKeySaved ? (
+            <View style={styles.keySavedRow}>
+              <Text style={styles.keySavedText}>Anthropic API key saved ✓</Text>
+              <TouchableOpacity onPress={handleRemoveKey} style={styles.removeKeyBtn}>
+                <Text style={styles.removeKeyBtnText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Anthropic API Key</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="sk-ant-api03-…"
+                placeholderTextColor="#5A7090"
+                value={newApiKey}
+                onChangeText={(v) => { setNewApiKey(v); setApiKeyError(""); }}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {apiKeyError ? (
+                <Text style={styles.apiKeyError}>{apiKeyError}</Text>
+              ) : (
+                <Text style={styles.apiKeyHint}>
+                  Used for AI insights on Progress, Fuel, and Labs. Stored only on this device.
+                </Text>
+              )}
+            </View>
+          )}
         </ScrollView>
 
         <View style={styles.footer}>
@@ -295,6 +352,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#FFFFFF",
     fontWeight: "500",
+  },
+  keySavedRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(0,208,132,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,208,132,0.2)",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  keySavedText: {
+    fontSize: 14,
+    color: "#00D084",
+    fontWeight: "500",
+  },
+  removeKeyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255,59,48,0.4)",
+  },
+  removeKeyBtnText: {
+    fontSize: 12,
+    color: "#FF3B30",
+    fontWeight: "600",
+  },
+  apiKeyHint: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.3)",
+    marginTop: 5,
+    lineHeight: 16,
+  },
+  apiKeyError: {
+    fontSize: 11,
+    color: "#FF3B30",
+    marginTop: 5,
   },
   footer: {
     padding: 20,

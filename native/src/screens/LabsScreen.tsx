@@ -12,7 +12,7 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LabResult } from "../types/health";
 import { analyzeLab } from "../services/anthropic";
-import { getAnthropicKey, setAnthropicKey, removeAnthropicKey } from "../services/storage";
+import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
@@ -172,9 +172,6 @@ export function LabsScreen() {
   const [selectedLabId, setSelectedLabId] = useState<string | null>(null);
   const [labAnalysis, setLabAnalysis] = useState("Tap any lab result above, then tap Analyze for a plain-language explanation and actionable guidance.");
   const [labAnalysisLoading, setLabAnalysisLoading] = useState(false);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState("");
-  const [apiKeyError, setApiKeyError] = useState("");
 
   const allLabs = [...appState.labs].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -232,7 +229,7 @@ export function LabsScreen() {
     }
     const key = await getAnthropicKey();
     if (!key) {
-      setShowApiKeyInput(true);
+      setLabAnalysis("Add your Anthropic API key in ⚙ settings (top right) to enable AI analysis.");
       return;
     }
     setLabAnalysisLoading(true);
@@ -240,25 +237,12 @@ export function LabsScreen() {
     const result = await analyzeLab(key, lab, allLabs, userProfile);
     setLabAnalysisLoading(false);
     if (result.authError) {
-      setLabAnalysis("API key rejected — tap ⚙ to update it.");
+      setLabAnalysis("API key rejected — update it in ⚙ settings (top right).");
     } else if (result.success && result.text) {
       setLabAnalysis(result.text);
     } else {
       setLabAnalysis(result.error || "An error occurred.");
     }
-  }
-
-  async function handleSaveApiKey() {
-    const k = apiKeyInput.trim().replace(/\s+/g, "");
-    if (!k.startsWith("sk-ant-")) {
-      setApiKeyError("Key should start with sk-ant- — check for typos");
-      return;
-    }
-    await setAnthropicKey(k);
-    setShowApiKeyInput(false);
-    setApiKeyInput("");
-    setApiKeyError("");
-    handleAnalyzeLab();
   }
 
   const selectedLab = allLabs.find((l) => l.id === selectedLabId);
@@ -355,57 +339,23 @@ export function LabsScreen() {
 
       {/* Signal Lab Advisor */}
       <View style={styles.advisorCard}>
-        <View style={styles.advisorHeader}>
-          <Text style={styles.advisorLabel}>SIGNAL LAB ADVISOR</Text>
-          <TouchableOpacity
-            style={styles.settingsBtn}
-            onPress={async () => {
-              await removeAnthropicKey();
-              setShowApiKeyInput(true);
-              setLabAnalysis("Tap any lab result above, then tap Analyze for a plain-language explanation and actionable guidance.");
-            }}
-          >
-            <Text style={styles.settingsIcon}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.advisorLabel}>SIGNAL LAB ADVISOR</Text>
         {selectedLab && (
           <Text style={styles.selectedLabName}>
             {selectedLab.name} · {selectedLab.value}
             {selectedLab.status !== "green" ? (selectedLab.direction === "low" ? " ↓ LOW" : " ↑ HIGH") : ""}
           </Text>
         )}
-        {showApiKeyInput ? (
-          <View>
-            <Text style={styles.apiKeyInstructions}>Enter your Anthropic API key to enable AI analysis.</Text>
-            <TextInput
-              style={styles.apiKeyInput}
-              placeholder="sk-ant-api03-…"
-              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
-              value={apiKeyInput}
-              onChangeText={setApiKeyInput}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {apiKeyError ? <Text style={styles.apiKeyError}>{apiKeyError}</Text> : null}
-            <TouchableOpacity style={styles.analyzeBtn} onPress={handleSaveApiKey}>
-              <Text style={styles.analyzeBtnText}>Save &amp; Analyze</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            <Text style={styles.analysisText}>{labAnalysis}</Text>
-            <TouchableOpacity
-              style={[styles.analyzeBtn, (!selectedLabId || labAnalysisLoading) && { opacity: 0.5 }]}
-              onPress={handleAnalyzeLab}
-              disabled={!selectedLabId || labAnalysisLoading}
-            >
-              <Text style={styles.analyzeBtnText}>
-                {labAnalysisLoading ? "ANALYZING..." : selectedLabId ? `ANALYZE ${selectedLab?.name?.toUpperCase()}` : "SELECT A MARKER ABOVE"}
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
+        <Text style={styles.analysisText}>{labAnalysis}</Text>
+        <TouchableOpacity
+          style={[styles.analyzeBtn, (!selectedLabId || labAnalysisLoading) && { opacity: 0.5 }]}
+          onPress={handleAnalyzeLab}
+          disabled={!selectedLabId || labAnalysisLoading}
+        >
+          <Text style={styles.analyzeBtnText}>
+            {labAnalysisLoading ? "ANALYZING..." : selectedLabId ? `ANALYZE ${selectedLab?.name?.toUpperCase()}` : "SELECT A MARKER ABOVE"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {allLabs.length === 0 && (
@@ -614,27 +564,14 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       borderRadius: 16,
       padding: 20,
     },
-    advisorHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 10,
-    },
     advisorLabel: {
       fontSize: 11,
       fontWeight: "700",
       letterSpacing: 1.5,
       color: theme.accent,
       textTransform: "uppercase",
+      marginBottom: 10,
     },
-    settingsBtn: {
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-    },
-    settingsIcon: { color: theme.textTertiary, fontSize: 13 },
     selectedLabName: {
       fontSize: 13,
       fontWeight: "700",
@@ -661,23 +598,5 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       fontSize: 13,
       letterSpacing: 0.8,
     },
-    apiKeyInstructions: {
-      fontSize: 13,
-      color: theme.textSecondary,
-      lineHeight: 19,
-      marginBottom: 10,
-    },
-    apiKeyInput: {
-      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      borderRadius: 8,
-      padding: 10,
-      paddingHorizontal: 12,
-      fontSize: 13,
-      color: theme.text,
-      marginBottom: 8,
-    },
-    apiKeyError: { fontSize: 11, color: theme.red, marginBottom: 8 },
   });
 }
