@@ -9,12 +9,14 @@ import {
   UserProfile,
   DEFAULT_PROFILE,
 } from "../types/health";
+import { LABS_SEED } from "../data/labsSeed";
 
 const KEYS = {
   ANTHROPIC_KEY: "anthropic_key",
   APP_STATE: "signal_app_state_v1",
   MICROS: "signal_micros_v1",
   USER_PROFILE: "signal_user_profile_v1",
+  LABS_SEED_APPLIED: "signal_labs_seed_v1",
 } as const;
 
 // ── Anthropic API Key ──────────────────────────────────────────────
@@ -46,15 +48,32 @@ const DEFAULT_STATE: AppState = {
 
 export async function loadAppState(): Promise<AppState> {
   try {
-    const raw = await AsyncStorage.getItem(KEYS.APP_STATE);
+    const [raw, seedApplied] = await Promise.all([
+      AsyncStorage.getItem(KEYS.APP_STATE),
+      AsyncStorage.getItem(KEYS.LABS_SEED_APPLIED),
+    ]);
+
+    let state: AppState;
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AppState>;
-      return {
+      state = {
         ...DEFAULT_STATE,
         ...parsed,
         micros: parsed.micros || DEFAULT_MICROS,
       };
+    } else {
+      state = { ...DEFAULT_STATE };
     }
+
+    if (!seedApplied && state.labs.length === 0) {
+      state = { ...state, labs: LABS_SEED };
+      await Promise.all([
+        AsyncStorage.setItem(KEYS.APP_STATE, JSON.stringify(state)),
+        AsyncStorage.setItem(KEYS.LABS_SEED_APPLIED, "1"),
+      ]);
+    }
+
+    return state;
   } catch {
     // ignore
   }

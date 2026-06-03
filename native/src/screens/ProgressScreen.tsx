@@ -684,7 +684,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     },
     pillOn: { backgroundColor: theme.pillActiveBg, borderColor: theme.accent },
     pillText: { fontSize: 10, fontWeight: "600", color: theme.textSecondary },
-    pillTextOn: { color: theme.text },
+    pillTextOn: { color: "#FFFFFF" },
 
     weightCenter: { alignItems: "center", paddingVertical: 8 },
     weightNumRow: {
@@ -857,7 +857,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       marginTop: 4,
     },
     addBtnText: {
-      color: theme.text,
+      color: "#FFFFFF",
       fontWeight: "600",
       fontSize: 14,
       letterSpacing: 0.3,

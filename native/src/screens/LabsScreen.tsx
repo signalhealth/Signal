@@ -41,15 +41,25 @@ const STATUS_CONFIG = {
   },
 } as const;
 
-// Markers where lower is better (show ↓ as improvement)
+// Markers where lower is better (↓ shown as green improvement)
 const LOWER_IS_BETTER = new Set([
   "LDL",
   "LDL Cholesterol",
   "Total Cholesterol",
   "Lp(a)",
+  "Lipoprotein(a)",
   "Body Fat",
   "Triglycerides",
   "ApoB",
+  "Lp-PLA2",
+  "CRP",
+  "Homocysteine",
+  "BUN",
+  "BUN/Creat Ratio",
+  "Alb/Glob Ratio",
+  "PSA, Total",
+  "Insulin",
+  "Hemoglobin A1C",
 ]);
 
 function getTrendArrow(
@@ -145,7 +155,7 @@ export function LabsScreen() {
     "green"
   );
 
-  const allLabs = appState.labs;
+  const allLabs = [...appState.labs].sort((a, b) => b.date.localeCompare(a.date));
 
   function addLab() {
     if (!labName.trim() || !labValue.trim()) {
@@ -444,7 +454,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       alignItems: "center",
       marginTop: 4,
     },
-    addBtnText: { color: theme.text, fontWeight: "600", fontSize: 14 },
+    addBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 14 },
     customLabItem: {
       flexDirection: "row",
       justifyContent: "space-between",

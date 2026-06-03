@@ -117,7 +117,13 @@ function AppShell() {
     <View style={[styles.shell, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.tabBar }]} edges={["top"]}>
-        <Header loading={loading} onProfilePress={() => setShowProfile(true)} />
+        <Header
+          loading={loading}
+          onProfilePress={() => setShowProfile(true)}
+          onThemeToggle={toggleTheme}
+          isDark={isDark}
+          theme={theme}
+        />
       </SafeAreaView>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
       {loading ? (
@@ -129,17 +135,7 @@ function AppShell() {
       ) : null}
       <Tab.Navigator
         screenOptions={({ route }) => ({
-          headerShown: true,
-          headerStyle: { backgroundColor: theme.tabBar },
-          headerTintColor: theme.text,
-          headerTitleStyle: { color: theme.text, fontSize: 16, fontWeight: "600" },
-          headerRight: () => (
-            <TouchableOpacity onPress={toggleTheme} style={{ paddingHorizontal: 16 }}>
-              <Text style={{ fontSize: 18, color: theme.text }}>
-                {isDark ? "☀" : "☽"}
-              </Text>
-            </TouchableOpacity>
-          ),
+          headerShown: false,
           tabBarStyle: [
             styles.tabBar,
             {

@@ -1,25 +1,29 @@
 import React from "react";
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from "react-native";
-import Svg, { Circle, Path, G } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg";
+import { ThemeColors } from "../context/ThemeContext";
 
 interface HeaderProps {
   loading?: boolean;
   onProfilePress: () => void;
+  onThemeToggle: () => void;
+  isDark: boolean;
+  theme: ThemeColors;
 }
 
-function GearIcon() {
+function GearIcon({ color }: { color: string }) {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d="M12 15a3 3 0 100-6 3 3 0 000 6z"
-        stroke="rgba(255,255,255,0.45)"
+        stroke={color}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-        stroke="rgba(255,255,255,0.45)"
+        stroke={color}
         strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -28,7 +32,7 @@ function GearIcon() {
   );
 }
 
-export function Header({ loading = false, onProfilePress }: HeaderProps) {
+export function Header({ loading = false, onProfilePress, onThemeToggle, isDark, theme }: HeaderProps) {
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -50,8 +54,10 @@ export function Header({ loading = false, onProfilePress }: HeaderProps) {
     ).start();
   }, [pulseAnim]);
 
+  const iconColor = theme.textTertiary;
+
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: theme.tabBar, borderBottomColor: theme.tabBarBorder }]}>
       <View style={styles.logoRow}>
         <Svg width={32} height={26} viewBox="0 0 56 44" fill="none">
           <Circle cx={28} cy={36} r={4} fill="#1C69D4" />
@@ -79,15 +85,26 @@ export function Header({ loading = false, onProfilePress }: HeaderProps) {
             opacity={0.25}
           />
         </Svg>
-        <Text style={styles.title}>Signal</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Signal</Text>
       </View>
       <View style={styles.right}>
         {loading && (
-          <Text style={styles.syncText}>SYNCING</Text>
+          <Text style={[styles.syncText, { color: theme.textTertiary }]}>SYNCING</Text>
         )}
         <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
-        <TouchableOpacity onPress={onProfilePress} style={styles.gearBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <GearIcon />
+        <TouchableOpacity
+          onPress={onThemeToggle}
+          style={styles.iconBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={{ fontSize: 16, color: iconColor }}>{isDark ? "☀" : "☽"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onProfilePress}
+          style={styles.iconBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <GearIcon color={iconColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -101,9 +118,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    backgroundColor: "rgba(9,9,14,0.96)",
     borderBottomWidth: 1,
-    borderBottomColor: "#182030",
   },
   logoRow: {
     flexDirection: "row",
@@ -114,7 +129,6 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 22,
     fontWeight: "700",
-    color: "#FFFFFF",
     letterSpacing: -0.4,
     marginLeft: 10,
   },
@@ -125,7 +139,6 @@ const styles = StyleSheet.create({
   },
   syncText: {
     fontSize: 9,
-    color: "rgba(255,255,255,0.35)",
     letterSpacing: 0.8,
   },
   dot: {
@@ -138,7 +151,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 4,
   },
-  gearBtn: {
+  iconBtn: {
     padding: 2,
   },
 });

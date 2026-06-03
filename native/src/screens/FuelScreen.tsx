@@ -22,9 +22,22 @@ import {
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 function localDateStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function localYesterdayStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function fmtDate(iso: string): string {
+  const [yr, mm, dd] = iso.split("-").map(Number);
+  return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
 }
 
 function avg(arr: number[]) {
@@ -120,6 +133,7 @@ export function FuelScreen() {
   }
 
   const today = localDateStr();
+  const yesterday = localYesterdayStr();
 
   // Calorie history for chart
   const nutritionSorted = [...healthData.nutrition].sort((a, b) =>
@@ -213,13 +227,15 @@ export function FuelScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <View>
-            <Text style={styles.lbl}>TODAY'S INTAKE</Text>
+            <Text style={styles.lbl}>
+              {!todayNutrition || todayNutrition.date === today
+                ? "TODAY'S INTAKE"
+                : todayNutrition.date === yesterday
+                ? "YESTERDAY'S INTAKE"
+                : "RECENT INTAKE"}
+            </Text>
             <Text style={styles.dateText}>
-              {todayNutrition?.date === today
-                ? today
-                : todayNutrition?.date
-                ? `${todayNutrition.date} (latest)`
-                : today}
+              {todayNutrition ? fmtDate(todayNutrition.date) : fmtDate(today)}
             </Text>
           </View>
           {healthData.nutrition.length > 0 && (
@@ -698,7 +714,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       alignItems: "center",
     },
     analyzeBtnText: {
-      color: theme.text,
+      color: "#FFFFFF",
       fontWeight: "700",
       fontSize: 14,
       letterSpacing: 1,
@@ -738,7 +754,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       alignItems: "center",
     },
     apiKeySaveBtnText: {
-      color: theme.text,
+      color: "#FFFFFF",
       fontWeight: "600",
       fontSize: 13,
     },
@@ -772,7 +788,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     },
     pillOn: { backgroundColor: theme.pillActiveBg, borderColor: theme.accent },
     pillText: { fontSize: 10, fontWeight: "600", color: theme.textSecondary },
-    pillTextOn: { color: theme.text },
+    pillTextOn: { color: "#FFFFFF" },
 
     microRow: {
       flexDirection: "row",

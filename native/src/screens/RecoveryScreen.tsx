@@ -423,7 +423,7 @@ function makePillStyles(theme: ThemeColors) {
     },
     pillOn: { backgroundColor: theme.pillActiveBg, borderColor: theme.accent },
     pillText: { fontSize: 10, fontWeight: "600", color: theme.textSecondary },
-    pillTextOn: { color: theme.text },
+    pillTextOn: { color: "#FFFFFF" },
   });
 }
 
@@ -497,7 +497,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       paddingHorizontal: 16,
       alignItems: "center",
     },
-    addBtnText: { color: theme.text, fontWeight: "600", fontSize: 13 },
+    addBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13 },
     recItem: {
       flexDirection: "row",
       justifyContent: "space-between",
