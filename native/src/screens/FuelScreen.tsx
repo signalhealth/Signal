@@ -115,12 +115,14 @@ export function FuelScreen() {
   }
 
   const today = localDateStr();
-  const todayNutrition = healthData.nutrition.find((n) => n.date === today);
 
   // Calorie history for chart
   const nutritionSorted = [...healthData.nutrition].sort((a, b) =>
     a.date.localeCompare(b.date)
   );
+  const todayNutrition =
+    healthData.nutrition.find((n) => n.date === today) ??
+    (nutritionSorted.length > 0 ? nutritionSorted[nutritionSorted.length - 1] : undefined);
   const calHistory = nutritionSorted.slice(-calDays);
 
   // 30-day averages
@@ -145,11 +147,7 @@ export function FuelScreen() {
     const result = await analyzeWithAI(key, healthData, fuelCtx, appState, userProfile);
     setFuelLoading(false);
     if (result.authError) {
-      await removeAnthropicKey();
-      setShowApiKeyInput(true);
-      setFuelResult(
-        "Enter today's intake and tap Analyze to get a personalized recommendation."
-      );
+      setFuelResult("API key rejected — tap ⚙ to update it.");
     } else if (result.success && result.text) {
       setFuelResult(result.text);
     } else {
@@ -211,7 +209,13 @@ export function FuelScreen() {
         <View style={styles.cardHeaderRow}>
           <View>
             <Text style={styles.lbl}>TODAY'S INTAKE</Text>
-            <Text style={styles.dateText}>{today}</Text>
+            <Text style={styles.dateText}>
+              {todayNutrition?.date === today
+                ? today
+                : todayNutrition?.date
+                ? `${todayNutrition.date} (latest)`
+                : today}
+            </Text>
           </View>
           {healthData.nutrition.length > 0 && (
             <Text style={styles.syncBadge}>Health Connect ✓</Text>
@@ -378,15 +382,29 @@ export function FuelScreen() {
         ) : (
           <Text style={styles.fuelResultText}>{fuelResult}</Text>
         )}
-        <TouchableOpacity
-          style={[styles.analyzeBtn, fuelLoading && { opacity: 0.6 }]}
-          onPress={handleAnalyze}
-          disabled={fuelLoading}
-        >
-          <Text style={styles.analyzeBtnText}>
-            {fuelLoading ? "ANALYZING..." : "ANALYZE"}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.analyzeBtnRow}>
+          <TouchableOpacity
+            style={[styles.analyzeBtn, fuelLoading && { opacity: 0.6 }]}
+            onPress={handleAnalyze}
+            disabled={fuelLoading}
+          >
+            <Text style={styles.analyzeBtnText}>
+              {fuelLoading ? "ANALYZING..." : "ANALYZE"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={async () => {
+              await removeAnthropicKey();
+              setShowApiKeyInput(true);
+              setFuelResult(
+                "Enter today's intake and tap Analyze to get a personalized recommendation."
+              );
+            }}
+          >
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Calorie History Chart ── */}
@@ -652,8 +670,9 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     minHeight: 60,
   },
+  analyzeBtnRow: { flexDirection: "row", gap: 8, marginTop: 16 },
   analyzeBtn: {
-    marginTop: 16,
+    flex: 1,
     backgroundColor: "#0066CC",
     borderRadius: 10,
     paddingVertical: 14,
@@ -665,6 +684,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1,
   },
+  settingsBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsIcon: { color: "rgba(255,255,255,0.3)", fontSize: 14 },
   apiKeyInstructions: {
     fontSize: 13,
     color: "rgba(255,255,255,0.6)",
