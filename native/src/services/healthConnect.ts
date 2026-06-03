@@ -63,13 +63,10 @@ export async function requestHealthPermissions(): Promise<boolean> {
 }
 
 export function openHealthConnectPermissions(): void {
-  // Open HC directly to Signal's permission management page
-  Linking.openURL(
-    "intent:#Intent;action=androidx.health.ACTION_MANAGE_HEALTH_PERMISSIONS;" +
-    "S.android.intent.extra.PACKAGE_NAME=com.signalhealth.app;" +
-    "package=com.google.android.apps.healthdata;end"
-  ).catch(() => {
-    Linking.openURL("package:com.google.android.apps.healthdata").catch(() => {});
+  Linking.openURL("package:com.google.android.apps.healthdata").catch(() => {
+    Linking.openURL(
+      "market://details?id=com.google.android.apps.healthdata"
+    ).catch(() => {});
   });
 }
 

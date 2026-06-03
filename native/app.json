@@ -8,10 +8,7 @@
     "platforms": ["android"],
     "android": {
       "package": "com.signalhealth.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#07070D"
-      },
+      "icon": "./assets/icon.png",
       "permissions": [
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_WEIGHT",
@@ -25,6 +22,7 @@
       ]
     },
     "plugins": [
+      "react-native-health-connect",
       "./plugins/withHealthConnectSetup",
       [
         "expo-build-properties",
