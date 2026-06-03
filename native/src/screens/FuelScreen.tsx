@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,16 +7,22 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
-import { FuelCtx, MACRO_TARGETS } from "../types/health";
+import { FuelCtx, MACRO_TARGETS, DEFAULT_MICROS } from "../types/health";
 import { analyzeFuel as analyzeWithAI } from "../services/anthropic";
 import {
   getAnthropicKey,
   setAnthropicKey,
   removeAnthropicKey,
 } from "../services/storage";
+
+function localDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const COLORS = {
   green: "#00D084",
@@ -79,7 +85,7 @@ const macroStyles = StyleSheet.create({
 });
 
 export function FuelScreen() {
-  const { healthData, appState, userProfile } = useContext(HealthContext);
+  const { healthData, appState, userProfile, refresh } = useContext(HealthContext);
   const [fuelCtx, setFuelCtx] = useState<FuelCtx>({
     trained: null,
     sleep: null,
@@ -94,7 +100,13 @@ export function FuelScreen() {
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyError, setApiKeyError] = useState("");
 
-  const today = new Date().toISOString().slice(0, 10);
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
+
+  const today = localDateStr();
   const todayNutrition = healthData.nutrition.find((n) => n.date === today);
 
   // Calorie history for chart
@@ -434,6 +446,27 @@ export function FuelScreen() {
           />
         </View>
       </Card>
+
+      {/* ── Micronutrient Goals ── */}
+      <Card>
+        <Text style={styles.lbl}>MICRONUTRIENT GOALS</Text>
+        {(appState.micros.length > 0 ? appState.micros : DEFAULT_MICROS).map(
+          (micro, i, arr) => (
+            <View
+              key={micro.name}
+              style={[
+                styles.microRow,
+                i === arr.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <Text style={styles.microName}>{micro.name}</Text>
+              <Text style={styles.microTarget}>
+                {micro.target} {micro.unit}
+              </Text>
+            </View>
+          )
+        )}
+      </Card>
     </ScrollView>
   );
 }
@@ -676,4 +709,22 @@ const styles = StyleSheet.create({
   pillOn: { backgroundColor: "#0066CC", borderColor: "#0066CC" },
   pillText: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.6)" },
   pillTextOn: { color: "#FFFFFF" },
+
+  microRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,102,204,0.15)",
+  },
+  microName: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+  },
+  microTarget: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.45)",
+  },
 });

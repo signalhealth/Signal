@@ -39,19 +39,67 @@ const STATUS_CONFIG = {
   },
 } as const;
 
+// Markers where lower is better (show ↓ as improvement)
+const LOWER_IS_BETTER = new Set([
+  "LDL",
+  "LDL Cholesterol",
+  "Total Cholesterol",
+  "Lp(a)",
+  "Body Fat",
+  "Triglycerides",
+  "ApoB",
+]);
+
+function getTrendArrow(
+  lab: LabResult,
+  allLabs: LabResult[]
+): { arrow: string; delta: string; color: string } | null {
+  // Find the most recent prior entry with the same name
+  const sameMarker = allLabs
+    .filter((l) => l.name === lab.name && l.id !== lab.id)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (!sameMarker.length) return null;
+
+  const prev = sameMarker[0];
+  const currNum = parseFloat(lab.value);
+  const prevNum = parseFloat(prev.value);
+  if (isNaN(currNum) || isNaN(prevNum)) return null;
+
+  const diff = currNum - prevNum;
+  if (diff === 0) return null;
+
+  const lowerBetter = LOWER_IS_BETTER.has(lab.name);
+  const improved = lowerBetter ? diff < 0 : diff > 0;
+  const arrow = diff < 0 ? "↓" : "↑";
+  const absDiff = Math.abs(diff).toFixed(1).replace(/\.0$/, "");
+  return {
+    arrow,
+    delta: `${arrow} ${absDiff}`,
+    color: improved ? "#00D084" : "#F5A623",
+  };
+}
+
 function LabRow({
   lab,
+  allLabs,
   onDelete,
 }: {
   lab: LabResult;
+  allLabs: LabResult[];
   onDelete: () => void;
 }) {
   const cfg = STATUS_CONFIG[lab.status];
+  const trend = getTrendArrow(lab, allLabs);
   return (
     <View style={styles.labRow}>
       <View style={styles.labLeft}>
         <Text style={styles.labName}>{lab.name}</Text>
         <Text style={styles.labRef}>ref {lab.reference}</Text>
+        {trend && (
+          <Text style={[styles.labTrend, { color: trend.color }]}>
+            {trend.delta} from last
+          </Text>
+        )}
       </View>
       <View style={styles.labRight}>
         <Text style={[styles.labValue, { color: cfg.text }]}>
@@ -79,9 +127,10 @@ function LabRow({
 
 export function LabsScreen() {
   const { appState, updateAppState } = useContext(HealthContext);
-  const [labDate, setLabDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
+  const [labDate, setLabDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [labName, setLabName] = useState("");
   const [labValue, setLabValue] = useState("");
   const [labRef, setLabRef] = useState("");
@@ -115,11 +164,25 @@ export function LabsScreen() {
   }
 
   function deleteLab(id: string) {
-    const updated = {
-      ...appState,
-      labs: appState.labs.filter((l) => l.id !== id),
-    };
-    updateAppState(updated);
+    const lab = appState.labs.find((l) => l.id === id);
+    Alert.alert(
+      `Delete ${lab?.name ?? "lab result"}?`,
+      "This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            const updated = {
+              ...appState,
+              labs: appState.labs.filter((l) => l.id !== id),
+            };
+            updateAppState(updated);
+          },
+        },
+      ]
+    );
   }
 
   const StatusToggle = ({
@@ -170,6 +233,7 @@ export function LabsScreen() {
               <LabRow
                 key={lab.id || i}
                 lab={lab}
+                allLabs={allLabs}
                 onDelete={() => deleteLab(lab.id)}
               />
             ))}
@@ -188,6 +252,7 @@ export function LabsScreen() {
               <LabRow
                 key={lab.id || i}
                 lab={lab}
+                allLabs={allLabs}
                 onDelete={() => deleteLab(lab.id)}
               />
             ))}
@@ -206,6 +271,7 @@ export function LabsScreen() {
               <LabRow
                 key={lab.id || i}
                 lab={lab}
+                allLabs={allLabs}
                 onDelete={() => deleteLab(lab.id)}
               />
             ))}
@@ -266,21 +332,6 @@ export function LabsScreen() {
         <TouchableOpacity style={styles.addBtn} onPress={addLab}>
           <Text style={styles.addBtnText}>Add Lab Result</Text>
         </TouchableOpacity>
-
-        {appState.labs.length > 0 && (
-          <View style={{ marginTop: 8 }}>
-            {appState.labs.map((lab) => (
-              <View key={lab.id} style={styles.customLabItem}>
-                <Text style={styles.customLabText}>
-                  {lab.date} · {lab.name}: {lab.value}
-                </Text>
-                <TouchableOpacity onPress={() => deleteLab(lab.id)}>
-                  <Text style={styles.delBtn}>×</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
       </Card>
     </ScrollView>
   );
@@ -312,6 +363,12 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.35)",
     marginTop: 3,
     letterSpacing: 0.3,
+  },
+  labTrend: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 3,
+    letterSpacing: 0.2,
   },
   labRight: {
     flexDirection: "row",

@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
-import { ProgressBar } from "../components/ProgressBar";
 import { WeightChart, SparkBars } from "../components/WeightChart";
 import { HRV_NORMAL_LOW, HRV_NORMAL_HIGH, SLEEP_TARGET } from "../types/health";
 import { getInsight } from "../services/anthropic";
@@ -19,6 +18,11 @@ import {
   setAnthropicKey,
   removeAnthropicKey,
 } from "../services/storage";
+
+function localDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const COLORS = {
   green: "#00D084",
@@ -50,7 +54,10 @@ export function ProgressScreen() {
   const weightSorted = [...healthData.weight].sort((a, b) =>
     a.date.localeCompare(b.date)
   );
-  const windowStart = new Date(Date.now() - wtDays * 86400000).toISOString().slice(0, 10);
+  const windowStart = (() => {
+    const d = new Date(Date.now() - wtDays * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const wtSlice = weightSorted.filter((d) => d.date >= windowStart);
   const latestWt = weightSorted[weightSorted.length - 1]?.value;
   const wtStart = wtSlice[0]?.value;
@@ -61,8 +68,12 @@ export function ProgressScreen() {
       ? avg(weightSorted.slice(-7).map((d) => d.value)).toFixed(1)
       : latestWt?.toFixed(1);
   const latestWtDate = weightSorted[weightSorted.length - 1]?.date;
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const today = localDateStr();
+  const yesterday = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   const wtDateLabel =
     latestWtDate === today
       ? "Today"
@@ -72,33 +83,43 @@ export function ProgressScreen() {
 
   // ── Vitals ──────────────────────────────────────────────────────
   const latestHRV = healthData.hrv[0]?.value;
+  const latestHRVDate = healthData.hrv[0]?.date;
   const latestSleep = healthData.sleep[0]?.value;
+  const latestSleepDate = healthData.sleep[0]?.date;
 
   // Deduplicate RHR
   const seenRhr = new Map<string, number>();
   for (const pt of healthData.rhr) {
     if (!seenRhr.has(pt.date)) seenRhr.set(pt.date, pt.value);
   }
-  const rhrVals = Array.from(seenRhr.values());
-  const latestRHR = rhrVals[0];
+  const rhrEntries = Array.from(seenRhr.entries());
+  const latestRHR = rhrEntries[0]?.[1];
+  const latestRHRDate = rhrEntries[0]?.[0];
+
+  function fmtVitalDate(date: string | undefined): string {
+    if (!date) return "";
+    if (date === today) return "Today";
+    if (date === yesterday) return "Yesterday";
+    return date.slice(5);
+  }
 
   const hrvStatus =
     latestHRV === undefined
       ? null
       : latestHRV >= HRV_NORMAL_HIGH
-      ? { label: "ELEVATED", color: COLORS.green }
+      ? { label: `ELEVATED ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, color: COLORS.green }
       : latestHRV >= HRV_NORMAL_LOW
-      ? { label: "IN RANGE", color: COLORS.green }
-      : { label: "BELOW RANGE", color: COLORS.amber };
+      ? { label: `IN RANGE ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, color: COLORS.green }
+      : { label: `BELOW ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, color: COLORS.amber };
 
   const sleepStatus =
     latestSleep === undefined
       ? null
       : latestSleep >= SLEEP_TARGET
-      ? { label: "ON TARGET", color: COLORS.green }
+      ? { label: `ON TARGET ${SLEEP_TARGET}H`, color: COLORS.green }
       : latestSleep >= 7.0
-      ? { label: "NEAR TARGET", color: COLORS.amber }
-      : { label: "BELOW TARGET", color: COLORS.red };
+      ? { label: `NEAR TARGET ${SLEEP_TARGET}H`, color: COLORS.amber }
+      : { label: `BELOW ${SLEEP_TARGET}H TARGET`, color: COLORS.red };
 
   // ── Steps ───────────────────────────────────────────────────────
   const stepsSorted = [...healthData.steps].sort((a, b) =>
@@ -217,6 +238,9 @@ export function ProgressScreen() {
             <Text style={styles.vitalLabel}>HRV</Text>
             <Text style={styles.vitalNum}>{latestHRV ?? "—"}</Text>
             <Text style={styles.vitalUnit}>ms</Text>
+            {latestHRVDate && (
+              <Text style={styles.vitalDate}>{fmtVitalDate(latestHRVDate)}</Text>
+            )}
             {hrvStatus && (
               <Text style={[styles.vitalStatus, { color: hrvStatus.color }]}>
                 {hrvStatus.label}
@@ -227,6 +251,9 @@ export function ProgressScreen() {
             <Text style={styles.vitalLabel}>RHR</Text>
             <Text style={styles.vitalNum}>{latestRHR ?? "—"}</Text>
             <Text style={styles.vitalUnit}>bpm</Text>
+            {latestRHRDate && (
+              <Text style={styles.vitalDate}>{fmtVitalDate(latestRHRDate)}</Text>
+            )}
             {latestRHR !== undefined && (
               <Text
                 style={[
@@ -242,10 +269,10 @@ export function ProgressScreen() {
                 ]}
               >
                 {latestRHR <= 55
-                  ? "EXCELLENT"
+                  ? "EXCELLENT ≤55"
                   : latestRHR <= 65
-                  ? "NORMAL"
-                  : "ELEVATED"}
+                  ? "NORMAL 56–65"
+                  : "ELEVATED >65"}
               </Text>
             )}
           </View>
@@ -253,6 +280,9 @@ export function ProgressScreen() {
             <Text style={styles.vitalLabel}>SLEEP</Text>
             <Text style={styles.vitalNum}>{latestSleep?.toFixed(1) ?? "—"}</Text>
             <Text style={styles.vitalUnit}>hr</Text>
+            {latestSleepDate && (
+              <Text style={styles.vitalDate}>{fmtVitalDate(latestSleepDate)}</Text>
+            )}
             {sleepStatus && (
               <Text
                 style={[styles.vitalStatus, { color: sleepStatus.color }]}
@@ -272,23 +302,21 @@ export function ProgressScreen() {
         </View>
         <View style={styles.stepsNumRow}>
           <Text style={styles.stepsNum}>
-            {todaySteps?.toLocaleString() ?? "—"}
+            {todaySteps !== undefined ? todaySteps.toLocaleString() : "0"}
           </Text>
           <Text style={styles.stepsGoal}>/ 10,000</Text>
         </View>
-        {todaySteps !== undefined && (
-          <View style={styles.track}>
-            <View
-              style={[
-                styles.trackFill,
-                {
-                  width: `${Math.min(100, (todaySteps / 10000) * 100)}%` as `${number}%`,
-                  backgroundColor: COLORS.blue,
-                },
-              ]}
-            />
-          </View>
-        )}
+        <View style={styles.track}>
+          <View
+            style={[
+              styles.trackFill,
+              {
+                width: `${Math.min(100, ((todaySteps ?? 0) / 10000) * 100)}%` as `${number}%`,
+                backgroundColor: COLORS.blue,
+              },
+            ]}
+          />
+        </View>
         <View style={{ marginTop: 14 }}>
           <SparkBars data={stepsLast14} height={60} target={10000} />
         </View>
@@ -300,30 +328,48 @@ export function ProgressScreen() {
         {latestDexa ? (
           <>
             <Text style={styles.dexaDate}>DEXA · {latestDexa.date}</Text>
-            <ProgressBar
-              label="Body Fat"
-              value={latestDexa.bodyFat}
-              max={50}
-              unit="%"
-              color={COLORS.red}
-              subLabel="Goal 15%"
-            />
-            <ProgressBar
-              label="Lean Mass"
-              value={latestDexa.leanMass}
-              max={190}
-              unit="lbs"
-              color={COLORS.blue}
-              subLabel="Goal 132 lbs"
-            />
-            <ProgressBar
-              label="Scale Weight"
-              value={latestWt ?? latestDexa.weight}
-              max={210}
-              unit="lbs"
-              color="rgba(255,255,255,0.55)"
-              subLabel="Goal 155 lbs"
-            />
+            {(() => {
+              const bf = latestDexa.bodyFat;
+              const bfColor = bf > 22 ? COLORS.red : bf > 18 ? COLORS.amber : COLORS.green;
+              const bfFill = Math.min(1, Math.max(0, (26 - bf) / (26 - 15)));
+
+              const lm = latestDexa.leanMass;
+              const lmColor = lm < 121 ? COLORS.red : lm < 127 ? COLORS.amber : COLORS.green;
+              const lmFill = Math.min(1, Math.max(0, (lm - 116.9) / (132 - 116.9)));
+
+              const sw = latestWt ?? latestDexa.weight;
+              const swColor = sw > 161 ? COLORS.red : sw > 158 ? COLORS.amber : COLORS.green;
+              const swFill = Math.min(1, Math.max(0, (164 - sw) / (164 - 155)));
+
+              return (
+                <>
+                  <GoalProgressBar
+                    label="Body Fat"
+                    value={bf}
+                    fill={bfFill}
+                    unit="%"
+                    color={bfColor}
+                    subLabel="Goal 15%"
+                  />
+                  <GoalProgressBar
+                    label="Lean Mass"
+                    value={lm}
+                    fill={lmFill}
+                    unit="lbs"
+                    color={lmColor}
+                    subLabel="Goal 132 lbs"
+                  />
+                  <GoalProgressBar
+                    label="Scale Weight"
+                    value={sw}
+                    fill={swFill}
+                    unit="lbs"
+                    color={swColor}
+                    subLabel="Goal 155 lbs"
+                  />
+                </>
+              );
+            })()}
           </>
         ) : (
           <Text style={styles.emptyNote}>
@@ -421,7 +467,7 @@ export function ProgressScreen() {
 
 function DexaAddForm() {
   const { appState, updateAppState } = useContext(HealthContext);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(localDateStr());
   const [weight, setWeight] = useState("");
   const [bodyFat, setBodyFat] = useState("");
   const [leanMass, setLeanMass] = useState("");
@@ -492,9 +538,68 @@ function DexaAddForm() {
   );
 }
 
+// ── Goal Progress Bar ──────────────────────────────────────────────
+interface GoalProgressBarProps {
+  label: string;
+  value: number;
+  fill: number; // 0–1 representing progress toward goal
+  unit: string;
+  color: string;
+  subLabel?: string;
+}
+
+function GoalProgressBar({ label, value, fill, unit, color, subLabel }: GoalProgressBarProps) {
+  const pct = Math.min(100, Math.max(0, fill * 100));
+  return (
+    <View style={gpbStyles.wrap}>
+      <View style={gpbStyles.row}>
+        <Text style={gpbStyles.label}>{label}</Text>
+        <Text style={[gpbStyles.valueText, { color }]}>
+          {value}
+          {unit ? ` ${unit}` : ""}
+        </Text>
+      </View>
+      <View style={gpbStyles.track}>
+        <View
+          style={[
+            gpbStyles.fill,
+            { width: `${pct}%` as `${number}%`, backgroundColor: color },
+          ]}
+        />
+      </View>
+      {subLabel ? <Text style={gpbStyles.sub}>{subLabel}</Text> : null}
+    </View>
+  );
+}
+
+const gpbStyles = StyleSheet.create({
+  wrap: { marginBottom: 16 },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 7,
+  },
+  label: { fontSize: 14, color: "rgba(255,255,255,0.6)" },
+  valueText: { fontSize: 14, fontWeight: "700" },
+  track: {
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 99,
+    overflow: "hidden",
+  },
+  fill: { height: "100%", borderRadius: 99 },
+  sub: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
+    marginTop: 5,
+    letterSpacing: 0.3,
+  },
+});
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#07070D" },
-  content: { padding: 16, paddingBottom: 110, gap: 12 },
+  content: { padding: 16, paddingBottom: 32, gap: 12 },
   lbl: {
     fontSize: 11,
     fontWeight: "700",
@@ -587,6 +692,12 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   vitalUnit: { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 3 },
+  vitalDate: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.3)",
+    marginTop: 3,
+    letterSpacing: 0.3,
+  },
   vitalStatus: {
     fontSize: 10,
     fontWeight: "700",

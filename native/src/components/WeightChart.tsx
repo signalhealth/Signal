@@ -112,42 +112,84 @@ interface SparkBarsProps {
   target?: number;
 }
 
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function fmtStepCount(v: number): string {
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+  return String(v);
+}
+
 export function SparkBars({
   data,
   height = 60,
   color = "#0066CC",
   target,
 }: SparkBarsProps) {
-  if (!data.length) return null;
+  const labelH = 28; // space for count above + day below bar
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
+  // Always render — even if empty, show placeholder
   const vals = sorted.map((d) => d.value);
-  const maxVal = Math.max(...vals, target || 0) * 1.1;
+  const maxVal = vals.length ? Math.max(...vals, target || 0) * 1.1 : (target || 10000);
 
   const chartW = SCREEN_W - 40 - 40;
-  const barW = Math.max(2, (chartW / vals.length) * 0.7);
-  const gap = (chartW - barW * vals.length) / Math.max(1, vals.length - 1);
+  const barW = Math.max(2, (chartW / Math.max(vals.length, 1)) * 0.7);
+  const gap = vals.length > 1
+    ? (chartW - barW * vals.length) / (vals.length - 1)
+    : 0;
+
+  const totalH = height + labelH;
 
   return (
-    <Svg width={chartW} height={height}>
-      {vals.map((v, i) => {
-        const barH = (v / maxVal) * height;
-        const x = i * (barW + gap);
-        const y = height - barH;
-        const isToday = i === vals.length - 1;
-        const barColor = isToday
-          ? "#60AFFF"
-          : v >= (target || 10000)
-          ? "rgba(96,175,255,0.6)"
-          : "rgba(96,175,255,0.3)";
-        return (
-          <Path
-            key={i}
-            d={`M${x},${height} L${x},${y} L${x + barW},${y} L${x + barW},${height} Z`}
-            fill={barColor}
-          />
-        );
-      })}
-    </Svg>
+    <View style={{ width: chartW }}>
+      <Svg width={chartW} height={totalH}>
+        {vals.map((v, i) => {
+          const barH = maxVal > 0 ? (v / maxVal) * height : 0;
+          const x = i * (barW + gap);
+          const barY = height - barH;
+          const isToday = i === vals.length - 1;
+          const barColor = isToday
+            ? "#60AFFF"
+            : v >= (target || 10000)
+            ? "rgba(96,175,255,0.6)"
+            : "rgba(96,175,255,0.3)";
+          // Day of week label
+          const dateStr = sorted[i].date; // "YYYY-MM-DD"
+          const [yr, mo, dy] = dateStr.split("-").map(Number);
+          const dow = DOW[new Date(yr, mo - 1, dy).getDay()];
+          const barCenterX = x + barW / 2;
+
+          return (
+            <React.Fragment key={i}>
+              {/* Bar */}
+              <Path
+                d={`M${x},${height} L${x},${barY} L${x + barW},${barY} L${x + barW},${height} Z`}
+                fill={barColor}
+              />
+              {/* Step count above bar */}
+              <SvgText
+                x={barCenterX}
+                y={barY > 10 ? barY - 3 : 9}
+                fontSize={8}
+                fill="rgba(255,255,255,0.45)"
+                textAnchor="middle"
+              >
+                {fmtStepCount(v)}
+              </SvgText>
+              {/* Day label below */}
+              <SvgText
+                x={barCenterX}
+                y={height + 16}
+                fontSize={8}
+                fill="rgba(255,255,255,0.35)"
+                textAnchor="middle"
+              >
+                {dow}
+              </SvgText>
+            </React.Fragment>
+          );
+        })}
+      </Svg>
+    </View>
   );
 }
 

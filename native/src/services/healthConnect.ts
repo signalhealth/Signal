@@ -158,7 +158,9 @@ async function readHRV(days = 45): Promise<DataPoint[]> {
     for (const r of result.records) {
       const dateStr = toDateStr(r.time);
       const ms = r.heartRateVariabilityMillis;
-      map.set(dateStr, Math.round(ms));
+      if (!map.has(dateStr) || ms > map.get(dateStr)!) {
+        map.set(dateStr, Math.round(ms));
+      }
     }
     return Array.from(map.entries())
       .map(([date, value]) => ({ date, value }))
@@ -282,13 +284,13 @@ export async function readAllHealthData(): Promise<HealthData> {
   const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat] =
     await Promise.allSettled([
       readWeight(90),
-      readSteps(45),
-      readSleep(45),
-      readHRV(45),
-      readRHR(45),
-      readNutrition(45),
-      readExercise(45),
-      readBodyFat(45),
+      readSteps(90),
+      readSleep(90),
+      readHRV(90),
+      readRHR(90),
+      readNutrition(90),
+      readExercise(90),
+      readBodyFat(90),
     ]);
 
   return {
