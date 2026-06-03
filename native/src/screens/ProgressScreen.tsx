@@ -161,8 +161,8 @@ export function ProgressScreen() {
   const latestDexa = appState.dexa[appState.dexa.length - 1];
 
   // ── AI Insight ──────────────────────────────────────────────────
-  async function handleGetInsight() {
-    const key = await getAnthropicKey();
+  async function handleGetInsight(directKey?: string) {
+    const key = directKey ?? await getAnthropicKey();
     if (!key) {
       setShowApiKeyInput(true);
       return;
@@ -172,13 +172,11 @@ export function ProgressScreen() {
     const result = await getInsight(key, healthData, appState, userProfile);
     setInsightLoading(false);
     if (result.authError) {
-      await removeAnthropicKey();
-      setShowApiKeyInput(true);
-      setInsight("Your personalized coaching insight will appear here.");
+      setInsight("API key rejected — tap ⚙ to update it.");
     } else if (result.success && result.text) {
       setInsight(result.text);
     } else {
-      setInsight(result.error || "An error occurred.");
+      setInsight(result.error || "An error occurred. Check your network and try again.");
     }
   }
 
@@ -192,7 +190,7 @@ export function ProgressScreen() {
     setShowApiKeyInput(false);
     setApiKeyInput("");
     setApiKeyError("");
-    handleGetInsight();
+    handleGetInsight(k);
   }
 
   return (
