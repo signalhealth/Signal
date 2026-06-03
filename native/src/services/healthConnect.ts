@@ -3,6 +3,7 @@ import {
   requestPermission,
   getGrantedPermissions,
   readRecords,
+  aggregateGroupByPeriod,
   Permission,
 } from "react-native-health-connect";
 import { Linking } from "react-native";
@@ -96,21 +97,21 @@ async function readWeight(days = 45): Promise<DataPoint[]> {
 
 async function readSteps(days = 45): Promise<DataPoint[]> {
   try {
-    const result = await readRecords("Steps", {
+    const results = await aggregateGroupByPeriod({
+      recordType: "Steps",
       timeRangeFilter: {
         operator: "between",
         startTime: daysAgoISO(days),
         endTime: new Date().toISOString(),
       },
+      timeRangeSlicer: { period: "DAYS", length: 1 },
     });
-    // Aggregate by day
-    const map = new Map<string, number>();
-    for (const r of result.records) {
-      const dateStr = toDateStr(r.startTime);
-      map.set(dateStr, (map.get(dateStr) || 0) + r.count);
-    }
-    return Array.from(map.entries())
-      .map(([date, value]) => ({ date, value }))
+    return results
+      .filter((r) => (r.result as any).COUNT_TOTAL > 0)
+      .map((r) => ({
+        date: toDateStr(r.startTime),
+        value: (r.result as any).COUNT_TOTAL as number,
+      }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
