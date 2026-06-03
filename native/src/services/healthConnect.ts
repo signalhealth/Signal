@@ -8,7 +8,7 @@ import {
 } from "react-native-health-connect";
 import { Linking } from "react-native";
 
-const PERMISSIONS: Permission[] = [
+const PERMISSIONS: (Permission | { accessType: "read"; recordType: "ReadHealthDataHistory" })[] = [
   { accessType: "read", recordType: "Weight" },
   { accessType: "read", recordType: "Steps" },
   { accessType: "read", recordType: "SleepSession" },
@@ -17,6 +17,7 @@ const PERMISSIONS: Permission[] = [
   { accessType: "read", recordType: "Nutrition" },
   { accessType: "read", recordType: "ExerciseSession" },
   { accessType: "read", recordType: "BodyFat" },
+  { accessType: "read", recordType: "ReadHealthDataHistory" },
 ];
 import {
   DataPoint,
@@ -291,14 +292,14 @@ async function readBodyFat(days = 45): Promise<DataPoint[]> {
 export async function readAllHealthData(): Promise<HealthData> {
   const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat] =
     await Promise.allSettled([
-      readWeight(90),
-      readSteps(90),
-      readSleep(90),
-      readHRV(90),
-      readRHR(90),
-      readNutrition(90),
-      readExercise(90),
-      readBodyFat(90),
+      readWeight(730),
+      readSteps(730),
+      readSleep(730),
+      readHRV(730),
+      readRHR(730),
+      readNutrition(730),
+      readExercise(730),
+      readBodyFat(730),
     ]);
 
   return {
