@@ -49,6 +49,7 @@ const defaultAppState: AppState = {
   labs: [],
   recovery: [],
   micros: [],
+  water: [],
 };
 
 export const HealthContext = createContext<HealthContextValue>({

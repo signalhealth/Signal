@@ -15,6 +15,7 @@ export interface UserProfile {
   proteinTarget: string;
   carbTarget: string;
   fatTarget: string;
+  waterGoalOz: string;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -34,6 +35,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   proteinTarget: "",
   carbTarget: "",
   fatTarget: "",
+  waterGoalOz: "",
 };
 
 export interface DataPoint {
@@ -97,11 +99,17 @@ export interface MicroGoal {
   unit: string;
 }
 
+export interface WaterEntry {
+  date: string; // YYYY-MM-DD
+  oz: number;   // daily total
+}
+
 export interface AppState {
   dexa: DexaScan[];
   labs: LabResult[];
   recovery: RecoveryNote[];
   micros: MicroGoal[];
+  water: WaterEntry[];
 }
 
 export type FuelCtx = {

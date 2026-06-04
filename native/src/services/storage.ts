@@ -5,6 +5,7 @@ import {
   LabResult,
   MicroGoal,
   RecoveryNote,
+  WaterEntry,
   DEFAULT_MICROS,
   UserProfile,
   DEFAULT_PROFILE,
@@ -44,6 +45,7 @@ const DEFAULT_STATE: AppState = {
   labs: [],
   recovery: [],
   micros: DEFAULT_MICROS,
+  water: [],
 };
 
 export async function loadAppState(): Promise<AppState> {
@@ -60,6 +62,7 @@ export async function loadAppState(): Promise<AppState> {
         ...DEFAULT_STATE,
         ...parsed,
         micros: parsed.micros || DEFAULT_MICROS,
+        water: parsed.water || [],
       };
     } else {
       state = { ...DEFAULT_STATE };

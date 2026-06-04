@@ -269,6 +269,15 @@ export function ProfileModal({ visible, onClose }: Props) {
               />
             </View>
           </View>
+          <View style={{ width: "50%", paddingRight: 4 }}>
+            <Field
+              label="Water Goal (oz)"
+              value={draft.waterGoalOz}
+              onChangeText={(v) => set("waterGoalOz", v)}
+              placeholder="e.g. 64"
+              keyboardType="numeric"
+            />
+          </View>
 
           <Text style={styles.section}>AI ANALYSIS</Text>
           {apiKeySaved ? (
