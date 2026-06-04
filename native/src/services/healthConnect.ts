@@ -17,6 +17,7 @@ const PERMISSIONS: (Permission | { accessType: "read"; recordType: "ReadHealthDa
   { accessType: "read", recordType: "Nutrition" },
   { accessType: "read", recordType: "ExerciseSession" },
   { accessType: "read", recordType: "BodyFat" },
+  { accessType: "read", recordType: "LeanBodyMass" },
   { accessType: "read", recordType: "ReadHealthDataHistory" },
 ];
 import {
@@ -281,11 +282,36 @@ async function readBodyFat(days = 45): Promise<DataPoint[]> {
         endTime: new Date().toISOString(),
       },
     });
-    return result.records
-      .map((r) => ({
-        date: toDateStr(r.time),
-        value: Math.round(r.percentage * 10) / 10,
-      }))
+    const map = new Map<string, number>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.time);
+      // Keep last entry per day
+      map.set(dateStr, Math.round(r.percentage * 10) / 10);
+    }
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch {
+    return [];
+  }
+}
+
+async function readLeanMass(days = 45): Promise<DataPoint[]> {
+  try {
+    const result = await readRecords("LeanBodyMass", {
+      timeRangeFilter: {
+        operator: "between",
+        startTime: daysAgoISO(days),
+        endTime: new Date().toISOString(),
+      },
+    });
+    const map = new Map<string, number>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.time);
+      map.set(dateStr, Math.round(r.mass.inPounds * 10) / 10);
+    }
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
@@ -293,7 +319,7 @@ async function readBodyFat(days = 45): Promise<DataPoint[]> {
 }
 
 export async function readAllHealthData(): Promise<HealthData> {
-  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat] =
+  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass] =
     await Promise.allSettled([
       readWeight(730),
       readSteps(730),
@@ -303,6 +329,7 @@ export async function readAllHealthData(): Promise<HealthData> {
       readNutrition(730),
       readExercise(730),
       readBodyFat(730),
+      readLeanMass(730),
     ]);
 
   return {
@@ -314,5 +341,6 @@ export async function readAllHealthData(): Promise<HealthData> {
     nutrition: nutrition.status === "fulfilled" ? nutrition.value : [],
     exercise: exercise.status === "fulfilled" ? exercise.value : [],
     bodyFat: bodyFat.status === "fulfilled" ? bodyFat.value : [],
+    leanMass: leanMass.status === "fulfilled" ? leanMass.value : [],
   };
 }

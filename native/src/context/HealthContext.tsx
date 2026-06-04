@@ -41,6 +41,7 @@ const emptyHealthData: HealthData = {
   exercise: [],
   nutrition: [],
   bodyFat: [],
+  leanMass: [],
 };
 
 const defaultAppState: AppState = {

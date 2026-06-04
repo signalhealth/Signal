@@ -159,6 +159,22 @@ export function ProgressScreen() {
   // ── DEXA ────────────────────────────────────────────────────────
   const latestDexa = appState.dexa[appState.dexa.length - 1];
 
+  // ── Body Composition (scale > DEXA fallback) ─────────────────────
+  const [bfDays, setBfDays] = useState(30);
+  const bfSorted = [...healthData.bodyFat].sort((a, b) => a.date.localeCompare(b.date));
+  const lmSorted = [...healthData.leanMass].sort((a, b) => a.date.localeCompare(b.date));
+  const latestBFEntry = bfSorted[bfSorted.length - 1];
+  const latestLMEntry = lmSorted[lmSorted.length - 1];
+  const latestBF = latestBFEntry?.value ?? latestDexa?.bodyFat;
+  const latestLM = latestLMEntry?.value ?? latestDexa?.leanMass;
+  const bfFromScale = latestBFEntry !== undefined;
+  const lmFromScale = latestLMEntry !== undefined;
+  const bfWindowStart = (() => {
+    const d = new Date(Date.now() - bfDays * 86400000);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const bfTrend = bfSorted.filter((d) => d.date >= bfWindowStart);
+
   // ── AI Insight ──────────────────────────────────────────────────
   async function handleGetInsight() {
     const key = await getAnthropicKey();
@@ -345,25 +361,69 @@ export function ProgressScreen() {
 
       {/* ── Body Composition ── */}
       <Card>
-        <Text style={styles.lbl}>BODY COMPOSITION</Text>
-        {latestDexa ? (
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.lbl}>BODY COMPOSITION</Text>
+          {bfTrend.length > 0 && (
+            <View style={styles.pills}>
+              {([30, 60, 90] as const).map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  onPress={() => setBfDays(d)}
+                  style={[styles.pill, bfDays === d && styles.pillOn]}
+                >
+                  <Text style={[styles.pillText, bfDays === d && styles.pillTextOn]}>
+                    {d}D
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {(latestBF !== undefined || latestLM !== undefined) ? (
           <>
-            <Text style={styles.dexaDate}>DEXA · {fmtDate(latestDexa.date)}</Text>
-            {(() => {
-              const bf = latestDexa.bodyFat;
-              const bfColor = bf > 22 ? COLORS.red : bf > 18 ? COLORS.amber : COLORS.green;
-              const bfFill = Math.min(1, Math.max(0, (36 - bf) / (36 - 15)));
+            <View style={styles.compRow}>
+              <View style={styles.compCell}>
+                <Text style={styles.compLabel}>Body Fat</Text>
+                <Text style={[styles.compValue, {
+                  color: latestBF !== undefined
+                    ? latestBF > 22 ? COLORS.red : latestBF > 18 ? COLORS.amber : COLORS.green
+                    : COLORS.gray2,
+                }]}>
+                  {latestBF?.toFixed(1) ?? "—"}%
+                </Text>
+                <Text style={styles.compSource}>{bfFromScale ? "SCALE" : latestDexa ? "DEXA" : ""}</Text>
+              </View>
+              <View style={[styles.compCell, styles.compCellBorder]}>
+                <Text style={styles.compLabel}>Lean Mass</Text>
+                <Text style={[styles.compValue, {
+                  color: latestLM !== undefined
+                    ? latestLM < 121 ? COLORS.red : latestLM < 127 ? COLORS.amber : COLORS.green
+                    : COLORS.gray2,
+                }]}>
+                  {latestLM?.toFixed(1) ?? "—"} lbs
+                </Text>
+                <Text style={styles.compSource}>{lmFromScale ? "SCALE" : latestDexa ? "DEXA" : ""}</Text>
+              </View>
+              <View style={styles.compCell}>
+                <Text style={styles.compLabel}>Weight</Text>
+                <Text style={[styles.compValue, {
+                  color: latestWt !== undefined
+                    ? latestWt > 175 ? COLORS.red : latestWt > 165 ? COLORS.amber : COLORS.green
+                    : COLORS.gray2,
+                }]}>
+                  {latestWt?.toFixed(1) ?? "—"} lbs
+                </Text>
+                <Text style={styles.compSource}>{wtDateLabel.toUpperCase()}</Text>
+              </View>
+            </View>
 
-              const lm = latestDexa.leanMass;
-              const lmColor = lm < 121 ? COLORS.red : lm < 127 ? COLORS.amber : COLORS.green;
-              const lmFill = Math.min(1, Math.max(0, (lm - 117.5) / (132 - 117.5)));
-
-              const sw = latestWt ?? latestDexa.weight;
-              const swColor = sw > 175 ? COLORS.red : sw > 165 ? COLORS.amber : COLORS.green;
-              const swFill = Math.min(1, Math.max(0, (189 - sw) / (189 - 155)));
-
-              return (
-                <>
+            <View style={{ marginTop: 20 }}>
+              {latestBF !== undefined && (() => {
+                const bf = latestBF;
+                const bfColor = bf > 22 ? COLORS.red : bf > 18 ? COLORS.amber : COLORS.green;
+                const bfFill = Math.min(1, Math.max(0, (36 - bf) / (36 - 15)));
+                return (
                   <GoalProgressBar
                     label="Body Fat"
                     value={bf}
@@ -374,6 +434,13 @@ export function ProgressScreen() {
                     goalLabel="Goal 15%"
                     theme={theme}
                   />
+                );
+              })()}
+              {latestLM !== undefined && (() => {
+                const lm = latestLM;
+                const lmColor = lm < 121 ? COLORS.red : lm < 127 ? COLORS.amber : COLORS.green;
+                const lmFill = Math.min(1, Math.max(0, (lm - 117.5) / (132 - 117.5)));
+                return (
                   <GoalProgressBar
                     label="Lean Mass"
                     value={lm}
@@ -384,6 +451,13 @@ export function ProgressScreen() {
                     goalLabel="Goal 132 lbs"
                     theme={theme}
                   />
+                );
+              })()}
+              {latestWt !== undefined && (() => {
+                const sw = latestWt;
+                const swColor = sw > 175 ? COLORS.red : sw > 165 ? COLORS.amber : COLORS.green;
+                const swFill = Math.min(1, Math.max(0, (189 - sw) / (189 - 155)));
+                return (
                   <GoalProgressBar
                     label="Scale Weight"
                     value={sw}
@@ -394,13 +468,20 @@ export function ProgressScreen() {
                     goalLabel="Goal 155 lbs"
                     theme={theme}
                   />
-                </>
-              );
-            })()}
+                );
+              })()}
+            </View>
+
+            {bfTrend.length > 1 && (
+              <View style={{ marginTop: 4 }}>
+                <Text style={[styles.lbl, { marginBottom: 8 }]}>BF% TREND</Text>
+                <WeightChart data={bfTrend} height={100} />
+              </View>
+            )}
           </>
         ) : (
           <Text style={styles.emptyNote}>
-            Add a DEXA scan below to see body composition.
+            Sync your scale to Health Connect — or add a DEXA scan below.
           </Text>
         )}
       </Card>
@@ -727,6 +808,41 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       marginBottom: 4,
     },
     trackFill: { height: "100%", borderRadius: 99 },
+
+    compRow: {
+      flexDirection: "row",
+      marginTop: 4,
+    },
+    compCell: {
+      flex: 1,
+      alignItems: "center",
+    },
+    compCellBorder: {
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    compLabel: {
+      fontSize: 11,
+      fontWeight: "600",
+      letterSpacing: 0.8,
+      color: theme.textTertiary,
+      textTransform: "uppercase",
+      marginBottom: 6,
+    },
+    compValue: {
+      fontSize: 24,
+      fontWeight: "700",
+      lineHeight: 28,
+    },
+    compSource: {
+      fontSize: 9,
+      fontWeight: "600",
+      letterSpacing: 0.8,
+      color: theme.textTertiary,
+      textTransform: "uppercase",
+      marginTop: 4,
+    },
 
     dexaDate: {
       fontSize: 11,
