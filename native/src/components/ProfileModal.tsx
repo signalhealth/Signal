@@ -227,6 +227,49 @@ export function ProfileModal({ visible, onClose }: Props) {
             multiline
           />
 
+          <Text style={styles.section}>FUEL TARGETS</Text>
+          <Text style={styles.sectionHint}>Leave blank to hide targets on the Fuel screen.</Text>
+          <View style={styles.row}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Field
+                label="Calories (kcal)"
+                value={draft.calorieTarget}
+                onChangeText={(v) => set("calorieTarget", v)}
+                placeholder="e.g. 1800"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="Protein (g)"
+                value={draft.proteinTarget}
+                onChangeText={(v) => set("proteinTarget", v)}
+                placeholder="e.g. 180"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Field
+                label="Carbs (g)"
+                value={draft.carbTarget}
+                onChangeText={(v) => set("carbTarget", v)}
+                placeholder="e.g. 160"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="Fat (g)"
+                value={draft.fatTarget}
+                onChangeText={(v) => set("fatTarget", v)}
+                placeholder="e.g. 60"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
           <Text style={styles.section}>AI ANALYSIS</Text>
           {apiKeySaved ? (
             <View style={styles.keySavedRow}>
@@ -310,6 +353,13 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginTop: 24,
     marginBottom: 12,
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.3)",
+    marginTop: -8,
+    marginBottom: 12,
+    lineHeight: 18,
   },
   field: {
     marginBottom: 12,

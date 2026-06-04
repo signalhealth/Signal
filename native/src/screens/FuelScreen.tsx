@@ -13,6 +13,11 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { FuelCtx, MACRO_TARGETS, DEFAULT_MICROS } from "../types/health";
+
+function parseMacroTarget(val: string, fallback: number): number {
+  const n = parseInt(val, 10);
+  return isNaN(n) || n <= 0 ? fallback : n;
+}
 import { analyzeFuel as analyzeWithAI } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
@@ -51,7 +56,7 @@ function MacroBox({
 }: {
   label: string;
   value: number | undefined;
-  target: string;
+  target: string | null;
   unit: string;
   color: string;
   theme: ThemeColors;
@@ -62,9 +67,11 @@ function MacroBox({
       <Text style={[macroStyles.value, { color }]}>
         {value !== undefined ? value : "—"}
       </Text>
-      <Text style={[macroStyles.target, { color: theme.textTertiary }]}>
-        / {target} {unit}
-      </Text>
+      {target !== null && (
+        <Text style={[macroStyles.target, { color: theme.textTertiary }]}>
+          / {target} {unit}
+        </Text>
+      )}
     </View>
   );
 }
@@ -112,6 +119,20 @@ export function FuelScreen() {
   const [fuelLoading, setFuelLoading] = useState(false);
   const [calDays, setCalDays] = useState(14);
   const [refreshing, setRefreshing] = useState(false);
+
+  const hasAnyTarget =
+    userProfile.calorieTarget ||
+    userProfile.proteinTarget ||
+    userProfile.carbTarget ||
+    userProfile.fatTarget;
+  const targets = hasAnyTarget
+    ? {
+        calories: parseMacroTarget(userProfile.calorieTarget, MACRO_TARGETS.calories),
+        protein: parseMacroTarget(userProfile.proteinTarget, MACRO_TARGETS.protein),
+        carbs: parseMacroTarget(userProfile.carbTarget, MACRO_TARGETS.carbs),
+        fat: parseMacroTarget(userProfile.fatTarget, MACRO_TARGETS.fat),
+      }
+    : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -227,7 +248,7 @@ export function FuelScreen() {
           <MacroBox
             label="Calories"
             value={todayNutrition?.cals}
-            target={MACRO_TARGETS.calories.toLocaleString()}
+            target={targets ? targets.calories.toLocaleString() : null}
             unit="kcal"
             color={theme.text}
             theme={theme}
@@ -235,7 +256,7 @@ export function FuelScreen() {
           <MacroBox
             label="Protein"
             value={todayNutrition?.protein}
-            target={`${MACRO_TARGETS.protein}g`}
+            target={targets ? `${targets.protein}g` : null}
             unit=""
             color={COLORS.green}
             theme={theme}
@@ -245,7 +266,7 @@ export function FuelScreen() {
           <MacroBox
             label="Carbs"
             value={todayNutrition?.carbs}
-            target={`${MACRO_TARGETS.carbs}g`}
+            target={targets ? `${targets.carbs}g` : null}
             unit=""
             color={COLORS.blue}
             theme={theme}
@@ -253,45 +274,45 @@ export function FuelScreen() {
           <MacroBox
             label="Fat"
             value={todayNutrition?.fat}
-            target={`${MACRO_TARGETS.fat}g`}
+            target={targets ? `${targets.fat}g` : null}
             unit=""
             color={COLORS.amber}
             theme={theme}
           />
         </View>
 
-        {todayNutrition && (
+        {todayNutrition && targets && (
           <View style={{ marginTop: 16 }}>
             <MacroProgressBar
               label="Calories"
               value={todayNutrition.cals}
-              max={MACRO_TARGETS.calories}
+              max={targets.calories}
               color={COLORS.blue}
-              displayVal={`${todayNutrition.cals} / ${MACRO_TARGETS.calories}`}
+              displayVal={`${todayNutrition.cals} / ${targets.calories}`}
               theme={theme}
             />
             <MacroProgressBar
               label="Protein"
               value={todayNutrition.protein}
-              max={MACRO_TARGETS.protein}
+              max={targets.protein}
               color={COLORS.green}
-              displayVal={`${todayNutrition.protein}g / ${MACRO_TARGETS.protein}g`}
+              displayVal={`${todayNutrition.protein}g / ${targets.protein}g`}
               theme={theme}
             />
             <MacroProgressBar
               label="Carbs"
               value={todayNutrition.carbs}
-              max={MACRO_TARGETS.carbs}
+              max={targets.carbs}
               color={COLORS.blue}
-              displayVal={`${todayNutrition.carbs}g / ${MACRO_TARGETS.carbs}g`}
+              displayVal={`${todayNutrition.carbs}g / ${targets.carbs}g`}
               theme={theme}
             />
             <MacroProgressBar
               label="Fat"
               value={todayNutrition.fat}
-              max={MACRO_TARGETS.fat}
+              max={targets.fat}
               color={COLORS.amber}
-              displayVal={`${todayNutrition.fat}g / ${MACRO_TARGETS.fat}g`}
+              displayVal={`${todayNutrition.fat}g / ${targets.fat}g`}
               last
               theme={theme}
             />
@@ -401,20 +422,21 @@ export function FuelScreen() {
         {calHistory.length > 0 ? (
           <>
             <Text style={styles.calHistoryLabel}>
-              Avg: {Math.round(avg(calHistory.map((n) => n.cals)))} kcal ·
-              Target: {MACRO_TARGETS.calories.toLocaleString()} kcal
+              {`Avg: ${Math.round(avg(calHistory.map((n) => n.cals)))} kcal`}
+              {targets ? ` · Target: ${targets.calories.toLocaleString()} kcal` : ""}
             </Text>
             <LineChart
               data={calHistory.map((n) => ({ date: n.date, value: n.cals }))}
               height={140}
               barMode
-              barColorFn={(v) =>
-                v >= MACRO_TARGETS.calories - 100 && v <= MACRO_TARGETS.calories + 100
+              barColorFn={(v) => {
+                if (!targets) return "rgba(96,175,255,0.8)";
+                return v >= targets.calories - 100 && v <= targets.calories + 100
                   ? "rgba(96,175,255,0.8)"
-                  : v > MACRO_TARGETS.calories + 100
+                  : v > targets.calories + 100
                   ? "rgba(255,59,48,0.7)"
-                  : "rgba(255,170,0,0.7)"
-              }
+                  : "rgba(255,170,0,0.7)";
+              }}
               minVal={0}
               maxVal={2400}
             />

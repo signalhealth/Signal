@@ -11,6 +11,10 @@ export interface UserProfile {
   trainingDaysPerWeek: string;
   trainingProgram: string;
   additionalContext: string;
+  calorieTarget: string;
+  proteinTarget: string;
+  carbTarget: string;
+  fatTarget: string;
 }
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -26,6 +30,10 @@ export const DEFAULT_PROFILE: UserProfile = {
   trainingDaysPerWeek: "",
   trainingProgram: "",
   additionalContext: "",
+  calorieTarget: "",
+  proteinTarget: "",
+  carbTarget: "",
+  fatTarget: "",
 };
 
 export interface DataPoint {
