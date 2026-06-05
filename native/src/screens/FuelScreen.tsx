@@ -12,6 +12,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
+import { MarkdownResult } from "../components/MarkdownResult";
 import { FuelCtx, MACRO_TARGETS, DEFAULT_MICROS } from "../types/health";
 
 function parseMacroTarget(val: string, fallback: number): number {
@@ -485,7 +486,7 @@ export function FuelScreen() {
       {/* ── AI Fuel Advisor ── */}
       <View style={styles.fuelAdvisorCard}>
         <Text style={styles.fuelAdvisorLabel}>SIGNAL FUEL ADVISOR</Text>
-        <Text style={styles.fuelResultText}>{fuelResult}</Text>
+        <MarkdownResult theme={theme}>{fuelResult}</MarkdownResult>
         <TouchableOpacity
           style={[styles.analyzeBtn, fuelLoading && { opacity: 0.6 }]}
           onPress={handleAnalyze}

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
+import { MarkdownResult } from "../components/MarkdownResult";
 import { LabResult } from "../types/health";
 import { analyzeLab } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
@@ -346,7 +347,7 @@ export function LabsScreen() {
             {selectedLab.status !== "green" ? (selectedLab.direction === "low" ? " ↓ LOW" : " ↑ HIGH") : ""}
           </Text>
         )}
-        <Text style={styles.analysisText}>{labAnalysis}</Text>
+        <MarkdownResult theme={theme} fontSize={13}>{labAnalysis}</MarkdownResult>
         <TouchableOpacity
           style={[styles.analyzeBtn, (!selectedLabId || labAnalysisLoading) && { opacity: 0.5 }]}
           onPress={handleAnalyzeLab}

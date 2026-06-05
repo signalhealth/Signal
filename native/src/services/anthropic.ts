@@ -1,4 +1,4 @@
-import { HealthData, AppState, FuelCtx, UserProfile, LabResult, MACRO_TARGETS } from "../types/health";
+import { HealthData, AppState, FuelCtx, UserProfile, LabResult, MACRO_TARGETS, WaterEntry } from "../types/health";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-6";
@@ -7,6 +7,17 @@ function localDate(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+function timeOfDay(): "morning" | "midday" | "evening" {
+  const h = new Date().getHours();
+  if (h < 11) return "morning";
+  if (h < 16) return "midday";
+  return "evening";
+}
+
+const PANTRY = `PANTRY (the ONLY foods you may recommend — never suggest anything not on this list):
+[PANTRY LIST NOT SET — the user has not provided their pantry yet]`;
+
 
 function avg(arr: number[]): number {
   if (!arr.length) return 0;
@@ -201,6 +212,7 @@ export async function analyzeFuel(
   profile: UserProfile
 ): Promise<AnthropicResult> {
   const today = localDate();
+  const tod = timeOfDay();
   const todayNutrition = data.nutrition.find((n) => n.date === today) ?? null;
 
   const cals = todayNutrition?.cals ?? 0;
@@ -208,8 +220,19 @@ export async function analyzeFuel(
   const carbs = todayNutrition?.carbs ?? 0;
   const fat = todayNutrition?.fat ?? 0;
 
+  const calTarget = profile.calorieTarget ? parseInt(profile.calorieTarget, 10) : MACRO_TARGETS.calories;
+  const proteinTarget = profile.proteinTarget ? parseInt(profile.proteinTarget, 10) : MACRO_TARGETS.protein;
+  const carbTarget = profile.carbTarget ? parseInt(profile.carbTarget, 10) : MACRO_TARGETS.carbs;
+  const fatTarget = profile.fatTarget ? parseInt(profile.fatTarget, 10) : MACRO_TARGETS.fat;
+
   const weightSorted = [...data.weight].sort((a, b) => a.date.localeCompare(b.date));
   const latestWeight = weightSorted[weightSorted.length - 1]?.value ?? null;
+
+  const bfSorted = [...data.bodyFat].sort((a, b) => a.date.localeCompare(b.date));
+  const latestBF = bfSorted[bfSorted.length - 1]?.value ?? appState.dexa[appState.dexa.length - 1]?.bodyFat ?? null;
+
+  const lmSorted = [...data.leanMass].sort((a, b) => a.date.localeCompare(b.date));
+  const latestLM = lmSorted[lmSorted.length - 1]?.value ?? appState.dexa[appState.dexa.length - 1]?.leanMass ?? null;
 
   const hrvSorted = [...data.hrv].sort((a, b) => a.date.localeCompare(b.date));
   const latestHRV = hrvSorted[hrvSorted.length - 1]?.value ?? null;
@@ -217,42 +240,47 @@ export async function analyzeFuel(
   const sleepSorted = [...data.sleep].sort((a, b) => a.date.localeCompare(b.date));
   const latestSleep = sleepSorted[sleepSorted.length - 1]?.value ?? null;
 
-  const latestDexa = appState.dexa[appState.dexa.length - 1] ?? null;
-
   const recentTraining = data.exercise
     .slice(0, 3)
     .map((e) => `${e.title} (${e.duration}min)`)
     .join(", ");
 
-  const remaining = {
-    cals: MACRO_TARGETS.calories - cals,
-    protein: Math.max(0, MACRO_TARGETS.protein - protein),
-  };
+  const todayWaterOz = (appState.water as WaterEntry[]).find((w) => w.date === today)?.oz ?? 0;
 
   const profileSection = buildProfileSection(profile);
 
+  const mealWindow = tod === "morning"
+    ? "breakfast or morning meal"
+    : tod === "midday"
+    ? "lunch or midday meal"
+    : "dinner or evening meal";
+
   const prompt = `You are Signal, a precision health intelligence advisor. Give a specific, actionable nutrition recommendation.
 ${profileSection ? "\n" + profileSection + "\n" : ""}
+TIME OF DAY: ${tod.toUpperCase()} — recommend ${mealWindow} options.
+
 TODAY'S DATA:
 - Weight: ${latestWeight !== null ? latestWeight + " lbs" : "unavailable"}
-${latestDexa ? `- Body composition: ${latestDexa.bodyFat}% body fat, ${latestDexa.leanMass} lbs lean mass (DEXA ${latestDexa.date})` : ""}
-- Calories consumed: ${cals} kcal (remaining: ${remaining.cals} kcal of ${MACRO_TARGETS.calories} target)
-- Protein: ${protein}g (remaining: ${remaining.protein}g of ${MACRO_TARGETS.protein}g target)
-- Carbs: ${carbs}g (target: ${MACRO_TARGETS.carbs}g)
-- Fat: ${fat}g (target: ${MACRO_TARGETS.fat}g)
+${latestBF !== null ? `- Body fat: ${latestBF}%` : ""}
+${latestLM !== null ? `- Lean mass: ${latestLM} lbs` : ""}
+- Calories consumed: ${cals} kcal (remaining: ${calTarget - cals} kcal of ${calTarget} target)
+- Protein: ${protein}g (remaining: ${Math.max(0, proteinTarget - protein)}g of ${proteinTarget}g target)
+- Carbs: ${carbs}g (target: ${carbTarget}g)
+- Fat: ${fat}g (target: ${fatTarget}g)
+- Water: ${todayWaterOz} oz today
 - Trained today: ${fuelCtx.trained ?? "unknown"}
 - Sleep last night: ${latestSleep !== null ? latestSleep + "h" : "unavailable"} (${fuelCtx.sleep ?? "unknown"} quality)
 - HRV: ${latestHRV !== null ? latestHRV + " ms" : "unavailable"}
 - Recent workouts: ${recentTraining || "none logged"}
 - Goal priority today: ${fuelCtx.goal}
 
-Give a specific recommendation for the next meal or eating window. Include:
-1. What to eat (specific foods or meal type)
-2. Approximate macros to hit
-3. When to eat it
-4. One sentence of reasoning based on the data
+${PANTRY}
 
-Keep it under 100 words. Be direct and specific. No generic advice.`;
+RULES:
+- ONLY recommend foods from the pantry list above. Never suggest foods not on that list.
+- Tailor the recommendation to the time of day (${tod}: ${mealWindow}).
+- Use markdown formatting: bold the food names, use a short numbered or bulleted list.
+- Keep it under 150 words. Be direct. No generic advice.`;
 
-  return callAnthropic(apiKey, prompt, 300);
+  return callAnthropic(apiKey, prompt, 400);
 }

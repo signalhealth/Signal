@@ -14,6 +14,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { WeightChart, SparkBars } from "../components/WeightChart";
+import { MarkdownResult } from "../components/MarkdownResult";
 import { HRV_NORMAL_LOW, HRV_NORMAL_HIGH, SLEEP_TARGET } from "../types/health";
 import { getInsight } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
@@ -514,7 +515,7 @@ export function ProgressScreen() {
       {/* ── Signal Insight ── */}
       <View style={styles.insightCard}>
         <Text style={styles.insightLabel}>SIGNAL INSIGHT</Text>
-        <Text style={styles.insightText}>{insight}</Text>
+        <MarkdownResult theme={theme} fontSize={15}>{insight}</MarkdownResult>
         <TouchableOpacity
           style={[styles.insightBtn, insightLoading && { opacity: 0.6 }]}
           onPress={handleGetInsight}
