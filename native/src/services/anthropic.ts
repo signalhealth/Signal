@@ -15,8 +15,55 @@ function timeOfDay(): "morning" | "midday" | "evening" {
   return "evening";
 }
 
-const PANTRY = `PANTRY (the ONLY foods you may recommend — never suggest anything not on this list):
-[PANTRY LIST NOT SET — the user has not provided their pantry yet]`;
+const PANTRY = `PANTRY — the ONLY foods you may recommend. Never suggest anything not on this list.
+
+PROTEINS:
+- Egg Whites (Kirkland) — 110g: 60 cal, 12P, 0F, 0C
+- Free Range Eggs (Happy Egg) — 1 egg (50g): 70 cal, 6P, 5F, 0C
+- Chicken Sausage (ButcherBox) — 3 links (60g): 110 cal, 11P, 7F, 1C
+- Raw Chicken (Costco) — 112g: 110 cal, 26P, 0F, 0C
+- Ground Turkey 93/7 Cooked — 4oz (113g): 242 cal, 31P, 13F, 0C
+- Ground Beef Cooked — 3.2oz (91g): 191 cal, 16P, 13F, 2C
+- Sprouts Beef — 100g: 143 cal, 21P, 7F, 0C
+- Blackened Salmon (Kirkland) — 5.5oz (156g): 308 cal, 30P, 21F, 0C
+- Steak Bites (Fresh Additions) — 1 serving (91g): 120 cal, 20P, 3F, 1C
+
+DAIRY:
+- Oikos Triple Zero Yogurt (Dannon) — 1 container (150g): 100 cal, 15P, 0F, 10C
+- Cottage Cheese (Kroger) — 100g: 71 cal, 12P, 0F, 5C
+- Cottage Cheese Probiotic (Nancy's) — 1 serving (110g): 60 cal, 14P, 1F, 3C
+- Almond Milk Vanilla Unsweetened (Blue Diamond) — 4oz: 14 cal, 1P, 1F, 0C
+- Reddi Wip Zero — 2 tbsp (5g): 15 cal, 0P, 2F, 0C
+
+PROTEIN SHAKES & BARS:
+- Orgain 30g Protein Shake — 1 carton (330g): 160 cal, 30P, 3F, 7C
+- Orgain Chocolate Protein Milk Shake — 1 carton (330g): 160 cal, 30P, 3F, 5C
+- Cbum Vanilla Oatmeal Cookie (protein powder) — 1 scoop (33g): 120 cal, 25P, 1F, 3C
+- Strawberry Bumcake (Bum protein powder) — 1 scoop (32g): 110 cal, 25P, 0F, 1C
+- Built Bar — 1 bar (40g): 140 cal, 17P, 2F, 12C
+- G2G Bar — 1 bar (70g): 300 cal, 18P, 14F, 25C
+- Quest Mint Chocolate Chunk — 1 bar (60g): 170 cal, 20P, 6F, 24C
+- Quest Chocolate Chip Cookie Dough — 1 bar (60g): 190 cal, 21P, 9F, 22C
+- Built Sour Puff Blue Razz — 1 bar (41g): 150 cal, 16P, 3F, 15C
+- Built Sour Puff Sweet Peach — 1 bar (41g): 150 cal, 16P, 2F, 15C
+
+BREADS & CARBS:
+- Big Bread Wolf Sourdough (Inked Bread) — 2 slices (54g): 60 cal, 8P, 2F, 22C
+- Multigrain Keto Bread (Sara Lee) — 2 slices (44g): 90 cal, 6P, 1F, 18C
+- Soft White Keto Bread (Nature's Own Life Keto): low-carb bread option
+- Red Idaho Potatoes (Grown In Idaho) — 200g: 149 cal, 4P, 0F, 35C
+- Apple Slices — 0.5 apple (90g): 47 cal, 0P, 0F, 12C
+- PB2 Powdered Peanut Butter — 1 serving (13g): 60 cal, 6P, 2F, 5C
+
+CONDIMENTS & EXTRAS:
+- Good Good Sweet Jam (stevia) — 1oz: 6 cal, 0P, 0F, 6C
+- Dates Syrup (Just) — 1 serving (7g): 20 cal, 0P, 0F, 5C
+- SALTT Electrolytes — 0 cal
+- Groovy Grapefruit Electrolyte (Saltt) — 1 stick: 1 cal
+
+PREPARED MEALS:
+- Mo Bettahs Lean Protein Plate — 1 plate: 652 cal, 76P, 8F, 67C`;
+
 
 
 function avg(arr: number[]): number {
