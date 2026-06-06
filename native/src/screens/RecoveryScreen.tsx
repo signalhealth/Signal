@@ -108,14 +108,15 @@ export function RecoveryScreen() {
     ? Math.round(avg(hrvSlice.map((d) => d.value)))
     : latestHRV;
 
+  const hrvBadgeVal = hrvPeriodAvg ?? latestHRV;
   const hrvBadge =
-    latestHRV === undefined
+    hrvBadgeVal === undefined
       ? null
-      : latestHRV >= HRV_NORMAL_HIGH
-      ? { text: `ELEVATED ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, cls: "green" as const }
-      : latestHRV >= HRV_NORMAL_LOW
-      ? { text: `IN RANGE ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, cls: "green" as const }
-      : { text: `BELOW ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH}ms`, cls: "amber" as const };
+      : hrvBadgeVal >= HRV_NORMAL_HIGH
+      ? { text: "ELEVATED", cls: "green" as const }
+      : hrvBadgeVal >= HRV_NORMAL_LOW
+      ? { text: "IN RANGE", cls: "green" as const }
+      : { text: "BELOW RANGE", cls: "amber" as const };
 
   // ── Sleep ────────────────────────────────────────────────────────
   const sleepSorted = [...healthData.sleep].sort((a, b) =>
@@ -128,14 +129,15 @@ export function RecoveryScreen() {
     ? avg(sleepSlice.map((d) => d.value))
     : lastNightSleep;
 
+  const sleepBadgeVal = sleepPeriodAvg ?? lastNightSleep;
   const sleepBadge =
-    lastNightSleep === undefined
+    sleepBadgeVal === undefined
       ? null
-      : lastNightSleep >= SLEEP_TARGET
-      ? { text: `ON TARGET ${SLEEP_TARGET}H`, cls: "green" as const }
-      : lastNightSleep >= 7.0
-      ? { text: `NEAR TARGET ${SLEEP_TARGET}H`, cls: "amber" as const }
-      : { text: `BELOW ${SLEEP_TARGET}H TARGET`, cls: "red" as const };
+      : sleepBadgeVal >= SLEEP_TARGET
+      ? { text: "ON TARGET", cls: "green" as const }
+      : sleepBadgeVal >= 7.0
+      ? { text: "NEAR TARGET", cls: "amber" as const }
+      : { text: "BELOW TARGET", cls: "red" as const };
 
   // ── RHR ──────────────────────────────────────────────────────────
   const seenRhr = new Map<string, number>();
@@ -152,14 +154,15 @@ export function RecoveryScreen() {
     ? Math.round(avg(rhrSlice.map((d) => d.value)))
     : latestRHR;
 
+  const rhrBadgeVal = rhrPeriodAvg ?? latestRHR;
   const rhrBadge =
-    latestRHR === undefined
+    rhrBadgeVal === undefined
       ? null
-      : latestRHR <= 55
-      ? { text: "EXCELLENT ≤55", cls: "green" as const }
-      : latestRHR <= 65
-      ? { text: "NORMAL 56–65", cls: "amber" as const }
-      : { text: "ELEVATED >65", cls: "red" as const };
+      : rhrBadgeVal <= 55
+      ? { text: "EXCELLENT", cls: "green" as const }
+      : rhrBadgeVal <= 65
+      ? { text: "NORMAL", cls: "amber" as const }
+      : { text: "ELEVATED", cls: "red" as const };
 
   // ── Recovery Notes ───────────────────────────────────────────────
   function addRecoveryNote() {
@@ -263,7 +266,7 @@ export function RecoveryScreen() {
       {/* ── HRV Card ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>HEART RATE VARIABILITY</Text>
+          <Text style={styles.lbl}>HRV</Text>
           <PillGroup value={hrvDays} onChange={setHrvDays} pillStyles={pillStylesMemo} />
         </View>
         <View style={styles.metricRow}>
@@ -309,10 +312,7 @@ export function RecoveryScreen() {
               ? "#FFAA00"
               : "#00D084"
           }
-          refLines={[
-            { value: HRV_NORMAL_HIGH, color: "rgba(96,175,255,0.3)" },
-            { value: HRV_NORMAL_LOW, color: "rgba(96,175,255,0.3)" },
-          ]}
+          rangeBand={{ low: HRV_NORMAL_LOW, high: HRV_NORMAL_HIGH, label: `Normal range: ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH} ms` }}
           minVal={0}
         />
       </Card>
@@ -320,7 +320,7 @@ export function RecoveryScreen() {
       {/* ── Sleep Card ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>SLEEP DURATION</Text>
+          <Text style={styles.lbl}>SLEEP</Text>
           <PillGroup value={sleepDays} onChange={setSleepDays} pillStyles={pillStylesMemo} />
         </View>
         <View style={styles.metricRow}>
@@ -364,6 +364,7 @@ export function RecoveryScreen() {
               ? "rgba(96,175,255,0.45)"
               : "rgba(255,59,48,0.55)"
           }
+          rangeBand={{ low: 7.5, high: 9, label: "Target range: 7.5–9 hr" }}
           minVal={0}
           maxVal={12}
         />
@@ -372,7 +373,7 @@ export function RecoveryScreen() {
       {/* ── RHR Card ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>RESTING HEART RATE</Text>
+          <Text style={styles.lbl}>RHR</Text>
           <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />
         </View>
         <View style={styles.metricRow}>
@@ -403,7 +404,14 @@ export function RecoveryScreen() {
             </View>
           )}
         </View>
-        <LineChart data={rhrSlice} height={120} color="#60AFFF" minVal={40} />
+        <LineChart
+          data={rhrSlice}
+          height={120}
+          color="#60AFFF"
+          rangeBand={{ low: 45, high: 65, label: "Normal range: 45–65 bpm" }}
+          minVal={40}
+          maxVal={90}
+        />
       </Card>
 
       {/* ── Recovery Notes ── */}

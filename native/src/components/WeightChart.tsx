@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import Svg, { Path, Polyline, Line, Text as SvgText } from "react-native-svg";
+import Svg, { Path, Polyline, Line, Text as SvgText, Rect } from "react-native-svg";
 import { DataPoint } from "../types/health";
 import { useTheme } from "../context/ThemeContext";
 
@@ -216,6 +216,7 @@ interface LineChartProps {
   showDots?: boolean;
   dotColorFn?: (v: number) => string;
   refLines?: Array<{ value: number; color: string }>;
+  rangeBand?: { low: number; high: number; color?: string; label?: string };
   minVal?: number;
   maxVal?: number;
   barMode?: boolean;
@@ -229,6 +230,7 @@ export function LineChart({
   showDots = false,
   dotColorFn,
   refLines,
+  rangeBand,
   minVal: _minVal,
   maxVal: _maxVal,
   barMode = false,
@@ -270,58 +272,82 @@ export function LineChart({
   if (barMode) {
     const barW = Math.max(2, (chartW / vals.length) * 0.75);
     const gap = (chartW - barW * vals.length) / Math.max(1, vals.length - 1);
+    const bandColor = rangeBand?.color ?? "rgba(0,200,100,0.13)";
     return (
-      <Svg width={chartW} height={chartH}>
-        {vals.map((v, i) => {
-          const barH = Math.max(2, ((v - minVal) / (maxVal - minVal)) * chartH);
-          const x = i * (barW + gap);
-          const y = chartH - barH;
-          const fc = barColorFn ? barColorFn(v) : color;
-          return (
-            <Path
-              key={i}
-              d={`M${x},${chartH} L${x},${y} L${x + barW},${y} L${x + barW},${chartH} Z`}
-              fill={fc}
-            />
-          );
-        })}
-      </Svg>
+      <View>
+        <Svg width={chartW} height={chartH}>
+          {rangeBand && (() => {
+            const y1 = Math.max(0, Math.min(chartH, toY(rangeBand.high)));
+            const y2 = Math.max(0, Math.min(chartH, toY(rangeBand.low)));
+            return (
+              <Rect x={0} y={Math.min(y1, y2)} width={chartW} height={Math.max(1, Math.abs(y2 - y1))} fill={bandColor} />
+            );
+          })()}
+          {vals.map((v, i) => {
+            const barH = Math.max(2, ((v - minVal) / (maxVal - minVal)) * chartH);
+            const x = i * (barW + gap);
+            const y = chartH - barH;
+            const fc = barColorFn ? barColorFn(v) : color;
+            return (
+              <Path
+                key={i}
+                d={`M${x},${chartH} L${x},${y} L${x + barW},${y} L${x + barW},${chartH} Z`}
+                fill={fc}
+              />
+            );
+          })}
+        </Svg>
+        {rangeBand?.label && (
+          <View style={legendStyles.row}>
+            <View style={[legendStyles.swatch, { backgroundColor: "rgba(0,200,100,0.45)" }]} />
+            <Text style={[legendStyles.text, { color: theme.textTertiary }]}>{rangeBand.label}</Text>
+          </View>
+        )}
+      </View>
     );
   }
 
   const points = vals.map((v, i) => ({ x: toX(i), y: toY(v) }));
   const linePath = buildPath(points, true);
+  const bandColor = rangeBand?.color ?? "rgba(0,200,100,0.13)";
 
   return (
-    <Svg width={chartW} height={chartH}>
-      {/* Reference lines */}
-      {refLines?.map((rl, i) => (
-        <Line
-          key={i}
-          x1={0}
-          y1={toY(rl.value)}
-          x2={chartW}
-          y2={toY(rl.value)}
-          stroke={rl.color}
-          strokeWidth={1}
-          strokeDasharray="4 4"
-        />
-      ))}
-      {/* Main line */}
-      <Path d={linePath} stroke={color} strokeWidth={2} fill="none" />
-      {/* Dots */}
-      {showDots &&
-        points.map((p, i) => {
-          const dc = dotColorFn ? dotColorFn(vals[i]) : color;
+    <View>
+      <Svg width={chartW} height={chartH}>
+        {/* Range band (behind everything) */}
+        {rangeBand && (() => {
+          const y1 = Math.max(padTop, Math.min(chartH - padBottom, toY(rangeBand.high)));
+          const y2 = Math.max(padTop, Math.min(chartH - padBottom, toY(rangeBand.low)));
           return (
-            <Path
-              key={i}
-              d={`M${p.x - 3},${p.y} a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0`}
-              fill={dc}
-            />
+            <Rect x={0} y={Math.min(y1, y2)} width={chartW} height={Math.max(1, Math.abs(y2 - y1))} fill={bandColor} />
           );
-        })}
-    </Svg>
+        })()}
+        {/* Legacy reference lines */}
+        {refLines?.map((rl, i) => (
+          <Line
+            key={i}
+            x1={0} y1={toY(rl.value)} x2={chartW} y2={toY(rl.value)}
+            stroke={rl.color} strokeWidth={1} strokeDasharray="4 4"
+          />
+        ))}
+        {/* Main line */}
+        <Path d={linePath} stroke={color} strokeWidth={2} fill="none" />
+        {/* Dots */}
+        {showDots &&
+          points.map((p, i) => {
+            const dc = dotColorFn ? dotColorFn(vals[i]) : color;
+            return (
+              <Path key={i} d={`M${p.x - 3},${p.y} a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0`} fill={dc} />
+            );
+          })}
+      </Svg>
+      {rangeBand?.label && (
+        <View style={legendStyles.row}>
+          <View style={[legendStyles.swatch, { backgroundColor: "rgba(0,200,100,0.45)" }]} />
+          <Text style={[legendStyles.text, { color: theme.textTertiary }]}>{rangeBand.label}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -335,4 +361,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 4,
   },
+});
+
+const legendStyles = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
+  swatch: { width: 10, height: 10, borderRadius: 2 },
+  text: { fontSize: 10, letterSpacing: 0.3 },
 });
