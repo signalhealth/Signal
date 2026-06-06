@@ -23,14 +23,13 @@ function pt(deg: number, r = R) {
   return { x: CX + r * Math.cos(rad), y: CY - r * Math.sin(rad) };
 }
 
-// arc from startDeg → endDeg going counterclockwise on screen (through the top)
+// arc from startDeg → endDeg going clockwise on screen (through the top)
 function arc(startDeg: number, endDeg: number, r = R): string {
   const s = pt(startDeg, r);
   const e = pt(endDeg, r);
-  // large-arc-flag: 1 if span > 180°, else 0
   const span = startDeg - endDeg;
   const large = span > 180 ? 1 : 0;
-  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
 }
 
 // score → gauge angle: 0 score = 180° (left), 100 score = 0° (right)
