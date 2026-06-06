@@ -128,13 +128,10 @@ export function HealthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refresh() {
-    setLoading(true);
     try {
       const data = await readAllHealthData();
       setHealthData(data);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
   }
 
   function updateAppState(newState: AppState) {
