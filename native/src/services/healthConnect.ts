@@ -215,7 +215,10 @@ async function readNutrition(days = 45): Promise<NutritionEntry[]> {
     // Deduplicate across apps (MacroFactor + Google Health both write to HC).
     // Group by dataOrigin+startTime as a unique key, then sum per local date.
     const seen = new Set<string>();
-    const map = new Map<string, { cals: number; protein: number; carbs: number; fat: number }>();
+    const map = new Map<string, {
+      cals: number; protein: number; carbs: number; fat: number;
+      items: Array<{ name: string; cals: number; protein: number; mealType: number }>;
+    }>();
 
     for (const r of result.records) {
       const dedupKey = `${r.metadata?.dataOrigin ?? ""}|${r.startTime}|${r.endTime}`;
@@ -224,11 +227,21 @@ async function readNutrition(days = 45): Promise<NutritionEntry[]> {
 
       const d = new Date(r.startTime);
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      const existing = map.get(dateStr) || { cals: 0, protein: 0, carbs: 0, fat: 0 };
-      existing.cals += r.energy?.inKilocalories || 0;
-      existing.protein += r.protein?.inGrams || 0;
+      const existing = map.get(dateStr) || { cals: 0, protein: 0, carbs: 0, fat: 0, items: [] };
+      const itemCals = r.energy?.inKilocalories || 0;
+      const itemProtein = r.protein?.inGrams || 0;
+      existing.cals += itemCals;
+      existing.protein += itemProtein;
       existing.carbs += r.totalCarbohydrate?.inGrams || 0;
       existing.fat += r.totalFat?.inGrams || 0;
+      if (r.name) {
+        existing.items.push({
+          name: r.name,
+          cals: Math.round(itemCals),
+          protein: Math.round(itemProtein),
+          mealType: r.mealType ?? 0,
+        });
+      }
       map.set(dateStr, existing);
     }
 
@@ -239,6 +252,7 @@ async function readNutrition(days = 45): Promise<NutritionEntry[]> {
         protein: Math.round(v.protein),
         carbs: Math.round(v.carbs),
         fat: Math.round(v.fat),
+        items: v.items.length > 0 ? v.items : undefined,
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {

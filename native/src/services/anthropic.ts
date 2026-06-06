@@ -294,6 +294,25 @@ export async function analyzeFuel(
 
   const todayWaterOz = (appState.water as WaterEntry[]).find((w) => w.date === today)?.oz ?? 0;
 
+  // Build a grouped list of foods already logged today
+  const MEAL_LABELS: Record<number, string> = { 1: "Breakfast", 2: "Lunch", 3: "Dinner", 4: "Snack", 0: "Unspecified" };
+  let loggedFoodsSection = "";
+  if (todayNutrition?.items && todayNutrition.items.length > 0) {
+    const byMeal = new Map<number, typeof todayNutrition.items>();
+    for (const item of todayNutrition.items) {
+      const bucket = byMeal.get(item.mealType) ?? [];
+      bucket.push(item);
+      byMeal.set(item.mealType, bucket);
+    }
+    const lines: string[] = [];
+    for (const [mealType, items] of Array.from(byMeal.entries()).sort((a, b) => a[0] - b[0])) {
+      const label = MEAL_LABELS[mealType] ?? "Other";
+      const foodStr = items.map((i) => `${i.name} (${i.cals}cal, ${i.protein}P)`).join(", ");
+      lines.push(`  ${label}: ${foodStr}`);
+    }
+    loggedFoodsSection = `\nFOODS ALREADY LOGGED TODAY:\n${lines.join("\n")}\n`;
+  }
+
   const profileSection = buildProfileSection(profile);
 
   const mealWindow = tod === "morning"
@@ -320,13 +339,14 @@ ${latestLM !== null ? `- Lean mass: ${latestLM} lbs` : ""}
 - HRV: ${latestHRV !== null ? latestHRV + " ms" : "unavailable"}
 - Recent workouts: ${recentTraining || "none logged"}
 - Goal priority today: ${fuelCtx.goal}
-
+${loggedFoodsSection}
 ${PANTRY}
 
 RULES:
 - ONLY recommend foods from the pantry list above. Never suggest foods not on that list.
+- Do NOT repeat foods already logged today unless hitting protein/calorie targets truly requires it — and if you must repeat, say why.
 - Tailor the recommendation to the time of day (${tod}: ${mealWindow}).
-- Use markdown formatting: bold the food names, use a short numbered or bulleted list.
+- Use markdown: **bold** food names, short bulleted list, one sentence of reasoning at the end.
 - Keep it under 150 words. Be direct. No generic advice.`;
 
   return callAnthropic(apiKey, prompt, 400);

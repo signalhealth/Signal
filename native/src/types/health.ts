@@ -56,7 +56,7 @@ export interface NutritionEntry {
   protein: number;
   carbs: number;
   fat: number;
-  items?: Array<{ name: string; cals: number; protein: number }>;
+  items?: Array<{ name: string; cals: number; protein: number; mealType: number }>;
 }
 
 export interface DexaScan {
