@@ -25,20 +25,21 @@ const Tab = createBottomTabNavigator();
 
 // ── Tab icons ─────────────────────────────────────────────────────
 
-function ProgressIcon({ color }: { color: string }) {
+function CalendarIcon({ color }: { color: string }) {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M3.5 18.5l6-6 4 4L22 6.92"
+        d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
         stroke={color}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx={3.5} cy={18.5} r={1.5} fill={color} />
-      <Circle cx={9.5} cy={12.5} r={1.5} fill={color} />
-      <Circle cx={13.5} cy={16.5} r={1.5} fill={color} />
-      <Circle cx={22} cy={7} r={1.5} fill={color} />
+      <Circle cx={8} cy={14} r={1} fill={color} />
+      <Circle cx={12} cy={14} r={1} fill={color} />
+      <Circle cx={16} cy={14} r={1} fill={color} />
+      <Circle cx={8} cy={18} r={1} fill={color} />
+      <Circle cx={12} cy={18} r={1} fill={color} />
     </Svg>
   );
 }
@@ -60,13 +61,14 @@ function RecoveryIcon({ color }: { color: string }) {
 function FuelIcon({ color }: { color: string }) {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M3 3h18M3 3v14a2 2 0 002 2h14a2 2 0 002-2V3M8 3v4h8V3M12 11v6M9 14h6"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {/* pump body */}
+      <Path d="M3 22V7a2 2 0 012-2h8a2 2 0 012 2v15" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      {/* base */}
+      <Path d="M1 22h16" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      {/* nozzle arm */}
+      <Path d="M13 8h3l2 2.5v4.5h-5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      {/* display window */}
+      <Path d="M6 9h6v4H6z" stroke={color} strokeWidth={2} strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -149,7 +151,7 @@ function AppShell() {
           tabBarInactiveTintColor: theme.textTertiary,
           tabBarLabelStyle: styles.tabLabel,
           tabBarIcon: ({ color }) => {
-            if (route.name === "Progress") return <ProgressIcon color={color} />;
+            if (route.name === "Today") return <CalendarIcon color={color} />;
             if (route.name === "Recovery") return <RecoveryIcon color={color} />;
             if (route.name === "Fuel") return <FuelIcon color={color} />;
             if (route.name === "Labs") return <LabsIcon color={color} />;
@@ -157,7 +159,7 @@ function AppShell() {
           },
         })}
       >
-        <Tab.Screen name="Progress" component={ProgressScreen} />
+        <Tab.Screen name="Today" component={ProgressScreen} />
         <Tab.Screen name="Recovery" component={RecoveryScreen} />
         <Tab.Screen name="Fuel" component={FuelScreen} />
         <Tab.Screen name="Labs" component={LabsScreen} />

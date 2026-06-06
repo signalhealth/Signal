@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useMemo } from "react";
+import React, { useState, useContext, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -149,6 +149,7 @@ export function FuelScreen() {
   const [fuelLoading, setFuelLoading] = useState(false);
   const [calDays, setCalDays] = useState(14);
   const [refreshing, setRefreshing] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const hasAnyTarget =
     userProfile.calorieTarget ||
@@ -166,6 +167,7 @@ export function FuelScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
       refresh();
     }, [])
   );
@@ -241,6 +243,7 @@ export function FuelScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}

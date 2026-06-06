@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useMemo } from "react";
+import React, { useState, useContext, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
+import Svg, { Path as SvgPath } from "react-native-svg";
 // TextInput kept for DexaAddForm
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
@@ -41,6 +42,7 @@ export function ProgressScreen() {
   const { healthData, appState, userProfile, refresh, loading } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
+  const scrollRef = useRef<ScrollView>(null);
 
   const COLORS = {
     green: theme.green,
@@ -57,6 +59,7 @@ export function ProgressScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
       refresh();
     }, [])
   );
@@ -198,6 +201,7 @@ export function ProgressScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
@@ -381,100 +385,49 @@ export function ProgressScreen() {
           )}
         </View>
 
-        {(latestBF !== undefined || latestLM !== undefined) ? (
+        {(latestBF !== undefined || latestLM !== undefined || latestWt !== undefined) ? (
           <>
-            <View style={styles.compRow}>
-              <View style={styles.compCell}>
-                <Text style={styles.compLabel}>Body Fat</Text>
-                <Text style={[styles.compValue, {
-                  color: latestBF !== undefined
-                    ? latestBF > 22 ? COLORS.red : latestBF > 18 ? COLORS.amber : COLORS.green
-                    : COLORS.gray2,
-                }]}>
-                  {latestBF?.toFixed(1) ?? "—"}%
-                </Text>
-                <Text style={styles.compSource}>{bfFromScale ? "SCALE" : latestDexa ? "DEXA" : ""}</Text>
-              </View>
-              <View style={[styles.compCell, styles.compCellBorder]}>
-                <Text style={styles.compLabel}>Lean Mass</Text>
-                <Text style={[styles.compValue, {
-                  color: latestLM !== undefined
-                    ? latestLM < 121 ? COLORS.red : latestLM < 127 ? COLORS.amber : COLORS.green
-                    : COLORS.gray2,
-                }]}>
-                  {latestLM?.toFixed(1) ?? "—"} lbs
-                </Text>
-                <Text style={styles.compSource}>{lmFromScale ? "SCALE" : latestDexa ? "DEXA" : ""}</Text>
-              </View>
-              <View style={styles.compCell}>
-                <Text style={styles.compLabel}>Weight</Text>
-                <Text style={[styles.compValue, {
-                  color: latestWt !== undefined
-                    ? latestWt > 175 ? COLORS.red : latestWt > 165 ? COLORS.amber : COLORS.green
-                    : COLORS.gray2,
-                }]}>
-                  {latestWt?.toFixed(1) ?? "—"} lbs
-                </Text>
-                <Text style={styles.compSource}>{wtDateLabel.toUpperCase()}</Text>
-              </View>
-            </View>
-
-            <View style={{ marginTop: 20 }}>
-              {latestBF !== undefined && (() => {
-                const bf = latestBF;
-                const bfColor = bf > 22 ? COLORS.red : bf > 18 ? COLORS.amber : COLORS.green;
-                const bfFill = Math.min(1, Math.max(0, (36 - bf) / (36 - 15)));
-                return (
-                  <GoalProgressBar
-                    label="Body Fat"
-                    value={bf}
-                    fill={bfFill}
-                    unit="%"
-                    color={bfColor}
-                    startLabel="Start 36%"
-                    goalLabel="Goal 15%"
-                    theme={theme}
-                  />
-                );
-              })()}
-              {latestLM !== undefined && (() => {
-                const lm = latestLM;
-                const lmColor = lm < 121 ? COLORS.red : lm < 127 ? COLORS.amber : COLORS.green;
-                const lmFill = Math.min(1, Math.max(0, (lm - 117.5) / (132 - 117.5)));
-                return (
-                  <GoalProgressBar
-                    label="Lean Mass"
-                    value={lm}
-                    fill={lmFill}
-                    unit="lbs"
-                    color={lmColor}
-                    startLabel="Start 117.5 lbs"
-                    goalLabel="Goal 132 lbs"
-                    theme={theme}
-                  />
-                );
-              })()}
-              {latestWt !== undefined && (() => {
-                const sw = latestWt;
-                const swColor = sw > 175 ? COLORS.red : sw > 165 ? COLORS.amber : COLORS.green;
-                const swFill = Math.min(1, Math.max(0, (189 - sw) / (189 - 155)));
-                return (
-                  <GoalProgressBar
-                    label="Scale Weight"
-                    value={sw}
-                    fill={swFill}
-                    unit="lbs"
-                    color={swColor}
-                    startLabel="Start 189 lbs"
-                    goalLabel="Goal 155 lbs"
-                    theme={theme}
-                  />
-                );
-              })()}
+            <View style={styles.compGaugeRow}>
+              {latestBF !== undefined && (
+                <MiniGauge
+                  title={`Body Fat ${bfFromScale ? "· Scale" : latestDexa ? "· DEXA" : ""}`}
+                  value={`${latestBF.toFixed(1)}%`}
+                  fill={(36 - latestBF) / (36 - 15)}
+                  color={latestBF > 22 ? COLORS.red : latestBF > 18 ? COLORS.amber : COLORS.green}
+                  startLabel="36%"
+                  goalLabel="15%"
+                  theme={theme}
+                  isDark={isDark}
+                />
+              )}
+              {latestLM !== undefined && (
+                <MiniGauge
+                  title={`Lean Mass ${lmFromScale ? "· Scale" : latestDexa ? "· DEXA" : ""}`}
+                  value={`${latestLM.toFixed(1)}`}
+                  fill={(latestLM - 117.5) / (132 - 117.5)}
+                  color={latestLM < 121 ? COLORS.red : latestLM < 127 ? COLORS.amber : COLORS.green}
+                  startLabel="116 lbs"
+                  goalLabel="132 lbs"
+                  theme={theme}
+                  isDark={isDark}
+                />
+              )}
+              {latestWt !== undefined && (
+                <MiniGauge
+                  title="Weight · Today"
+                  value={`${latestWt.toFixed(1)}`}
+                  fill={(189 - latestWt) / (189 - 155)}
+                  color={latestWt > 175 ? COLORS.red : latestWt > 165 ? COLORS.amber : COLORS.green}
+                  startLabel="189 lbs"
+                  goalLabel="155 lbs"
+                  theme={theme}
+                  isDark={isDark}
+                />
+              )}
             </View>
 
             {bfTrend.length > 1 && (
-              <View style={{ marginTop: 4 }}>
+              <View style={{ marginTop: 16 }}>
                 <Text style={[styles.lbl, { marginBottom: 8 }]}>BF% TREND</Text>
                 <WeightChart data={bfTrend} height={100} />
               </View>
@@ -606,74 +559,55 @@ function DexaAddForm({ theme, styles }: { theme: ThemeColors; styles: ReturnType
   );
 }
 
-// ── Goal Progress Bar ──────────────────────────────────────────────
-interface GoalProgressBarProps {
-  label: string;
-  value: number;
-  fill: number;
-  unit: string;
-  color: string;
-  startLabel: string;
-  goalLabel: string;
-  theme: ThemeColors;
+// ── Mini Gauge (arc) for Body Composition ─────────────────────────
+const MG_W = 110, MG_CX = 55, MG_CY = 52, MG_R = 40, MG_TW = 7, MG_H = 86;
+const MG_START = 225, MG_END = -45, MG_SWEEP = 270;
+
+function mgPt(deg: number) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: MG_CX + MG_R * Math.cos(rad), y: MG_CY - MG_R * Math.sin(rad) };
+}
+function mgArc(s: number, e: number): string {
+  const sp = mgPt(s), ep = mgPt(e);
+  let span = s - e; if (span < 0) span += 360;
+  const large = span > 180 ? 1 : 0;
+  return `M ${sp.x.toFixed(2)} ${sp.y.toFixed(2)} A ${MG_R} ${MG_R} 0 ${large} 1 ${ep.x.toFixed(2)} ${ep.y.toFixed(2)}`;
 }
 
-function GoalProgressBar({ label, value, fill, unit, color, startLabel, goalLabel, theme }: GoalProgressBarProps) {
-  const pct = Math.min(100, Math.max(0, fill * 100));
+function MiniGauge({
+  title, value, fill, color, startLabel, goalLabel, theme, isDark,
+}: {
+  title: string; value: string; fill: number; color: string;
+  startLabel: string; goalLabel: string; theme: ThemeColors; isDark: boolean;
+}) {
+  const clamp01 = Math.min(1, Math.max(0, fill));
+  const fillEnd = MG_START - clamp01 * MG_SWEEP;
+  const hasFill = clamp01 > 0.01;
+  const TRACK = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)";
   return (
-    <View style={gpbStyles.wrap}>
-      <View style={gpbStyles.row}>
-        <Text style={[gpbStyles.label, { color: theme.textSecondary }]}>{label}</Text>
-        <Text style={[gpbStyles.valueText, { color }]}>
-          {value}{unit ? ` ${unit}` : ""}
-        </Text>
-      </View>
-      <View style={[gpbStyles.track, { backgroundColor: theme.sectionBorder }]}>
-        <View
-          style={[
-            gpbStyles.fill,
-            { width: `${pct}%` as `${number}%`, backgroundColor: color },
-          ]}
-        />
-      </View>
-      <View style={gpbStyles.barEndRow}>
-        <Text style={[gpbStyles.barEnd, { color: theme.textQuaternary }]}>{startLabel}</Text>
-        <Text style={[gpbStyles.barEnd, { color: theme.textQuaternary }]}>{goalLabel}</Text>
+    <View style={[mgStyles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" }]}>
+      <Text style={[mgStyles.mgValue, { color }]}>{value}</Text>
+      <Text style={[mgStyles.mgTitle, { color: theme.textTertiary }]}>{title}</Text>
+      <Svg width={MG_W} height={MG_H} viewBox={`0 0 ${MG_W} ${MG_H}`}>
+        <SvgPath d={mgArc(MG_START, MG_END)} stroke={TRACK} strokeWidth={MG_TW} strokeLinecap="round" fill="none" />
+        {hasFill && (
+          <SvgPath d={mgArc(MG_START, fillEnd)} stroke={color} strokeWidth={MG_TW} strokeLinecap="round" fill="none" />
+        )}
+      </Svg>
+      <View style={mgStyles.mgLabels}>
+        <Text style={[mgStyles.mgLabel, { color: theme.textQuaternary }]}>{startLabel}</Text>
+        <Text style={[mgStyles.mgLabel, { color: theme.textQuaternary }]}>{goalLabel}</Text>
       </View>
     </View>
   );
 }
 
-const gpbStyles = StyleSheet.create({
-  wrap: { marginBottom: 16 },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 7,
-  },
-  label: { fontSize: 14 },
-  valueText: { fontSize: 14, fontWeight: "700" },
-  barEndRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 4,
-  },
-  barEnd: {
-    fontSize: 10,
-    letterSpacing: 0.3,
-  },
-  track: {
-    height: 4,
-    borderRadius: 99,
-    overflow: "hidden",
-  },
-  fill: { height: "100%", borderRadius: 99 },
-  sub: {
-    fontSize: 11,
-    marginTop: 5,
-    letterSpacing: 0.3,
-  },
+const mgStyles = StyleSheet.create({
+  tile: { flex: 1, borderRadius: 12, padding: 10, alignItems: "center" },
+  mgValue: { fontSize: 26, fontWeight: "700", lineHeight: 30 },
+  mgTitle: { fontSize: 9, fontWeight: "600", letterSpacing: 0.4, textTransform: "uppercase", marginTop: 2, textAlign: "center" },
+  mgLabels: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginTop: -4 },
+  mgLabel: { fontSize: 9, letterSpacing: 0.3 },
 });
 
 function makeStyles(theme: ThemeColors, isDark: boolean) {
@@ -810,38 +744,9 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     },
     trackFill: { height: "100%", borderRadius: 99 },
 
-    compRow: {
+    compGaugeRow: {
       flexDirection: "row",
-      marginTop: 4,
-    },
-    compCell: {
-      flex: 1,
-      alignItems: "center",
-    },
-    compCellBorder: {
-      borderLeftWidth: 1,
-      borderRightWidth: 1,
-      borderColor: theme.cardBorder,
-    },
-    compLabel: {
-      fontSize: 11,
-      fontWeight: "600",
-      letterSpacing: 0.8,
-      color: theme.textTertiary,
-      textTransform: "uppercase",
-      marginBottom: 6,
-    },
-    compValue: {
-      fontSize: 24,
-      fontWeight: "700",
-      lineHeight: 28,
-    },
-    compSource: {
-      fontSize: 9,
-      fontWeight: "600",
-      letterSpacing: 0.8,
-      color: theme.textTertiary,
-      textTransform: "uppercase",
+      gap: 6,
       marginTop: 4,
     },
 
