@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useMemo } from "react";
+import React, { useState, useContext, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -8,11 +8,17 @@ import {
   TextInput,
   Alert,
   RefreshControl,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
+import { RecoveryGauge } from "../components/RecoveryGauge";
+import { calcRecoveryScore } from "../utils/recoveryScore";
 import {
   HRV_NORMAL_LOW,
   HRV_NORMAL_HIGH,
@@ -20,6 +26,10 @@ import {
 } from "../types/health";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 function avg(arr: number[]) {
   if (!arr.length) return 0;
@@ -63,6 +73,7 @@ export function RecoveryScreen() {
   const [recDate, setRecDate] = useState(localDateStr());
   const [recNote, setRecNote] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -75,6 +86,14 @@ export function RecoveryScreen() {
     await refresh();
     setRefreshing(false);
   }
+
+  // ── Recovery Score ───────────────────────────────────────────────
+  const recovery = useMemo(() => calcRecoveryScore({
+    hrv: healthData.hrv,
+    rhr: healthData.rhr,
+    sleep: healthData.sleep,
+    activeCals: healthData.activeCals,
+  }), [healthData]);
 
   // ── HRV ─────────────────────────────────────────────────────────
   const hrvSorted = [...healthData.hrv].sort((a, b) =>
@@ -117,7 +136,6 @@ export function RecoveryScreen() {
       : { text: `BELOW ${SLEEP_TARGET}H TARGET`, cls: "red" as const };
 
   // ── RHR ──────────────────────────────────────────────────────────
-  // Deduplicate by date
   const seenRhr = new Map<string, number>();
   for (const pt of healthData.rhr) {
     if (!seenRhr.has(pt.date)) seenRhr.set(pt.date, pt.value);
@@ -166,6 +184,11 @@ export function RecoveryScreen() {
     updateAppState(updated);
   }
 
+  function toggleInfo() {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setInfoOpen(o => !o);
+  }
+
   const BADGE_COLORS = {
     green: { bg: "rgba(0,208,132,0.15)", text: theme.green, border: "rgba(0,200,120,0.25)" },
     amber: { bg: "rgba(245,166,35,0.1)", text: theme.amber, border: "rgba(245,166,35,0.25)" },
@@ -186,6 +209,54 @@ export function RecoveryScreen() {
         />
       }
     >
+      {/* ── Recovery Score Gauge ── */}
+      <Card>
+        <Text style={styles.lbl}>RECOVERY SCORE</Text>
+        <RecoveryGauge score={recovery.score} theme={theme} isDark={isDark} />
+        {recovery.hasData && (
+          <View style={styles.breakdownRow}>
+            {recovery.hrv !== null && (
+              <View style={styles.breakdownItem}>
+                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.hrv}ms</Text>
+                <Text style={styles.breakdownKey}>HRV</Text>
+              </View>
+            )}
+            {recovery.sleep !== null && (
+              <View style={styles.breakdownItem}>
+                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.sleep?.toFixed(1)}h</Text>
+                <Text style={styles.breakdownKey}>SLEEP</Text>
+              </View>
+            )}
+            {recovery.rhr !== null && (
+              <View style={styles.breakdownItem}>
+                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.rhr}</Text>
+                <Text style={styles.breakdownKey}>RHR</Text>
+              </View>
+            )}
+            {recovery.activeCalsYesterday !== null && (
+              <View style={styles.breakdownItem}>
+                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.activeCalsYesterday}</Text>
+                <Text style={styles.breakdownKey}>CAL BURNED</Text>
+              </View>
+            )}
+          </View>
+        )}
+        {(recovery.trendBonus !== 0 || recovery.penalty !== 0) && (
+          <View style={styles.modifierRow}>
+            {recovery.trendBonus !== 0 && (
+              <Text style={[styles.modifier, { color: recovery.trendBonus > 0 ? theme.green : theme.amber }]}>
+                HRV trend {recovery.trendBonus > 0 ? "+" : ""}{recovery.trendBonus} pts
+              </Text>
+            )}
+            {recovery.penalty !== 0 && (
+              <Text style={[styles.modifier, { color: theme.amber }]}>
+                Training load {recovery.penalty} pts
+              </Text>
+            )}
+          </View>
+        )}
+      </Card>
+
       {/* ── HRV Card ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
@@ -373,6 +444,50 @@ export function RecoveryScreen() {
             </View>
           ))}
       </Card>
+
+      {/* ── How is this calculated? ── */}
+      <TouchableOpacity onPress={toggleInfo} activeOpacity={0.7} style={styles.infoToggle}>
+        <Text style={styles.infoToggleText}>How is the recovery score calculated?</Text>
+        <Text style={[styles.infoChevron, { color: theme.textTertiary }]}>{infoOpen ? "▲" : "▼"}</Text>
+      </TouchableOpacity>
+
+      {infoOpen && (
+        <View style={styles.infoBox}>
+          <Text style={[styles.infoTitle, { color: theme.text }]}>Recovery Score</Text>
+          <Text style={[styles.infoBody, { color: theme.textSecondary }]}>
+            Your score (0–100) is a weighted composite of three signals measured each morning:
+          </Text>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoFactor, { color: theme.text }]}>HRV  40%</Text>
+            <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
+              Heart rate variability — the best single marker of nervous system recovery. Higher is better.
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoFactor, { color: theme.text }]}>Sleep  35%</Text>
+            <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
+              Duration relative to your 7.5h target. Both under- and over-sleeping reduce the score.
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoFactor, { color: theme.text }]}>RHR  25%</Text>
+            <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
+              Resting heart rate — a chronically elevated RHR signals fatigue or systemic stress.
+            </Text>
+          </View>
+          <View style={[styles.infoRow, { marginTop: 8 }]}>
+            <Text style={[styles.infoFactor, { color: theme.textSecondary }]}>Modifiers</Text>
+            <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
+              A hard training day (high active calories) applies a small penalty. An HRV trending above your 7-day baseline adds a bonus. Both reflect real recovery demand.
+            </Text>
+          </View>
+          <View style={styles.infoZones}>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,59,48,0.15)", color: "#FF3B30" }]}>0–39 Rest</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,170,0,0.15)", color: "#FFAA00" }]}>40–69 Moderate</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(0,208,132,0.15)", color: "#00D084" }]}>70–100 Good</Text>
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -507,20 +622,50 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       borderBottomColor: theme.sectionBorder,
     },
     recItemLeft: { flex: 1 },
-    recDate: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: theme.textSecondary,
+    recDate: { fontSize: 12, fontWeight: "600", color: theme.textSecondary },
+    recNote: { fontSize: 12, color: theme.textTertiary, marginTop: 2 },
+    delBtn: { fontSize: 18, color: theme.textTertiary, paddingHorizontal: 4 },
+    // breakdown row under gauge
+    breakdownRow: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      marginTop: 8,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.sectionBorder,
     },
-    recNote: {
-      fontSize: 12,
-      color: theme.textTertiary,
-      marginTop: 2,
-    },
-    delBtn: {
-      fontSize: 18,
-      color: theme.textTertiary,
+    breakdownItem: { alignItems: "center" },
+    breakdownVal: { fontSize: 16, fontWeight: "700" },
+    breakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: theme.textTertiary, marginTop: 2 },
+    modifierRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 6 },
+    modifier: { fontSize: 11, fontWeight: "600" },
+    // info tooltip
+    infoToggle: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: 4,
+      paddingVertical: 8,
+    },
+    infoToggleText: { fontSize: 12, color: theme.textTertiary, fontStyle: "italic" },
+    infoChevron: { fontSize: 10 },
+    infoBox: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 16,
+      gap: 10,
+      borderWidth: 1,
+      borderColor: theme.sectionBorder,
+    },
+    infoTitle: { fontSize: 14, fontWeight: "700" },
+    infoBody: { fontSize: 12, lineHeight: 18 },
+    infoRow: { flexDirection: "row", gap: 12 },
+    infoFactor: { fontSize: 12, fontWeight: "700", width: 80 },
+    infoDesc: { flex: 1, fontSize: 12, lineHeight: 17 },
+    infoZones: { flexDirection: "row", gap: 8, marginTop: 4, flexWrap: "wrap" },
+    infoZoneChip: {
+      fontSize: 11, fontWeight: "700", paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 6, overflow: "hidden",
     },
   });
 }

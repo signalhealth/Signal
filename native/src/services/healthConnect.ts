@@ -18,6 +18,7 @@ const PERMISSIONS: (Permission | { accessType: "read"; recordType: "ReadHealthDa
   { accessType: "read", recordType: "ExerciseSession" },
   { accessType: "read", recordType: "BodyFat" },
   { accessType: "read", recordType: "LeanBodyMass" },
+  { accessType: "read", recordType: "ActiveCaloriesBurned" },
   { accessType: "read", recordType: "ReadHealthDataHistory" },
 ];
 import {
@@ -310,6 +311,29 @@ async function readBodyFat(days = 45): Promise<DataPoint[]> {
   }
 }
 
+async function readActiveCals(days = 45): Promise<DataPoint[]> {
+  try {
+    const result = await readRecords("ActiveCaloriesBurned", {
+      timeRangeFilter: {
+        operator: "between",
+        startTime: localMidnightISO(days),
+        endTime: new Date().toISOString(),
+      },
+    });
+    const map = new Map<string, number>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.startTime);
+      const kcal = (r.energy?.inKilocalories) ?? 0;
+      map.set(dateStr, (map.get(dateStr) ?? 0) + kcal);
+    }
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value: Math.round(value) }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch {
+    return [];
+  }
+}
+
 async function readLeanMass(days = 45): Promise<DataPoint[]> {
   try {
     const result = await readRecords("LeanBodyMass", {
@@ -333,7 +357,7 @@ async function readLeanMass(days = 45): Promise<DataPoint[]> {
 }
 
 export async function readAllHealthData(): Promise<HealthData> {
-  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass] =
+  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass, activeCals] =
     await Promise.allSettled([
       readWeight(730),
       readSteps(730),
@@ -344,6 +368,7 @@ export async function readAllHealthData(): Promise<HealthData> {
       readExercise(730),
       readBodyFat(730),
       readLeanMass(730),
+      readActiveCals(730),
     ]);
 
   return {
@@ -356,5 +381,6 @@ export async function readAllHealthData(): Promise<HealthData> {
     exercise: exercise.status === "fulfilled" ? exercise.value : [],
     bodyFat: bodyFat.status === "fulfilled" ? bodyFat.value : [],
     leanMass: leanMass.status === "fulfilled" ? leanMass.value : [],
+    activeCals: activeCals.status === "fulfilled" ? activeCals.value : [],
   };
 }

@@ -91,6 +91,7 @@ export interface HealthData {
   nutrition: NutritionEntry[];
   bodyFat: DataPoint[];
   leanMass: DataPoint[];
+  activeCals: DataPoint[];
 }
 
 export interface MicroGoal {
