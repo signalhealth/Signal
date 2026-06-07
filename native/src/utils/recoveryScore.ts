@@ -10,17 +10,18 @@ function clamp(v: number, lo = 0, hi = 100): number {
 }
 
 function scoreHRV(hrv: number): number {
-  if (hrv < 40) return lerp(hrv, 0, 40, 0, 30);
-  if (hrv < 69) return lerp(hrv, 40, 69, 30, 60);
-  if (hrv < 89) return lerp(hrv, 69, 89, 60, 85);
-  return clamp(lerp(hrv, 89, 130, 85, 100));
+  if (hrv < 20) return 0;
+  if (hrv < 40) return lerp(hrv, 20, 40, 0, 25);
+  if (hrv < 69) return lerp(hrv, 40, 69, 25, 65);
+  if (hrv < 89) return lerp(hrv, 69, 89, 72, 90);  // in-range: generous 72–90
+  return clamp(lerp(hrv, 89, 130, 90, 100));          // above normal: 90–100
 }
 
 function scoreSleep(sleep: number): number {
-  if (sleep > 9) return 88;
-  if (sleep >= 7.5) return lerp(sleep, 7.5, 9, 90, 100);
-  if (sleep >= 6) return lerp(sleep, 6, 7.5, 55, 90);
-  if (sleep >= 4) return lerp(sleep, 4, 6, 15, 55);
+  if (sleep > 9.5) return 88;                              // slightly too much
+  if (sleep >= 7) return lerp(sleep, 7, 9.5, 85, 100);    // target zone: 7–9.5h
+  if (sleep >= 5.5) return lerp(sleep, 5.5, 7, 50, 85);
+  if (sleep >= 4) return lerp(sleep, 4, 5.5, 15, 50);
   return lerp(sleep, 0, 4, 0, 15);
 }
 
@@ -62,8 +63,11 @@ function dateStr(d: Date): string {
 export interface RecoveryBreakdown {
   score: number;
   hrv: number | null;
+  hrvDate: string | null;
   sleep: number | null;
+  sleepDate: string | null;
   rhr: number | null;
+  rhrDate: string | null;
   activeCalsYesterday: number | null;
   trendBonus: number;
   penalty: number;
@@ -96,7 +100,7 @@ export function calcRecoveryScore(params: {
     ?? 0;
 
   if (hrvVal === null && sleepVal === null && rhrVal === null) {
-    return { score: 0, hrv: null, sleep: null, rhr: null, activeCalsYesterday: null, trendBonus: 0, penalty: 0, hasData: false };
+    return { score: 0, hrv: null, hrvDate: null, sleep: null, sleepDate: null, rhr: null, rhrDate: null, activeCalsYesterday: null, trendBonus: 0, penalty: 0, hasData: false };
   }
 
   const hScore = hrvVal !== null ? scoreHRV(hrvVal) : 70;
@@ -113,8 +117,11 @@ export function calcRecoveryScore(params: {
   return {
     score,
     hrv: hrvVal,
+    hrvDate: latestHRV?.date ?? null,
     sleep: sleepVal,
+    sleepDate: latestSleep?.date ?? null,
     rhr: rhrVal,
+    rhrDate: latestRHR?.date ?? null,
     activeCalsYesterday: calYesterday > 0 ? calYesterday : null,
     trendBonus: bonus,
     penalty,

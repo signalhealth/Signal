@@ -225,18 +225,27 @@ export function RecoveryScreen() {
               <View style={styles.breakdownItem}>
                 <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.hrv}ms</Text>
                 <Text style={styles.breakdownKey}>HRV</Text>
+                {recovery.hrvDate && recovery.hrvDate !== localDateStr() && (
+                  <Text style={styles.breakdownDate}>{recovery.hrvDate.slice(5)}</Text>
+                )}
               </View>
             )}
             {recovery.sleep !== null && (
               <View style={styles.breakdownItem}>
                 <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.sleep?.toFixed(1)}h</Text>
                 <Text style={styles.breakdownKey}>SLEEP</Text>
+                {recovery.sleepDate && recovery.sleepDate !== localDateStr() && (
+                  <Text style={styles.breakdownDate}>{recovery.sleepDate.slice(5)}</Text>
+                )}
               </View>
             )}
             {recovery.rhr !== null && (
               <View style={styles.breakdownItem}>
                 <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.rhr}</Text>
                 <Text style={styles.breakdownKey}>RHR</Text>
+                {recovery.rhrDate && recovery.rhrDate !== localDateStr() && (
+                  <Text style={styles.breakdownDate}>{recovery.rhrDate.slice(5)}</Text>
+                )}
               </View>
             )}
             {recovery.activeCalsYesterday !== null && (
@@ -648,6 +657,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     breakdownItem: { alignItems: "center" },
     breakdownVal: { fontSize: 16, fontWeight: "700" },
     breakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: theme.textTertiary, marginTop: 2 },
+    breakdownDate: { fontSize: 9, color: theme.amber, marginTop: 2, letterSpacing: 0.3 },
     modifierRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 6 },
     modifier: { fontSize: 11, fontWeight: "600" },
     // info tooltip
