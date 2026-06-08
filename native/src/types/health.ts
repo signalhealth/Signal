@@ -92,6 +92,9 @@ export interface HealthData {
   bodyFat: DataPoint[];
   leanMass: DataPoint[];
   activeCals: DataPoint[];
+  spo2: DataPoint[];
+  respiratoryRate: DataPoint[];
+  hydration: DataPoint[];  // oz per day
 }
 
 export interface MicroGoal {

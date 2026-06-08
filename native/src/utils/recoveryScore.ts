@@ -72,6 +72,23 @@ export interface RecoveryBreakdown {
   trendBonus: number;
   penalty: number;
   hasData: boolean;
+  spo2: number | null;
+  spo2Date: string | null;
+  respiratoryRate: number | null;
+  respiratoryRateDate: string | null;
+}
+
+function spo2Modifier(spo2: number): number {
+  if (spo2 >= 95) return 0;
+  if (spo2 >= 93) return -2;
+  return -5;
+}
+
+function rrModifier(rr: number): number {
+  if (rr <= 16) return 1;
+  if (rr <= 20) return 0;
+  if (rr <= 25) return -2;
+  return -4;
 }
 
 export function calcRecoveryScore(params: {
@@ -79,6 +96,8 @@ export function calcRecoveryScore(params: {
   rhr: DataPoint[];
   sleep: DataPoint[];
   activeCals: DataPoint[];
+  spo2?: DataPoint[];
+  respiratoryRate?: DataPoint[];
 }): RecoveryBreakdown {
   const today = todayStr();
   const yesterday = dateStr((() => { const d = new Date(); d.setDate(d.getDate() - 1); return d; })());
@@ -99,8 +118,13 @@ export function calcRecoveryScore(params: {
     ?? params.activeCals.find(d => d.date === today)?.value
     ?? 0;
 
+  const latestSpO2 = sorted(params.spo2 ?? [])[0];
+  const latestRR = sorted(params.respiratoryRate ?? [])[0];
+  const spo2Val = latestSpO2?.value ?? null;
+  const rrVal = latestRR?.value ?? null;
+
   if (hrvVal === null && sleepVal === null && rhrVal === null) {
-    return { score: 0, hrv: null, hrvDate: null, sleep: null, sleepDate: null, rhr: null, rhrDate: null, activeCalsYesterday: null, trendBonus: 0, penalty: 0, hasData: false };
+    return { score: 0, hrv: null, hrvDate: null, sleep: null, sleepDate: null, rhr: null, rhrDate: null, activeCalsYesterday: null, trendBonus: 0, penalty: 0, hasData: false, spo2: null, spo2Date: null, respiratoryRate: null, respiratoryRateDate: null };
   }
 
   const hScore = hrvVal !== null ? scoreHRV(hrvVal) : 70;
@@ -110,9 +134,11 @@ export function calcRecoveryScore(params: {
   const last7hrv = params.hrv.filter(d => d.date >= sevenAgo && d.date < today);
   const bonus = hrvVal !== null ? hrvTrendBonus(hrvVal, last7hrv) : 0;
   const penalty = trainingPenalty(calYesterday);
+  const spo2Mod = spo2Val !== null ? spo2Modifier(spo2Val) : 0;
+  const rrMod = rrVal !== null ? rrModifier(rrVal) : 0;
 
   const weighted = hScore * 0.40 + sScore * 0.35 + rScore * 0.25;
-  const score = clamp(Math.round(weighted + bonus + penalty));
+  const score = clamp(Math.round(weighted + bonus + penalty + spo2Mod + rrMod));
 
   return {
     score,
@@ -126,5 +152,9 @@ export function calcRecoveryScore(params: {
     trendBonus: bonus,
     penalty,
     hasData: true,
+    spo2: spo2Val,
+    spo2Date: latestSpO2?.date ?? null,
+    respiratoryRate: rrVal,
+    respiratoryRateDate: latestRR?.date ?? null,
   };
 }

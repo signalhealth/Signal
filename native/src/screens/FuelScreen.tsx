@@ -21,6 +21,7 @@ function parseMacroTarget(val: string, fallback: number): number {
 }
 import { analyzeFuel as analyzeWithAI } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
+import { writeHydration } from "../services/healthConnect";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
@@ -111,13 +112,16 @@ export function FuelScreen() {
 
   const waterGoal = parseMacroTarget(userProfile.waterGoalOz, 64);
   const today = localDateStr();
-  const todayWater = appState.water.find((w) => w.date === today)?.oz ?? 0;
+  // Prefer HC hydration (aggregates Coros + Signal logs), fall back to local cache
+  const hcTodayOz = healthData.hydration.find((h) => h.date === today)?.value;
+  const todayWater = hcTodayOz ?? appState.water.find((w) => w.date === today)?.oz ?? 0;
 
   const [waterInput, setWaterInput] = useState("");
   const [showWaterInput, setShowWaterInput] = useState(false);
 
   function addWater(oz: number) {
     if (oz <= 0) return;
+    writeHydration(oz).catch(() => {});
     const existing = appState.water.find((w) => w.date === today);
     const newEntry = { date: today, oz: Math.round((existing?.oz ?? 0) + oz) };
     const updated = {

@@ -3,6 +3,7 @@ import {
   requestPermission,
   getGrantedPermissions,
   readRecords,
+  insertRecords,
   aggregateGroupByPeriod,
   Permission,
 } from "react-native-health-connect";
@@ -19,6 +20,10 @@ const PERMISSIONS: (Permission | { accessType: "read"; recordType: "ReadHealthDa
   { accessType: "read", recordType: "BodyFat" },
   { accessType: "read", recordType: "LeanBodyMass" },
   { accessType: "read", recordType: "ActiveCaloriesBurned" },
+  { accessType: "read", recordType: "OxygenSaturation" },
+  { accessType: "read", recordType: "RespiratoryRate" },
+  { accessType: "read", recordType: "Hydration" },
+  { accessType: "write", recordType: "Hydration" },
   { accessType: "read", recordType: "ReadHealthDataHistory" },
 ];
 import {
@@ -356,8 +361,91 @@ async function readLeanMass(days = 45): Promise<DataPoint[]> {
   }
 }
 
+async function readSpO2(days = 45): Promise<DataPoint[]> {
+  try {
+    const result = await readRecords("OxygenSaturation", {
+      timeRangeFilter: {
+        operator: "between",
+        startTime: daysAgoISO(days),
+        endTime: new Date().toISOString(),
+      },
+    });
+    const map = new Map<string, number>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.time);
+      map.set(dateStr, Math.round(r.percentage * 10) / 10);
+    }
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch {
+    return [];
+  }
+}
+
+async function readRespiratoryRate(days = 45): Promise<DataPoint[]> {
+  try {
+    const result = await readRecords("RespiratoryRate", {
+      timeRangeFilter: {
+        operator: "between",
+        startTime: daysAgoISO(days),
+        endTime: new Date().toISOString(),
+      },
+    });
+    const map = new Map<string, number>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.time);
+      map.set(dateStr, Math.round(r.rate * 10) / 10);
+    }
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch {
+    return [];
+  }
+}
+
+async function readHydration(days = 45): Promise<DataPoint[]> {
+  try {
+    const result = await readRecords("Hydration", {
+      timeRangeFilter: {
+        operator: "between",
+        startTime: localMidnightISO(days),
+        endTime: new Date().toISOString(),
+      },
+    });
+    const map = new Map<string, number>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.startTime);
+      const oz = (r.volume as any).inFluidOuncesUs ?? 0;
+      map.set(dateStr, (map.get(dateStr) ?? 0) + oz);
+    }
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value: Math.round(value * 10) / 10 }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch {
+    return [];
+  }
+}
+
+export async function writeHydration(oz: number): Promise<void> {
+  try {
+    const now = new Date();
+    const startTime = now.toISOString();
+    const endTime = new Date(now.getTime() + 60000).toISOString();
+    await insertRecords([{
+      recordType: "Hydration",
+      startTime,
+      endTime,
+      volume: { value: oz, unit: "fluidOuncesUs" },
+    }]);
+  } catch {
+    // ignore — local state already updated
+  }
+}
+
 export async function readAllHealthData(): Promise<HealthData> {
-  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass, activeCals] =
+  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass, activeCals, spo2, respiratoryRate, hydration] =
     await Promise.allSettled([
       readWeight(730),
       readSteps(730),
@@ -369,6 +457,9 @@ export async function readAllHealthData(): Promise<HealthData> {
       readBodyFat(730),
       readLeanMass(730),
       readActiveCals(730),
+      readSpO2(730),
+      readRespiratoryRate(730),
+      readHydration(730),
     ]);
 
   return {
@@ -382,5 +473,8 @@ export async function readAllHealthData(): Promise<HealthData> {
     bodyFat: bodyFat.status === "fulfilled" ? bodyFat.value : [],
     leanMass: leanMass.status === "fulfilled" ? leanMass.value : [],
     activeCals: activeCals.status === "fulfilled" ? activeCals.value : [],
+    spo2: spo2.status === "fulfilled" ? spo2.value : [],
+    respiratoryRate: respiratoryRate.status === "fulfilled" ? respiratoryRate.value : [],
+    hydration: hydration.status === "fulfilled" ? hydration.value : [],
   };
 }

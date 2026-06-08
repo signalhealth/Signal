@@ -95,6 +95,8 @@ export function RecoveryScreen() {
     rhr: healthData.rhr,
     sleep: healthData.sleep,
     activeCals: healthData.activeCals,
+    spo2: healthData.spo2,
+    respiratoryRate: healthData.respiratoryRate,
   }), [healthData]);
 
   // ── HRV ─────────────────────────────────────────────────────────
@@ -252,6 +254,24 @@ export function RecoveryScreen() {
               <View style={styles.breakdownItem}>
                 <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.activeCalsYesterday}</Text>
                 <Text style={styles.breakdownKey}>CAL BURNED</Text>
+              </View>
+            )}
+            {recovery.spo2 !== null && (
+              <View style={styles.breakdownItem}>
+                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.spo2}%</Text>
+                <Text style={styles.breakdownKey}>SPO2</Text>
+                {recovery.spo2Date && recovery.spo2Date !== localDateStr() && (
+                  <Text style={styles.breakdownDate}>{recovery.spo2Date.slice(5)}</Text>
+                )}
+              </View>
+            )}
+            {recovery.respiratoryRate !== null && (
+              <View style={styles.breakdownItem}>
+                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.respiratoryRate}</Text>
+                <Text style={styles.breakdownKey}>RESP/MIN</Text>
+                {recovery.respiratoryRateDate && recovery.respiratoryRateDate !== localDateStr() && (
+                  <Text style={styles.breakdownDate}>{recovery.respiratoryRateDate.slice(5)}</Text>
+                )}
               </View>
             )}
           </View>
@@ -498,7 +518,7 @@ export function RecoveryScreen() {
           <View style={[styles.infoRow, { marginTop: 8 }]}>
             <Text style={[styles.infoFactor, { color: theme.textSecondary }]}>Modifiers</Text>
             <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
-              A hard training day (high active calories) applies a small penalty. An HRV trending above your 7-day baseline adds a bonus. Both reflect real recovery demand.
+              Hard training (high active cals) applies a small penalty; HRV trending above your 7-day baseline adds a bonus. SpO2 below 95% and elevated respiratory rate also apply small adjustments.
             </Text>
           </View>
           <View style={styles.infoZones}>
