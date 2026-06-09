@@ -167,6 +167,24 @@ export function RecoveryScreen() {
       ? { text: "NORMAL", cls: "amber" as const }
       : { text: "ELEVATED", cls: "red" as const };
 
+  // ── SpO2 ─────────────────────────────────────────────────────────
+  const [spo2Days, setSpo2Days] = useState(14);
+  const spo2Sorted = [...healthData.spo2].sort((a, b) => a.date.localeCompare(b.date));
+  const cutoffSpo2 = daysAgoStr(spo2Days);
+  const spo2Slice = spo2Sorted.filter((d) => d.date >= cutoffSpo2);
+  const latestSpo2 = spo2Sorted[spo2Sorted.length - 1]?.value;
+  const spo2PeriodAvg = spo2Slice.length
+    ? Math.round(avg(spo2Slice.map((d) => d.value)) * 10) / 10
+    : latestSpo2;
+
+  const spo2Badge = !spo2PeriodAvg
+    ? null
+    : spo2PeriodAvg >= 95
+    ? { text: "NORMAL", cls: "green" as const }
+    : spo2PeriodAvg >= 93
+    ? { text: "LOW", cls: "amber" as const }
+    : { text: "CRITICAL", cls: "red" as const };
+
   // ── Blood Pressure ───────────────────────────────────────────────
   const [bpDays, setBpDays] = useState(14);
   const bpSorted = [...healthData.bloodPressure].sort((a, b) => a.date.localeCompare(b.date));
@@ -465,6 +483,46 @@ export function RecoveryScreen() {
           minVal={40}
           maxVal={90}
         />
+      </Card>
+
+      {/* ── SpO2 Card ── */}
+      <Card>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.lbl}>SPO2</Text>
+          <PillGroup value={spo2Days} onChange={setSpo2Days} pillStyles={pillStylesMemo} />
+        </View>
+        {spo2Slice.length > 0 ? (
+          <>
+            <View style={styles.metricRow}>
+              <View>
+                <View style={styles.numRow}>
+                  <Text style={styles.numLg}>{spo2PeriodAvg}</Text>
+                  <Text style={styles.numUnit}>% · {spo2Days}-day avg</Text>
+                </View>
+                <Text style={styles.subText}>Normal: ≥95%</Text>
+              </View>
+              {spo2Badge && (
+                <View style={[styles.badge, { backgroundColor: BADGE_COLORS[spo2Badge.cls].bg, borderColor: BADGE_COLORS[spo2Badge.cls].border }]}>
+                  <Text style={[styles.badgeText, { color: BADGE_COLORS[spo2Badge.cls].text }]}>{spo2Badge.text}</Text>
+                </View>
+              )}
+            </View>
+            <LineChart
+              data={spo2Slice}
+              height={120}
+              color="#60AFFF"
+              showDots
+              dotColorFn={(v) => v >= 95 ? "#00D084" : v >= 93 ? "#FFAA00" : "#FF3B30"}
+              rangeBand={{ low: 95, high: 100, label: "Normal range: 95–100%" }}
+              minVal={88}
+              maxVal={100}
+            />
+          </>
+        ) : (
+          <Text style={[styles.subText, { marginTop: 8, textAlign: "center" }]}>
+            No SpO2 data in Health Connect.{"\n"}Coros does not write SpO2 to Health Connect.
+          </Text>
+        )}
       </Card>
 
       {/* ── Blood Pressure Card ── */}

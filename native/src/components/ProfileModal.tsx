@@ -57,6 +57,8 @@ function Field({
   );
 }
 
+const APP_VERSION = "1.1.0";
+
 export function ProfileModal({ visible, onClose }: Props) {
   const { userProfile, updateUserProfile } = useContext(HealthContext);
   const [draft, setDraft] = useState<UserProfile>(userProfile);
@@ -309,6 +311,7 @@ export function ProfileModal({ visible, onClose }: Props) {
               )}
             </View>
           )}
+          <Text style={styles.versionText}>Signal v{APP_VERSION}</Text>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -451,6 +454,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#FF3B30",
     marginTop: 5,
+  },
+  versionText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.2)",
+    textAlign: "center",
+    marginTop: 28,
+    letterSpacing: 0.5,
   },
   footer: {
     padding: 20,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Signal",
     "slug": "signal-health",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "platforms": ["android"],
@@ -23,7 +23,12 @@
         "android.permission.health.READ_BODY_FAT",
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_RESTING_HEART_RATE",
-        "android.permission.health.PERMISSION_READ_HEALTH_DATA_HISTORY"
+        "android.permission.health.PERMISSION_READ_HEALTH_DATA_HISTORY",
+        "android.permission.health.READ_OXYGEN_SATURATION",
+        "android.permission.health.READ_RESPIRATORY_RATE",
+        "android.permission.health.READ_HYDRATION",
+        "android.permission.health.WRITE_HYDRATION",
+        "android.permission.health.READ_BLOOD_PRESSURE"
       ]
     },
     "extra": {
