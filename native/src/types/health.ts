@@ -81,6 +81,12 @@ export interface RecoveryNote {
   note: string;
 }
 
+export interface BloodPressurePoint {
+  date: string;
+  systolic: number;
+  diastolic: number;
+}
+
 export interface HealthData {
   weight: DataPoint[];
   hrv: DataPoint[];
@@ -94,7 +100,8 @@ export interface HealthData {
   activeCals: DataPoint[];
   spo2: DataPoint[];
   respiratoryRate: DataPoint[];
-  hydration: DataPoint[];  // oz per day
+  hydration: DataPoint[];
+  bloodPressure: BloodPressurePoint[];
 }
 
 export interface MicroGoal {

@@ -46,6 +46,7 @@ const emptyHealthData: HealthData = {
   spo2: [],
   respiratoryRate: [],
   hydration: [],
+  bloodPressure: [],
 };
 
 const defaultAppState: AppState = {

@@ -24,6 +24,7 @@ const PERMISSIONS: (Permission | { accessType: "read"; recordType: "ReadHealthDa
   { accessType: "read", recordType: "RespiratoryRate" },
   { accessType: "read", recordType: "Hydration" },
   { accessType: "write", recordType: "Hydration" },
+  { accessType: "read", recordType: "BloodPressure" },
   { accessType: "read", recordType: "ReadHealthDataHistory" },
 ];
 import {
@@ -31,6 +32,7 @@ import {
   ExerciseSession,
   NutritionEntry,
   HealthData,
+  BloodPressurePoint,
 } from "../types/health";
 
 function daysAgoISO(days: number): string {
@@ -428,6 +430,30 @@ async function readHydration(days = 45): Promise<DataPoint[]> {
   }
 }
 
+async function readBloodPressure(days = 45): Promise<BloodPressurePoint[]> {
+  try {
+    const result = await readRecords("BloodPressure", {
+      timeRangeFilter: {
+        operator: "between",
+        startTime: daysAgoISO(days),
+        endTime: new Date().toISOString(),
+      },
+    });
+    const map = new Map<string, BloodPressurePoint>();
+    for (const r of result.records) {
+      const dateStr = toDateStr(r.time);
+      map.set(dateStr, {
+        date: dateStr,
+        systolic: Math.round((r.systolic as any).inMillimetersOfMercury),
+        diastolic: Math.round((r.diastolic as any).inMillimetersOfMercury),
+      });
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.localeCompare(a.date));
+  } catch {
+    return [];
+  }
+}
+
 export async function writeHydration(oz: number): Promise<void> {
   try {
     const now = new Date();
@@ -445,7 +471,7 @@ export async function writeHydration(oz: number): Promise<void> {
 }
 
 export async function readAllHealthData(): Promise<HealthData> {
-  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass, activeCals, spo2, respiratoryRate, hydration] =
+  const [weight, steps, sleep, hrv, rhr, nutrition, exercise, bodyFat, leanMass, activeCals, spo2, respiratoryRate, hydration, bloodPressure] =
     await Promise.allSettled([
       readWeight(730),
       readSteps(730),
@@ -460,6 +486,7 @@ export async function readAllHealthData(): Promise<HealthData> {
       readSpO2(730),
       readRespiratoryRate(730),
       readHydration(730),
+      readBloodPressure(730),
     ]);
 
   return {
@@ -476,5 +503,6 @@ export async function readAllHealthData(): Promise<HealthData> {
     spo2: spo2.status === "fulfilled" ? spo2.value : [],
     respiratoryRate: respiratoryRate.status === "fulfilled" ? respiratoryRate.value : [],
     hydration: hydration.status === "fulfilled" ? hydration.value : [],
+    bloodPressure: bloodPressure.status === "fulfilled" ? bloodPressure.value : [],
   };
 }

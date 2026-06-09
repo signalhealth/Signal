@@ -23,6 +23,7 @@ import {
   HRV_NORMAL_LOW,
   HRV_NORMAL_HIGH,
   SLEEP_TARGET,
+  BloodPressurePoint,
 } from "../types/health";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
@@ -165,6 +166,29 @@ export function RecoveryScreen() {
       : rhrBadgeVal <= 65
       ? { text: "NORMAL", cls: "amber" as const }
       : { text: "ELEVATED", cls: "red" as const };
+
+  // ── Blood Pressure ───────────────────────────────────────────────
+  const [bpDays, setBpDays] = useState(14);
+  const bpSorted = [...healthData.bloodPressure].sort((a, b) => a.date.localeCompare(b.date));
+  const cutoffBp = daysAgoStr(bpDays);
+  const bpSlice = bpSorted.filter((d) => d.date >= cutoffBp);
+  const latestBP = bpSorted[bpSorted.length - 1];
+  const bpPeriodAvgSys = bpSlice.length
+    ? Math.round(avg(bpSlice.map((d) => d.systolic)))
+    : latestBP?.systolic;
+  const bpPeriodAvgDia = bpSlice.length
+    ? Math.round(avg(bpSlice.map((d) => d.diastolic)))
+    : latestBP?.diastolic;
+
+  const bpBadge = !bpPeriodAvgSys
+    ? null
+    : bpPeriodAvgSys >= 140 || (bpPeriodAvgDia ?? 0) >= 90
+    ? { text: "HIGH STAGE 2", cls: "red" as const }
+    : bpPeriodAvgSys >= 130 || (bpPeriodAvgDia ?? 0) >= 80
+    ? { text: "HIGH STAGE 1", cls: "red" as const }
+    : bpPeriodAvgSys >= 120
+    ? { text: "ELEVATED", cls: "amber" as const }
+    : { text: "NORMAL", cls: "green" as const };
 
   // ── Recovery Notes ───────────────────────────────────────────────
   function addRecoveryNote() {
@@ -441,6 +465,48 @@ export function RecoveryScreen() {
           minVal={40}
           maxVal={90}
         />
+      </Card>
+
+      {/* ── Blood Pressure Card ── */}
+      <Card>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.lbl}>BLOOD PRESSURE</Text>
+          <PillGroup value={bpDays} onChange={setBpDays} pillStyles={pillStylesMemo} />
+        </View>
+        {latestBP ? (
+          <>
+            <View style={styles.metricRow}>
+              <View>
+                <View style={styles.numRow}>
+                  <Text style={styles.numLg}>
+                    {bpPeriodAvgSys}/{bpPeriodAvgDia}
+                  </Text>
+                  <Text style={styles.numUnit}>mmHg · {bpDays}-day avg</Text>
+                </View>
+                <Text style={styles.subText}>Normal: &lt;120/&lt;80 mmHg</Text>
+              </View>
+              {bpBadge && (
+                <View style={[styles.badge, { backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
+                  <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
+                </View>
+              )}
+            </View>
+            <LineChart
+              data={bpSlice.map((d) => ({ date: d.date, value: d.systolic }))}
+              height={120}
+              color="#60AFFF"
+              showDots
+              dotColorFn={(v) => v >= 130 ? "#FF3B30" : v >= 120 ? "#FFAA00" : "#00D084"}
+              rangeBand={{ low: 90, high: 120, label: "Normal systolic: 90–120 mmHg" }}
+              minVal={60}
+              maxVal={160}
+            />
+          </>
+        ) : (
+          <Text style={[styles.subText, { marginTop: 8, textAlign: "center" }]}>
+            No blood pressure data in Health Connect
+          </Text>
+        )}
       </Card>
 
       {/* ── Recovery Notes ── */}
