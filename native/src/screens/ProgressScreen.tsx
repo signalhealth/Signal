@@ -385,7 +385,7 @@ export function ProgressScreen() {
           <Text style={styles.lbl}>BODY COMPOSITION</Text>
           {bfTrend.length > 0 && (
             <View style={styles.pills}>
-              {([30, 60, 90] as const).map((d) => (
+              {([14, 30, 60] as const).map((d) => (
                 <TouchableOpacity
                   key={d}
                   onPress={() => setBfDays(d)}
