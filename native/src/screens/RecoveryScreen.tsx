@@ -201,9 +201,9 @@ export function RecoveryScreen() {
   const bpBadge = !bpPeriodAvgSys
     ? null
     : bpPeriodAvgSys >= 140 || (bpPeriodAvgDia ?? 0) >= 90
-    ? { text: "HIGH STAGE 2", cls: "red" as const }
+    ? { text: "STAGE 2", cls: "red" as const }
     : bpPeriodAvgSys >= 130 || (bpPeriodAvgDia ?? 0) >= 80
-    ? { text: "HIGH STAGE 1", cls: "red" as const }
+    ? { text: "STAGE 1", cls: "red" as const }
     : bpPeriodAvgSys >= 120
     ? { text: "ELEVATED", cls: "amber" as const }
     : { text: "NORMAL", cls: "green" as const };
@@ -534,14 +534,16 @@ export function RecoveryScreen() {
         {latestBP ? (
           <>
             <View style={styles.metricRow}>
-              <View>
+              <View style={{ flex: 1, paddingRight: 10 }}>
                 <View style={styles.numRow}>
                   <Text style={styles.numLg}>
                     {bpPeriodAvgSys}/{bpPeriodAvgDia}
                   </Text>
-                  <Text style={styles.numUnit}>mmHg · {bpDays}-day avg</Text>
+                  <Text style={styles.numUnit}>mmHg</Text>
                 </View>
-                <Text style={styles.subText}>Normal: &lt;120/&lt;80 mmHg</Text>
+                <Text style={styles.subText}>
+                  {bpDays}-day avg · Normal &lt;120/80
+                </Text>
               </View>
               {bpBadge && (
                 <View style={[styles.badge, { backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
@@ -745,6 +747,8 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       paddingVertical: 4,
       borderRadius: 5,
       borderWidth: 1,
+      flexShrink: 0,
+      alignSelf: "flex-start",
     },
     badgeText: {
       fontSize: 10,
