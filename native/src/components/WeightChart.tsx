@@ -211,6 +211,10 @@ export function SparkBars({
 // Line chart for HRV/sleep/RHR
 interface LineChartProps {
   data: DataPoint[];
+  secondaryData?: DataPoint[];
+  secondaryColor?: string;
+  secondaryDotColorFn?: (v: number) => string;
+  secondaryRangeBand?: { low: number; high: number; color?: string; label?: string };
   height?: number;
   color?: string;
   showDots?: boolean;
@@ -225,6 +229,10 @@ interface LineChartProps {
 
 export function LineChart({
   data,
+  secondaryData,
+  secondaryColor = "#A78BFA",
+  secondaryDotColorFn,
+  secondaryRangeBand,
   height = 130,
   color = "#60AFFF",
   showDots = false,
@@ -311,10 +319,29 @@ export function LineChart({
   const linePath = buildPath(points, true);
   const bandColor = rangeBand?.color ?? "rgba(0,200,100,0.13)";
 
+  const secSorted = secondaryData
+    ? [...secondaryData].sort((a, b) => a.date.localeCompare(b.date))
+    : [];
+  const secVals = secSorted.map((d) => d.value);
+  const secPoints = secVals.map((v, i) => ({
+    x: secSorted.length === 1 ? chartW / 2 : (i / (secSorted.length - 1)) * chartW,
+    y: toY(v),
+  }));
+  const secPath = secPoints.length ? buildPath(secPoints, true) : "";
+  const secBandColor = secondaryRangeBand?.color ?? "rgba(167,139,250,0.12)";
+
   return (
     <View>
       <Svg width={chartW} height={chartH}>
-        {/* Range band (behind everything) */}
+        {/* Secondary range band */}
+        {secondaryRangeBand && (() => {
+          const y1 = Math.max(padTop, Math.min(chartH - padBottom, toY(secondaryRangeBand.high)));
+          const y2 = Math.max(padTop, Math.min(chartH - padBottom, toY(secondaryRangeBand.low)));
+          return (
+            <Rect x={0} y={Math.min(y1, y2)} width={chartW} height={Math.max(1, Math.abs(y2 - y1))} fill={secBandColor} />
+          );
+        })()}
+        {/* Primary range band (behind everything) */}
         {rangeBand && (() => {
           const y1 = Math.max(padTop, Math.min(chartH - padBottom, toY(rangeBand.high)));
           const y2 = Math.max(padTop, Math.min(chartH - padBottom, toY(rangeBand.low)));
@@ -330,6 +357,15 @@ export function LineChart({
             stroke={rl.color} strokeWidth={1} strokeDasharray="4 4"
           />
         ))}
+        {/* Secondary line */}
+        {secPath ? <Path d={secPath} stroke={secondaryColor} strokeWidth={2} fill="none" /> : null}
+        {/* Secondary dots */}
+        {showDots && secPoints.map((p, i) => {
+          const dc = secondaryDotColorFn ? secondaryDotColorFn(secVals[i]) : secondaryColor;
+          return (
+            <Path key={`sd${i}`} d={`M${p.x - 3},${p.y} a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0`} fill={dc} />
+          );
+        })}
         {/* Main line */}
         <Path d={linePath} stroke={color} strokeWidth={2} fill="none" />
         {/* Dots */}
@@ -341,10 +377,20 @@ export function LineChart({
             );
           })}
       </Svg>
-      {rangeBand?.label && (
-        <View style={legendStyles.row}>
-          <View style={[legendStyles.swatch, { backgroundColor: "rgba(0,200,100,0.45)" }]} />
-          <Text style={[legendStyles.text, { color: theme.textTertiary }]}>{rangeBand.label}</Text>
+      {(rangeBand?.label || secondaryRangeBand?.label) && (
+        <View style={legendStyles.multiRow}>
+          {rangeBand?.label && (
+            <View style={legendStyles.row}>
+              <View style={[legendStyles.swatch, { backgroundColor: "rgba(0,200,100,0.45)" }]} />
+              <Text style={[legendStyles.text, { color: theme.textTertiary }]}>{rangeBand.label}</Text>
+            </View>
+          )}
+          {secondaryRangeBand?.label && (
+            <View style={legendStyles.row}>
+              <View style={[legendStyles.swatch, { backgroundColor: "rgba(167,139,250,0.55)" }]} />
+              <Text style={[legendStyles.text, { color: theme.textTertiary }]}>{secondaryRangeBand.label}</Text>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -364,7 +410,8 @@ const styles = StyleSheet.create({
 });
 
 const legendStyles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 6 },
+  multiRow: { gap: 4, marginTop: 6 },
+  row: { flexDirection: "row", alignItems: "center", gap: 5 },
   swatch: { width: 10, height: 10, borderRadius: 2 },
   text: { fontSize: 10, letterSpacing: 0.3 },
 });

@@ -539,12 +539,16 @@ export function RecoveryScreen() {
             </View>
             <LineChart
               data={bpSlice.map((d) => ({ date: d.date, value: d.systolic }))}
+              secondaryData={bpSlice.map((d) => ({ date: d.date, value: d.diastolic }))}
+              secondaryColor="#A78BFA"
+              secondaryDotColorFn={(v) => v >= 90 ? "#FF3B30" : v >= 80 ? "#FFAA00" : "#A78BFA"}
+              secondaryRangeBand={{ low: 60, high: 80, label: "Normal diastolic: 60–80 mmHg" }}
               height={120}
               color="#60AFFF"
               showDots
               dotColorFn={(v) => v >= 130 ? "#FF3B30" : v >= 120 ? "#FFAA00" : "#00D084"}
               rangeBand={{ low: 90, high: 120, label: "Normal systolic: 90–120 mmHg" }}
-              minVal={60}
+              minVal={50}
               maxVal={160}
             />
           </>
