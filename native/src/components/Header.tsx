@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, Path } from "react-native-svg"; // used for logo
 import { ThemeColors } from "../context/ThemeContext";
 
 interface HeaderProps {
@@ -9,30 +9,18 @@ interface HeaderProps {
   onThemeToggle: () => void;
   isDark: boolean;
   theme: ThemeColors;
+  initials?: string;
 }
 
-function GearIcon({ color }: { color: string }) {
+function ProfileAvatar({ initials }: { initials: string }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 15a3 3 0 100-6 3 3 0 000 6z"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
+    <View style={styles.avatar}>
+      <Text style={styles.avatarText}>{initials}</Text>
+    </View>
   );
 }
 
-export function Header({ loading = false, onProfilePress, onThemeToggle, isDark, theme }: HeaderProps) {
+export function Header({ loading = false, onProfilePress, onThemeToggle, isDark, theme, initials = "PJ" }: HeaderProps) {
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -101,10 +89,9 @@ export function Header({ loading = false, onProfilePress, onThemeToggle, isDark,
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onProfilePress}
-          style={styles.iconBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <GearIcon color={iconColor} />
+          <ProfileAvatar initials={initials} />
         </TouchableOpacity>
       </View>
     </View>
@@ -153,5 +140,19 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     padding: 2,
+  },
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#CC2200",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
   },
 });

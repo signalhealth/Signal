@@ -8,12 +8,54 @@ import {
   TextInput,
   RefreshControl,
 } from "react-native";
+import Svg, { Path as SvgPath } from "react-native-svg";
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { MarkdownResult } from "../components/MarkdownResult";
 import { FuelCtx, MACRO_TARGETS, DEFAULT_MICROS } from "../types/health";
+
+function WaterGlass({ oz, goal, theme }: { oz: number; goal: number; theme: ThemeColors }) {
+  const W = 72;
+  const H = 110;
+  const pct = Math.min(1, goal > 0 ? oz / goal : 0);
+
+  // Tapered glass: top full width, bottom inset 10 each side
+  const fillH = pct * (H - 2);
+  const fillY = H - fillH;
+  // Left wall: x=0 at y=0, x=10 at y=H; Right wall: x=W at y=0, x=W-10 at y=H
+  const leftAtFill = (fillY / H) * 10;
+  const rightAtFill = W - (fillY / H) * 10;
+
+  const color = pct >= 1 ? "#00D084" : pct >= 0.5 ? "#60AFFF" : "#FFAA00";
+
+  const fillPath = pct > 0
+    ? `M${leftAtFill},${fillY} L10,${H} L${W - 10},${H} L${rightAtFill},${fillY} Z`
+    : "";
+  const wavePath = pct > 0 && pct < 1
+    ? `M${leftAtFill + 2},${fillY} Q${W / 2},${fillY - 4} ${rightAtFill - 2},${fillY}`
+    : "";
+
+  // Tick marks at 25%, 50%, 75%
+  const ticks = [0.25, 0.5, 0.75].map((p) => {
+    const ty = H - p * (H - 2);
+    const lx = (ty / H) * 10;
+    return { y: ty, x1: lx + 1, x2: lx + 7 };
+  });
+
+  return (
+    <Svg width={W} height={H}>
+      {pct > 0 && <SvgPath d={fillPath} fill={color + "40"} />}
+      {wavePath ? <SvgPath d={wavePath} stroke={color} strokeWidth={1.5} fill="none" opacity={0.8} /> : null}
+      <SvgPath d={`M0,0 L10,${H} M${W},0 L${W - 10},${H}`} stroke={theme.textTertiary} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+      <SvgPath d={`M10,${H} L${W - 10},${H}`} stroke={theme.textTertiary} strokeWidth={1.5} strokeLinecap="round" />
+      {ticks.map((t, i) => (
+        <SvgPath key={i} d={`M${t.x1},${t.y} L${t.x2},${t.y}`} stroke={theme.textTertiary} strokeWidth={1} opacity={0.35} />
+      ))}
+    </Svg>
+  );
+}
 
 function parseMacroTarget(val: string, fallback: number): number {
   const n = parseInt(val, 10);
@@ -275,9 +317,6 @@ export function FuelScreen() {
               {todayNutrition ? fmtDate(todayNutrition.date) : fmtDate(today)}
             </Text>
           </View>
-          {healthData.nutrition.length > 0 && (
-            <Text style={styles.syncBadge}>Health Connect ✓</Text>
-          )}
         </View>
 
         <View style={styles.macroGrid}>
@@ -363,31 +402,19 @@ export function FuelScreen() {
           <Text style={styles.dateText}>{fmtDate(today)}</Text>
         </View>
 
-        <View style={styles.waterNumRow}>
-          <Text style={styles.waterNum}>{todayWater}</Text>
-          <Text style={styles.waterUnit}>oz</Text>
-          <Text style={styles.waterGoalLabel}>/ {waterGoal} oz</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 20, marginTop: 4, marginBottom: 12 }}>
+          <WaterGlass oz={todayWater} goal={waterGoal} theme={theme} />
+          <View style={{ flex: 1, paddingBottom: 4 }}>
+            <View style={styles.waterNumRow}>
+              <Text style={styles.waterNum}>{todayWater}</Text>
+              <Text style={styles.waterUnit}>oz</Text>
+            </View>
+            <Text style={styles.waterGoalLabel}>/ {waterGoal} oz goal</Text>
+            <Text style={styles.waterPct}>
+              {Math.round((todayWater / waterGoal) * 100)}% of goal
+            </Text>
+          </View>
         </View>
-
-        <View style={[styles.track, { marginTop: 10, marginBottom: 4 }]}>
-          <View
-            style={[
-              styles.trackFill,
-              {
-                width: `${Math.min(100, (todayWater / waterGoal) * 100)}%` as `${number}%`,
-                backgroundColor:
-                  todayWater >= waterGoal
-                    ? theme.green
-                    : todayWater >= waterGoal * 0.5
-                    ? theme.accent
-                    : theme.amber,
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.waterPct}>
-          {Math.round((todayWater / waterGoal) * 100)}% of goal
-        </Text>
 
         <View style={styles.waterQuickRow}>
           {([8, 16, 24] as const).map((oz) => (
@@ -546,6 +573,12 @@ export function FuelScreen() {
                   ? "rgba(255,59,48,0.7)"
                   : "rgba(255,170,0,0.7)";
               }}
+              rangeBand={targets ? {
+                low: targets.calories - 75,
+                high: targets.calories + 75,
+                color: "rgba(0,200,100,0.12)",
+                label: `Target: ${targets.calories.toLocaleString()} kcal`,
+              } : undefined}
               minVal={0}
               maxVal={2400}
             />

@@ -109,11 +109,19 @@ function PermissionsPrompt() {
   );
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts[0]?.length >= 1) return parts[0].slice(0, 2).toUpperCase();
+  return "PJ";
+}
+
 function AppShell() {
-  const { loading, permissionGranted } = useContext(HealthContext);
+  const { loading, permissionGranted, userProfile } = useContext(HealthContext);
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showProfile, setShowProfile] = React.useState(false);
+  const initials = userProfile.name ? getInitials(userProfile.name) : "PJ";
 
   return (
     <View style={[styles.shell, { backgroundColor: theme.bg }]}>
@@ -125,6 +133,7 @@ function AppShell() {
           onThemeToggle={toggleTheme}
           isDark={isDark}
           theme={theme}
+          initials={initials}
         />
       </SafeAreaView>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
