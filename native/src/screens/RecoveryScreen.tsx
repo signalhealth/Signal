@@ -646,9 +646,9 @@ export function RecoveryScreen() {
             </Text>
           </View>
           <View style={styles.infoZones}>
-            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,59,48,0.15)", color: "#FF3B30" }]}>0–39 Rest</Text>
-            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,170,0,0.15)", color: "#FFAA00" }]}>40–69 Moderate</Text>
-            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(0,208,132,0.15)", color: "#00D084" }]}>70–100 Good</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,59,48,0.15)", color: "#FF3B30" }]}>0–39 Rest Day</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,170,0,0.15)", color: "#FFAA00" }]}>40–69 Take It Easy</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(0,208,132,0.15)", color: "#00D084" }]}>70–100 Go Hard</Text>
           </View>
         </View>
       )}
