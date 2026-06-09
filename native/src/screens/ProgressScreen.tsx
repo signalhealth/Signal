@@ -55,6 +55,7 @@ export function ProgressScreen() {
   };
 
   const [wtDays, setWtDays] = useState(14);
+  const [stepsDays, setStepsDays] = useState(14);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -158,7 +159,8 @@ export function ProgressScreen() {
     : latestStepEntry?.date
     ? fmtDate(latestStepEntry.date)
     : "";
-  const stepsLast14 = stepsSorted.slice(-14);
+  const stepsSlice = stepsSorted.slice(-stepsDays);
+  const stepsAvg = stepsSlice.length ? Math.round(avg(stepsSlice.map((d) => d.value))) : 0;
 
   // ── DEXA ────────────────────────────────────────────────────────
   const latestDexa = appState.dexa[appState.dexa.length - 1];
@@ -340,7 +342,17 @@ export function ProgressScreen() {
       <Card>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.lbl}>STEPS</Text>
-          <Text style={styles.dateLabel}>{stepsDateLabel}</Text>
+          <View style={styles.pills}>
+            {([14, 30, 60] as const).map((d) => (
+              <TouchableOpacity
+                key={d}
+                onPress={() => setStepsDays(d)}
+                style={[styles.pill, stepsDays === d && styles.pillOn]}
+              >
+                <Text style={[styles.pillText, stepsDays === d && styles.pillTextOn]}>{d}D</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
         <View style={styles.stepsNumRow}>
           <Text style={styles.stepsNum}>
@@ -348,6 +360,9 @@ export function ProgressScreen() {
           </Text>
           <Text style={styles.stepsGoal}>/ 10,000</Text>
         </View>
+        <Text style={[styles.dateLabel, { marginBottom: 6 }]}>
+          {stepsDateLabel}{"  ·  "}{stepsDays}-day avg: {stepsAvg.toLocaleString()}
+        </Text>
         <View style={styles.track}>
           <View
             style={[
@@ -360,7 +375,7 @@ export function ProgressScreen() {
           />
         </View>
         <View style={{ marginTop: 14 }}>
-          <SparkBars data={stepsLast14} height={60} target={10000} />
+          <SparkBars data={stepsSlice} height={60} target={10000} />
         </View>
       </Card>
 
