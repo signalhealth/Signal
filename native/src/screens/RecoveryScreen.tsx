@@ -346,9 +346,6 @@ export function RecoveryScreen() {
               <Text style={styles.numLg}>{hrvPeriodAvg ?? "—"}</Text>
               <Text style={styles.numUnit}>ms · {hrvDays}-day avg</Text>
             </View>
-            <Text style={styles.subText}>
-              Normal range: {HRV_NORMAL_LOW}–{HRV_NORMAL_HIGH} ms
-            </Text>
           </View>
           {hrvBadge && (
             <View
@@ -499,7 +496,6 @@ export function RecoveryScreen() {
                   <Text style={styles.numLg}>{spo2PeriodAvg}</Text>
                   <Text style={styles.numUnit}>% · {spo2Days}-day avg</Text>
                 </View>
-                <Text style={styles.subText}>Normal: ≥95%</Text>
               </View>
               {spo2Badge && (
                 <View style={[styles.badge, { backgroundColor: BADGE_COLORS[spo2Badge.cls].bg, borderColor: BADGE_COLORS[spo2Badge.cls].border }]}>
@@ -539,11 +535,8 @@ export function RecoveryScreen() {
                   <Text style={styles.numLg}>
                     {bpPeriodAvgSys}/{bpPeriodAvgDia}
                   </Text>
-                  <Text style={styles.numUnit}>mmHg</Text>
+                  <Text style={styles.numUnit}>mmHg · {bpDays}-day avg</Text>
                 </View>
-                <Text style={styles.subText}>
-                  {bpDays}-day avg · Normal &lt;120/80
-                </Text>
               </View>
               {bpBadge && (
                 <View style={[styles.badge, { backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
