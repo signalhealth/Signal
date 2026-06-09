@@ -336,37 +336,32 @@ export function RecoveryScreen() {
 
       {/* ── HRV Card ── */}
       <Card>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>HRV</Text>
-          <PillGroup value={hrvDays} onChange={setHrvDays} pillStyles={pillStylesMemo} />
-        </View>
-        <View style={styles.metricRow}>
-          <View>
+        <View style={styles.topRow}>
+          <View style={styles.topLeft}>
+            <Text style={[styles.lbl, styles.metricLbl]}>HRV</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>{hrvPeriodAvg ?? "—"}</Text>
-              <Text style={styles.numUnit}>ms · {hrvDays}-day avg</Text>
+              <Text style={styles.numUnit}>ms</Text>
             </View>
           </View>
-          {hrvBadge && (
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: BADGE_COLORS[hrvBadge.cls].bg,
-                  borderColor: BADGE_COLORS[hrvBadge.cls].border,
-                },
-              ]}
-            >
-              <Text
+          <View style={styles.topRight}>
+            <PillGroup value={hrvDays} onChange={setHrvDays} pillStyles={pillStylesMemo} />
+            {hrvBadge && (
+              <View
                 style={[
-                  styles.badgeText,
-                  { color: BADGE_COLORS[hrvBadge.cls].text },
+                  styles.badge,
+                  {
+                    backgroundColor: BADGE_COLORS[hrvBadge.cls].bg,
+                    borderColor: BADGE_COLORS[hrvBadge.cls].border,
+                  },
                 ]}
               >
-                {hrvBadge.text}
-              </Text>
-            </View>
-          )}
+                <Text style={[styles.badgeText, { color: BADGE_COLORS[hrvBadge.cls].text }]}>
+                  {hrvBadge.text}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
         <LineChart
           data={hrvSlice}
@@ -387,39 +382,34 @@ export function RecoveryScreen() {
 
       {/* ── Sleep Card ── */}
       <Card>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>SLEEP</Text>
-          <PillGroup value={sleepDays} onChange={setSleepDays} pillStyles={pillStylesMemo} />
-        </View>
-        <View style={styles.metricRow}>
-          <View>
+        <View style={styles.topRow}>
+          <View style={styles.topLeft}>
+            <Text style={[styles.lbl, styles.metricLbl]}>SLEEP</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>
                 {sleepPeriodAvg?.toFixed(1) ?? "—"}
               </Text>
-              <Text style={styles.numUnit}>hr · {sleepDays}-day avg</Text>
+              <Text style={styles.numUnit}>hr</Text>
             </View>
           </View>
-          {sleepBadge && (
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: BADGE_COLORS[sleepBadge.cls].bg,
-                  borderColor: BADGE_COLORS[sleepBadge.cls].border,
-                },
-              ]}
-            >
-              <Text
+          <View style={styles.topRight}>
+            <PillGroup value={sleepDays} onChange={setSleepDays} pillStyles={pillStylesMemo} />
+            {sleepBadge && (
+              <View
                 style={[
-                  styles.badgeText,
-                  { color: BADGE_COLORS[sleepBadge.cls].text },
+                  styles.badge,
+                  {
+                    backgroundColor: BADGE_COLORS[sleepBadge.cls].bg,
+                    borderColor: BADGE_COLORS[sleepBadge.cls].border,
+                  },
                 ]}
               >
-                {sleepBadge.text}
-              </Text>
-            </View>
-          )}
+                <Text style={[styles.badgeText, { color: BADGE_COLORS[sleepBadge.cls].text }]}>
+                  {sleepBadge.text}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
         <LineChart
           data={sleepSlice}
@@ -440,37 +430,32 @@ export function RecoveryScreen() {
 
       {/* ── RHR Card ── */}
       <Card>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>RHR</Text>
-          <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />
-        </View>
-        <View style={styles.metricRow}>
-          <View>
+        <View style={styles.topRow}>
+          <View style={styles.topLeft}>
+            <Text style={[styles.lbl, styles.metricLbl]}>RHR</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>{rhrPeriodAvg ?? "—"}</Text>
-              <Text style={styles.numUnit}>bpm · {rhrDays}-day avg</Text>
+              <Text style={styles.numUnit}>bpm</Text>
             </View>
           </View>
-          {rhrBadge && (
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: BADGE_COLORS[rhrBadge.cls].bg,
-                  borderColor: BADGE_COLORS[rhrBadge.cls].border,
-                },
-              ]}
-            >
-              <Text
+          <View style={styles.topRight}>
+            <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />
+            {rhrBadge && (
+              <View
                 style={[
-                  styles.badgeText,
-                  { color: BADGE_COLORS[rhrBadge.cls].text },
+                  styles.badge,
+                  {
+                    backgroundColor: BADGE_COLORS[rhrBadge.cls].bg,
+                    borderColor: BADGE_COLORS[rhrBadge.cls].border,
+                  },
                 ]}
               >
-                {rhrBadge.text}
-              </Text>
-            </View>
-          )}
+                <Text style={[styles.badgeText, { color: BADGE_COLORS[rhrBadge.cls].text }]}>
+                  {rhrBadge.text}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
         <LineChart
           data={rhrSlice}
@@ -484,24 +469,24 @@ export function RecoveryScreen() {
 
       {/* ── SpO2 Card ── */}
       <Card>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>SPO2</Text>
-          <PillGroup value={spo2Days} onChange={setSpo2Days} pillStyles={pillStylesMemo} />
-        </View>
         {spo2Slice.length > 0 ? (
           <>
-            <View style={styles.metricRow}>
-              <View>
+            <View style={styles.topRow}>
+              <View style={styles.topLeft}>
+                <Text style={[styles.lbl, styles.metricLbl]}>SPO2</Text>
                 <View style={styles.numRow}>
                   <Text style={styles.numLg}>{spo2PeriodAvg}</Text>
-                  <Text style={styles.numUnit}>% · {spo2Days}-day avg</Text>
+                  <Text style={styles.numUnit}>%</Text>
                 </View>
               </View>
-              {spo2Badge && (
-                <View style={[styles.badge, { backgroundColor: BADGE_COLORS[spo2Badge.cls].bg, borderColor: BADGE_COLORS[spo2Badge.cls].border }]}>
-                  <Text style={[styles.badgeText, { color: BADGE_COLORS[spo2Badge.cls].text }]}>{spo2Badge.text}</Text>
-                </View>
-              )}
+              <View style={styles.topRight}>
+                <PillGroup value={spo2Days} onChange={setSpo2Days} pillStyles={pillStylesMemo} />
+                {spo2Badge && (
+                  <View style={[styles.badge, { backgroundColor: BADGE_COLORS[spo2Badge.cls].bg, borderColor: BADGE_COLORS[spo2Badge.cls].border }]}>
+                    <Text style={[styles.badgeText, { color: BADGE_COLORS[spo2Badge.cls].text }]}>{spo2Badge.text}</Text>
+                  </View>
+                )}
+              </View>
             </View>
             <LineChart
               data={spo2Slice}
@@ -515,34 +500,42 @@ export function RecoveryScreen() {
             />
           </>
         ) : (
-          <Text style={[styles.subText, { marginTop: 8, textAlign: "center" }]}>
-            No SpO2 data in Health Connect.{"\n"}Coros does not write SpO2 to Health Connect.
-          </Text>
+          <>
+            <View style={styles.topRow}>
+              <View style={styles.topLeft}>
+                <Text style={[styles.lbl, styles.metricLbl]}>SPO2</Text>
+              </View>
+              <PillGroup value={spo2Days} onChange={setSpo2Days} pillStyles={pillStylesMemo} />
+            </View>
+            <Text style={[styles.subText, { marginTop: 4, textAlign: "center" }]}>
+              No SpO2 data in Health Connect.{"\n"}Coros does not write SpO2 to Health Connect.
+            </Text>
+          </>
         )}
       </Card>
 
       {/* ── Blood Pressure Card ── */}
       <Card>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>BLOOD PRESSURE</Text>
-          <PillGroup value={bpDays} onChange={setBpDays} pillStyles={pillStylesMemo} />
-        </View>
         {latestBP ? (
           <>
-            <View style={styles.metricRow}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
+            <View style={styles.topRow}>
+              <View style={styles.topLeft}>
+                <Text style={[styles.lbl, styles.metricLbl]}>BLOOD PRESSURE</Text>
                 <View style={styles.numRow}>
                   <Text style={styles.numLg}>
                     {bpPeriodAvgSys}/{bpPeriodAvgDia}
                   </Text>
-                  <Text style={styles.numUnit}>mmHg · {bpDays}-day avg</Text>
+                  <Text style={styles.numUnit}>mmHg</Text>
                 </View>
               </View>
-              {bpBadge && (
-                <View style={[styles.badge, { backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
-                  <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
-                </View>
-              )}
+              <View style={styles.topRight}>
+                <PillGroup value={bpDays} onChange={setBpDays} pillStyles={pillStylesMemo} />
+                {bpBadge && (
+                  <View style={[styles.badge, { backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
+                    <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
+                  </View>
+                )}
+              </View>
             </View>
             <LineChart
               data={bpSlice.map((d) => ({ date: d.date, value: d.systolic }))}
@@ -556,9 +549,17 @@ export function RecoveryScreen() {
             />
           </>
         ) : (
-          <Text style={[styles.subText, { marginTop: 8, textAlign: "center" }]}>
-            No blood pressure data in Health Connect
-          </Text>
+          <>
+            <View style={styles.topRow}>
+              <View style={styles.topLeft}>
+                <Text style={[styles.lbl, styles.metricLbl]}>BLOOD PRESSURE</Text>
+              </View>
+              <PillGroup value={bpDays} onChange={setBpDays} pillStyles={pillStylesMemo} />
+            </View>
+            <Text style={[styles.subText, { marginTop: 4, textAlign: "center" }]}>
+              No blood pressure data in Health Connect
+            </Text>
+          </>
         )}
       </Card>
 
@@ -734,7 +735,16 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       letterSpacing: -0.8,
     },
     numUnit: { fontSize: 15, color: theme.textSecondary },
-    subText: { fontSize: 12, color: theme.textTertiary, marginTop: 4 },
+    subText: { fontSize: 12, color: theme.textTertiary },
+    topRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 14,
+    },
+    topLeft: { flex: 1, paddingRight: 10 },
+    topRight: { alignItems: "flex-end", gap: 8 },
+    metricLbl: { marginBottom: 6 },
     badge: {
       paddingHorizontal: 10,
       paddingVertical: 4,
