@@ -13,7 +13,7 @@ import {
   Platform,
   UIManager,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useRoute, useNavigation } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
@@ -76,12 +76,25 @@ export function RecoveryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-
+  const cardLayouts = useRef<Record<string, number>>({});
+  const route = useRoute();
+  const navigation = useNavigation<any>();
   useFocusEffect(
     useCallback(() => {
-      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      const target = (route.params as any)?.scrollTo ?? null;
+      if (target) {
+        setTimeout(() => {
+          const y = cardLayouts.current[target];
+          if (y !== undefined) {
+            scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
+          }
+          navigation.setParams({ scrollTo: undefined });
+        }, 200);
+      } else {
+        scrollRef.current?.scrollTo({ y: 0, animated: false });
+      }
       refresh();
-    }, [])
+    }, [(route.params as any)?.scrollTo])
   );
 
   async function onRefresh() {
@@ -335,6 +348,7 @@ export function RecoveryScreen() {
       </Card>
 
       {/* ── HRV Card ── */}
+      <View onLayout={e => { cardLayouts.current["hrv"] = e.nativeEvent.layout.y; }}>
       <Card>
         <View style={styles.topRow}>
           <View style={styles.topLeft}>
@@ -379,8 +393,10 @@ export function RecoveryScreen() {
           minVal={0}
         />
       </Card>
+      </View>
 
       {/* ── Sleep Card ── */}
+      <View onLayout={e => { cardLayouts.current["sleep"] = e.nativeEvent.layout.y; }}>
       <Card>
         <View style={styles.topRow}>
           <View style={styles.topLeft}>
@@ -427,8 +443,10 @@ export function RecoveryScreen() {
           maxVal={12}
         />
       </Card>
+      </View>
 
       {/* ── RHR Card ── */}
+      <View onLayout={e => { cardLayouts.current["rhr"] = e.nativeEvent.layout.y; }}>
       <Card>
         <View style={styles.topRow}>
           <View style={styles.topLeft}>
@@ -466,6 +484,7 @@ export function RecoveryScreen() {
           maxVal={90}
         />
       </Card>
+      </View>
 
       {/* ── SpO2 Card ── */}
       <Card>

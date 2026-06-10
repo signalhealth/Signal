@@ -113,6 +113,7 @@ interface SparkBarsProps {
   height?: number;
   color?: string;
   target?: number;
+  count?: number;
 }
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -127,12 +128,12 @@ export function SparkBars({
   height = 60,
   color = "#0066CC",
   target,
+  count = 14,
 }: SparkBarsProps) {
   const { theme } = useTheme();
   const labelH = 28;
-  // Use last 14 actual data points — no calendar grid
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
-  const recent = sorted.slice(-14);
+  const recent = sorted.slice(-count);
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const vals = recent.map((d) => d.value);
