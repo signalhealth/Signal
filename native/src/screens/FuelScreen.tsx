@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   RefreshControl,
 } from "react-native";
 import Svg, { Path as SvgPath } from "react-native-svg";
@@ -156,32 +155,20 @@ export function FuelScreen() {
   const today = localDateStr();
   // Prefer HC hydration (aggregates Coros + Signal logs), fall back to local cache
   const hcTodayOz = healthData.hydration.find((h) => h.date === today)?.value;
-  const todayWater = hcTodayOz ?? appState.water.find((w) => w.date === today)?.oz ?? 0;
+  const todayWater = appState.water.find((w) => w.date === today)?.oz ?? hcTodayOz ?? 0;
 
-  const [waterInput, setWaterInput] = useState("");
-  const [showWaterInput, setShowWaterInput] = useState(false);
-
-  function addWater(oz: number) {
-    if (oz <= 0) return;
-    writeHydration(oz).catch(() => {});
+  function adjustWater(delta: number) {
+    const baseOz = appState.water.find((w) => w.date === today)?.oz ?? hcTodayOz ?? 0;
+    const next = Math.max(0, Math.round(baseOz + delta));
+    if (delta > 0) writeHydration(delta).catch(() => {});
     const existing = appState.water.find((w) => w.date === today);
-    const newEntry = { date: today, oz: Math.round((existing?.oz ?? 0) + oz) };
-    const updated = {
+    const newEntry = { date: today, oz: next };
+    updateAppState({
       ...appState,
       water: existing
         ? appState.water.map((w) => (w.date === today ? newEntry : w))
         : [...appState.water, newEntry],
-    };
-    updateAppState(updated);
-  }
-
-  function handleAddCustomWater() {
-    const oz = parseFloat(waterInput);
-    if (!isNaN(oz) && oz > 0) {
-      addWater(oz);
-      setWaterInput("");
-      setShowWaterInput(false);
-    }
+    });
   }
 
   const [fuelCtx, setFuelCtx] = useState<FuelCtx>({
@@ -395,67 +382,6 @@ export function FuelScreen() {
         )}
       </Card>
 
-      {/* ── Water Tracking ── */}
-      <Card>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>DAILY WATER</Text>
-          <Text style={styles.dateText}>{fmtDate(today)}</Text>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 20, marginTop: 4, marginBottom: 12 }}>
-          <WaterGlass oz={todayWater} goal={waterGoal} theme={theme} />
-          <View style={{ flex: 1, paddingBottom: 4 }}>
-            <View style={styles.waterNumRow}>
-              <Text style={styles.waterNum}>{todayWater}</Text>
-              <Text style={styles.waterUnit}>oz</Text>
-            </View>
-            <Text style={styles.waterGoalLabel}>/ {waterGoal} oz goal</Text>
-            <Text style={styles.waterPct}>
-              {Math.round((todayWater / waterGoal) * 100)}% of goal
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.waterQuickRow}>
-          {([8, 16, 24] as const).map((oz) => (
-            <TouchableOpacity
-              key={oz}
-              style={styles.waterQuickBtn}
-              onPress={() => addWater(oz)}
-            >
-              <Text style={styles.waterQuickText}>+{oz} oz</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={[styles.waterQuickBtn, showWaterInput && styles.waterQuickBtnActive]}
-            onPress={() => setShowWaterInput((v) => !v)}
-          >
-            <Text style={[styles.waterQuickText, showWaterInput && styles.waterQuickTextActive]}>
-              + Custom
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {showWaterInput && (
-          <View style={styles.waterInputRow}>
-            <TextInput
-              style={styles.waterInput}
-              value={waterInput}
-              onChangeText={setWaterInput}
-              placeholder="oz"
-              placeholderTextColor={theme.textTertiary}
-              keyboardType="decimal-pad"
-              returnKeyType="done"
-              onSubmitEditing={handleAddCustomWater}
-              autoFocus
-            />
-            <TouchableOpacity style={styles.waterAddBtn} onPress={handleAddCustomWater}>
-              <Text style={styles.waterAddBtnText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </Card>
-
       {/* ── Context Toggles ── */}
       <Card>
         <Text style={styles.lbl}>TODAY'S CONTEXT</Text>
@@ -531,6 +457,38 @@ export function FuelScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── Water Tracking ── */}
+      <Card>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.lbl}>DAILY WATER</Text>
+          <Text style={styles.dateText}>{fmtDate(today)}</Text>
+        </View>
+
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 20, marginTop: 4, marginBottom: 20 }}>
+          <WaterGlass oz={todayWater} goal={waterGoal} theme={theme} />
+          <View style={{ flex: 1, paddingBottom: 4 }}>
+            <View style={styles.waterNumRow}>
+              <Text style={styles.waterNum}>{todayWater}</Text>
+              <Text style={styles.waterUnit}>oz</Text>
+            </View>
+            <Text style={styles.waterGoalLabel}>/ {waterGoal} oz goal</Text>
+            <Text style={styles.waterPct}>
+              {Math.round((todayWater / waterGoal) * 100)}% of goal
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.waterAdjRow}>
+          <TouchableOpacity style={styles.waterAdjBtn} onPress={() => adjustWater(-8)}>
+            <Text style={styles.waterAdjText}>−</Text>
+          </TouchableOpacity>
+          <Text style={styles.waterAdjLabel}>8 oz</Text>
+          <TouchableOpacity style={styles.waterAdjBtn} onPress={() => adjustWater(8)}>
+            <Text style={styles.waterAdjText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </Card>
 
       {/* ── Calorie History Chart ── */}
       <Card>
@@ -887,63 +845,38 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       fontSize: 11,
       color: theme.textTertiary,
       marginTop: 6,
-      marginBottom: 14,
       textTransform: "uppercase",
       letterSpacing: 0.5,
     },
-    waterQuickRow: {
+    waterAdjRow: {
       flexDirection: "row",
-      gap: 8,
-      flexWrap: "wrap",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 28,
     },
-    waterQuickBtn: {
-      paddingVertical: 9,
-      paddingHorizontal: 14,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: theme.pillBorder,
-      backgroundColor: "transparent",
-    },
-    waterQuickBtnActive: {
+    waterAdjBtn: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      borderWidth: 1.5,
       borderColor: theme.accent,
-      backgroundColor: isDark ? "rgba(0,102,204,0.15)" : "rgba(0,102,204,0.08)",
+      alignItems: "center",
+      justifyContent: "center",
     },
-    waterQuickText: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: theme.textSecondary,
-    },
-    waterQuickTextActive: {
+    waterAdjText: {
+      fontSize: 30,
+      fontWeight: "400",
       color: theme.accent,
+      lineHeight: 34,
+      includeFontPadding: false,
     },
-    waterInputRow: {
-      flexDirection: "row",
-      gap: 8,
-      marginTop: 10,
-      alignItems: "center",
-    },
-    waterInput: {
-      flex: 1,
-      backgroundColor: theme.inputBg,
-      borderWidth: 1,
-      borderColor: theme.inputBorder,
-      borderRadius: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      fontSize: 16,
-      color: theme.text,
-    },
-    waterAddBtn: {
-      backgroundColor: theme.accent,
-      borderRadius: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 20,
-      alignItems: "center",
-    },
-    waterAddBtnText: {
-      color: "#FFFFFF",
-      fontWeight: "700",
+    waterAdjLabel: {
       fontSize: 14,
+      fontWeight: "600",
+      color: theme.textTertiary,
+      letterSpacing: 0.5,
+      minWidth: 40,
+      textAlign: "center",
     },
 
     microRow: {
