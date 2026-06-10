@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
@@ -156,11 +159,26 @@ function LabRow({
   );
 }
 
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export function LabsScreen() {
   const { appState, updateAppState, userProfile } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
   const scrollRef = useRef<ScrollView>(null);
+
+  const [openSections, setOpenSections] = useState<Record<"red" | "amber" | "green", boolean>>({
+    red: false,
+    amber: false,
+    green: false,
+  });
+
+  function toggleSection(key: "red" | "amber" | "green") {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -183,6 +201,9 @@ export function LabsScreen() {
   const [labAnalysisLoading, setLabAnalysisLoading] = useState(false);
 
   const allLabs = [...appState.labs].sort((a, b) => b.date.localeCompare(a.date));
+  const redLabs = allLabs.filter((l) => l.status === "red");
+  const amberLabs = allLabs.filter((l) => l.status === "amber");
+  const greenLabs = allLabs.filter((l) => l.status === "green");
 
   function addLab() {
     if (!labName.trim() || !labValue.trim()) {
@@ -293,59 +314,116 @@ export function LabsScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Flagged */}
-      {allLabs.some((l) => l.status === "red") && (
-        <Card>
-          <Text style={[styles.sectionLabel, { color: theme.red }]}>FLAGGED</Text>
-          {allLabs.filter((l) => l.status === "red").map((lab, i) => (
-            <LabRow
-              key={lab.id || i}
-              lab={lab}
-              allLabs={allLabs}
-              onDelete={() => deleteLab(lab.id)}
-              onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
-              selected={lab.id === selectedLabId}
-              styles={styles}
-            />
-          ))}
-        </Card>
-      )}
+      {/* Flagged accordion */}
+      <Card>
+        <TouchableOpacity
+          onPress={() => toggleSection("red")}
+          style={styles.accordionHeader}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionLeft}>
+            <View style={[styles.accordionDot, { backgroundColor: "#FF3B30" }]} />
+            <Text style={[styles.accordionTitle, { color: "#FF3B30" }]}>FLAGGED</Text>
+            {redLabs.length > 0 && (
+              <View style={[styles.accordionCount, { backgroundColor: "rgba(255,59,48,0.15)", borderColor: "rgba(233,40,58,0.25)" }]}>
+                <Text style={[styles.accordionCountText, { color: "#FF3B30" }]}>{redLabs.length}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.accordionChevron, { color: theme.textTertiary }]}>
+            {openSections.red ? "▲" : "▼"}
+          </Text>
+        </TouchableOpacity>
+        {openSections.red && (
+          redLabs.length > 0
+            ? redLabs.map((lab, i) => (
+                <LabRow
+                  key={lab.id || i}
+                  lab={lab}
+                  allLabs={allLabs}
+                  onDelete={() => deleteLab(lab.id)}
+                  onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
+                  selected={lab.id === selectedLabId}
+                  styles={styles}
+                />
+              ))
+            : <Text style={[styles.emptyNote, { marginTop: 8 }]}>No flagged results.</Text>
+        )}
+      </Card>
 
-      {/* Monitor */}
-      {allLabs.some((l) => l.status === "amber") && (
-        <Card>
-          <Text style={[styles.sectionLabel, { color: theme.amber }]}>MONITOR</Text>
-          {allLabs.filter((l) => l.status === "amber").map((lab, i) => (
-            <LabRow
-              key={lab.id || i}
-              lab={lab}
-              allLabs={allLabs}
-              onDelete={() => deleteLab(lab.id)}
-              onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
-              selected={lab.id === selectedLabId}
-              styles={styles}
-            />
-          ))}
-        </Card>
-      )}
+      {/* Monitor accordion */}
+      <Card>
+        <TouchableOpacity
+          onPress={() => toggleSection("amber")}
+          style={styles.accordionHeader}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionLeft}>
+            <View style={[styles.accordionDot, { backgroundColor: "#F5A623" }]} />
+            <Text style={[styles.accordionTitle, { color: "#F5A623" }]}>MONITOR</Text>
+            {amberLabs.length > 0 && (
+              <View style={[styles.accordionCount, { backgroundColor: "rgba(245,166,35,0.1)", borderColor: "rgba(245,166,35,0.25)" }]}>
+                <Text style={[styles.accordionCountText, { color: "#F5A623" }]}>{amberLabs.length}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.accordionChevron, { color: theme.textTertiary }]}>
+            {openSections.amber ? "▲" : "▼"}
+          </Text>
+        </TouchableOpacity>
+        {openSections.amber && (
+          amberLabs.length > 0
+            ? amberLabs.map((lab, i) => (
+                <LabRow
+                  key={lab.id || i}
+                  lab={lab}
+                  allLabs={allLabs}
+                  onDelete={() => deleteLab(lab.id)}
+                  onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
+                  selected={lab.id === selectedLabId}
+                  styles={styles}
+                />
+              ))
+            : <Text style={[styles.emptyNote, { marginTop: 8 }]}>No monitored results.</Text>
+        )}
+      </Card>
 
-      {/* Optimal */}
-      {allLabs.some((l) => l.status === "green") && (
-        <Card>
-          <Text style={[styles.sectionLabel, { color: theme.green }]}>OPTIMAL</Text>
-          {allLabs.filter((l) => l.status === "green").map((lab, i) => (
-            <LabRow
-              key={lab.id || i}
-              lab={lab}
-              allLabs={allLabs}
-              onDelete={() => deleteLab(lab.id)}
-              onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
-              selected={lab.id === selectedLabId}
-              styles={styles}
-            />
-          ))}
-        </Card>
-      )}
+      {/* Optimal accordion */}
+      <Card>
+        <TouchableOpacity
+          onPress={() => toggleSection("green")}
+          style={styles.accordionHeader}
+          activeOpacity={0.7}
+        >
+          <View style={styles.accordionLeft}>
+            <View style={[styles.accordionDot, { backgroundColor: "#00D084" }]} />
+            <Text style={[styles.accordionTitle, { color: "#00D084" }]}>OPTIMAL</Text>
+            {greenLabs.length > 0 && (
+              <View style={[styles.accordionCount, { backgroundColor: "rgba(0,208,132,0.15)", borderColor: "rgba(0,200,120,0.25)" }]}>
+                <Text style={[styles.accordionCountText, { color: "#00D084" }]}>{greenLabs.length}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.accordionChevron, { color: theme.textTertiary }]}>
+            {openSections.green ? "▲" : "▼"}
+          </Text>
+        </TouchableOpacity>
+        {openSections.green && (
+          greenLabs.length > 0
+            ? greenLabs.map((lab, i) => (
+                <LabRow
+                  key={lab.id || i}
+                  lab={lab}
+                  allLabs={allLabs}
+                  onDelete={() => deleteLab(lab.id)}
+                  onPress={() => setSelectedLabId(lab.id === selectedLabId ? null : lab.id)}
+                  selected={lab.id === selectedLabId}
+                  styles={styles}
+                />
+              ))
+            : <Text style={[styles.emptyNote, { marginTop: 8 }]}>No optimal results yet.</Text>
+        )}
+      </Card>
 
       {/* Signal Lab Advisor */}
       <View style={styles.advisorCard}>
@@ -368,14 +446,6 @@ export function LabsScreen() {
         </TouchableOpacity>
       </View>
 
-      {allLabs.length === 0 && (
-        <Card>
-          <Text style={styles.sectionLabel}>LAB RESULTS</Text>
-          <Text style={styles.emptyNote}>
-            No lab results yet. Add your first result below.
-          </Text>
-        </Card>
-      )}
 
       {/* Add Result */}
       <Card>
@@ -565,6 +635,43 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       fontSize: 13,
       color: theme.textTertiary,
       marginVertical: 8,
+    },
+
+    accordionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    accordionLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    accordionDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    accordionTitle: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1.4,
+      textTransform: "uppercase",
+    },
+    accordionCount: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+      borderWidth: 1,
+      minWidth: 24,
+      alignItems: "center",
+    },
+    accordionCountText: {
+      fontSize: 11,
+      fontWeight: "700",
+    },
+    accordionChevron: {
+      fontSize: 10,
     },
 
     advisorCard: {
