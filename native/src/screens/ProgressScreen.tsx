@@ -33,6 +33,11 @@ function fmtDate(iso: string): string {
   const [yr, mm, dd] = iso.split("-").map(Number);
   return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
 }
+function fmtShortDate(iso: string | undefined): string {
+  if (!iso) return "";
+  const [, mm, dd] = iso.split("-").map(Number);
+  return `${MONTHS[mm - 1]} ${dd}`;
+}
 
 function avg(arr: number[]) {
   if (!arr.length) return 0;
@@ -325,7 +330,7 @@ export function ProgressScreen() {
     if (!date) return "";
     if (date === today) return "Today";
     if (date === yesterday) return "Yesterday";
-    return date.slice(5);
+    return fmtShortDate(date);
   }
 
   const COLORS = { green: theme.green, amber: theme.amber, red: theme.red };
@@ -344,7 +349,7 @@ export function ProgressScreen() {
   const latestWtDate = weightSorted[weightSorted.length - 1]?.date;
   const wtDateLabel = latestWtDate === today ? "Today"
     : latestWtDate === yesterday ? "Yesterday"
-    : latestWtDate ? fmtDate(latestWtDate) : "";
+    : fmtShortDate(latestWtDate);
 
   const wt14Cutoff = (() => {
     const d = new Date(Date.now() - 14 * 86400000);
@@ -361,7 +366,7 @@ export function ProgressScreen() {
   const todaySteps = latestStepEntry?.value;
   const stepsDateLabel = latestStepEntry?.date === today ? "Today"
     : latestStepEntry?.date === yesterday ? "Yesterday"
-    : latestStepEntry?.date ? fmtDate(latestStepEntry.date) : "";
+    : fmtShortDate(latestStepEntry?.date);
   const stepsColor = !todaySteps ? theme.textTertiary
     : todaySteps >= 10000 ? COLORS.green
     : todaySteps >= 7000 ? COLORS.amber

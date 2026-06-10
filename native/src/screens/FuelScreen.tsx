@@ -68,6 +68,12 @@ import { ThemeColors } from "../context/ThemeContext";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+function fmtShortDate(iso: string | undefined): string {
+  if (!iso) return "";
+  const [, mm, dd] = iso.split("-").map(Number);
+  return `${MONTHS[mm - 1]} ${dd}`;
+}
+
 function localDateStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -292,18 +298,16 @@ export function FuelScreen() {
       {/* ── Today's Intake ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
-          <View>
-            <Text style={styles.lbl}>
-              {!todayNutrition || todayNutrition.date === today
-                ? "TODAY'S INTAKE"
-                : todayNutrition.date === yesterday
-                ? "YESTERDAY'S INTAKE"
-                : "RECENT INTAKE"}
-            </Text>
-            <Text style={styles.dateText}>
-              {todayNutrition ? fmtDate(todayNutrition.date) : fmtDate(today)}
-            </Text>
-          </View>
+          <Text style={styles.lbl}>
+            {!todayNutrition || todayNutrition.date === today
+              ? "TODAY'S INTAKE"
+              : todayNutrition.date === yesterday
+              ? "YESTERDAY'S INTAKE"
+              : "RECENT INTAKE"}
+          </Text>
+          {todayNutrition && (
+            <Text style={styles.syncDate}>{fmtShortDate(todayNutrition.date)}</Text>
+          )}
         </View>
 
         <View style={styles.macroGrid}>
@@ -705,6 +709,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       marginBottom: 16,
     },
     dateText: { fontSize: 12, color: theme.textTertiary, marginTop: 3 },
+    syncDate: { fontSize: 11, color: theme.textTertiary, letterSpacing: 0.3 },
     syncBadge: {
       fontSize: 11,
       color: theme.green,

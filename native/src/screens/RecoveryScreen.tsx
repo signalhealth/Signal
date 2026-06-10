@@ -49,6 +49,11 @@ function fmtDate(iso: string): string {
   const [yr, mm, dd] = iso.split("-").map(Number);
   return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
 }
+function fmtShortDate(iso: string | undefined): string {
+  if (!iso) return "";
+  const [, mm, dd] = iso.split("-").map(Number);
+  return `${MONTHS[mm - 1]} ${dd}`;
+}
 
 function daysAgoStr(days: number): string {
   return localDateStr(days);
@@ -122,6 +127,7 @@ export function RecoveryScreen() {
   const cutoffHrv = daysAgoStr(hrvDays);
   const hrvSlice = hrvSorted.filter((d) => d.date >= cutoffHrv);
   const latestHRV = hrvSorted[hrvSorted.length - 1]?.value;
+  const latestHRVDate = hrvSorted[hrvSorted.length - 1]?.date;
   const hrvPeriodAvg = hrvSlice.length
     ? Math.round(avg(hrvSlice.map((d) => d.value)))
     : latestHRV;
@@ -143,6 +149,7 @@ export function RecoveryScreen() {
   const cutoffSleep = daysAgoStr(sleepDays);
   const sleepSlice = sleepSorted.filter((d) => d.date >= cutoffSleep);
   const lastNightSleep = sleepSorted[sleepSorted.length - 1]?.value;
+  const latestSleepDate = sleepSorted[sleepSorted.length - 1]?.date;
   const sleepPeriodAvg = sleepSlice.length
     ? avg(sleepSlice.map((d) => d.value))
     : lastNightSleep;
@@ -168,6 +175,7 @@ export function RecoveryScreen() {
   const cutoffRhr = daysAgoStr(rhrDays);
   const rhrSlice = rhrDeduped.filter((d) => d.date >= cutoffRhr);
   const latestRHR = rhrDeduped[rhrDeduped.length - 1]?.value;
+  const latestRHRDate = rhrDeduped[rhrDeduped.length - 1]?.date;
   const rhrPeriodAvg = rhrSlice.length
     ? Math.round(avg(rhrSlice.map((d) => d.value)))
     : latestRHR;
@@ -349,6 +357,7 @@ export function RecoveryScreen() {
             </View>
           </View>
           <View style={styles.topRight}>
+            {latestHRVDate ? <Text style={styles.syncDate}>{fmtShortDate(latestHRVDate)}</Text> : null}
             <PillGroup value={hrvDays} onChange={setHrvDays} pillStyles={pillStylesMemo} />
             {hrvBadge && (
               <View
@@ -399,6 +408,7 @@ export function RecoveryScreen() {
             </View>
           </View>
           <View style={styles.topRight}>
+            {latestSleepDate ? <Text style={styles.syncDate}>{fmtShortDate(latestSleepDate)}</Text> : null}
             <PillGroup value={sleepDays} onChange={setSleepDays} pillStyles={pillStylesMemo} />
             {sleepBadge && (
               <View
@@ -447,6 +457,7 @@ export function RecoveryScreen() {
             </View>
           </View>
           <View style={styles.topRight}>
+            {latestRHRDate ? <Text style={styles.syncDate}>{fmtShortDate(latestRHRDate)}</Text> : null}
             <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />
             {rhrBadge && (
               <View
@@ -480,7 +491,10 @@ export function RecoveryScreen() {
       <View style={styles.duoRow}>
         {/* SpO2 */}
         <Card style={{ flex: 1, padding: 14 }}>
-          <Text style={styles.lbl}>SPO2</Text>
+          <View style={styles.compactHeader}>
+            <Text style={styles.lbl}>SPO2</Text>
+            {latestSpo2Date ? <Text style={styles.syncDate}>{fmtShortDate(latestSpo2Date)}</Text> : null}
+          </View>
           <Text style={[styles.sourceTag, { color: theme.textTertiary, marginBottom: 6 }]}>COROS</Text>
           {latestSpo2 ? (
             <>
@@ -493,9 +507,6 @@ export function RecoveryScreen() {
                   <Text style={[styles.badgeText, { color: BADGE_COLORS[spo2Badge.cls].text }]}>{spo2Badge.text}</Text>
                 </View>
               )}
-              {latestSpo2Date && (
-                <Text style={[styles.subText, { marginTop: 6 }]}>{fmtDate(latestSpo2Date)}</Text>
-              )}
             </>
           ) : (
             <Text style={[styles.subText, { marginTop: 4 }]}>No data</Text>
@@ -504,7 +515,10 @@ export function RecoveryScreen() {
 
         {/* Blood Pressure */}
         <Card style={{ flex: 1, padding: 14 }}>
-          <Text style={styles.lbl}>BLOOD PRESSURE</Text>
+          <View style={styles.compactHeader}>
+            <Text style={styles.lbl}>BLOOD PRESSURE</Text>
+            {latestBP?.date ? <Text style={styles.syncDate}>{fmtShortDate(latestBP.date)}</Text> : null}
+          </View>
           <Text style={[styles.sourceTag, { color: theme.textTertiary, marginBottom: 6 }]}>WITHINGS</Text>
           {latestBP ? (
             <>
@@ -516,9 +530,6 @@ export function RecoveryScreen() {
                 <View style={[styles.badge, { marginTop: 8, backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
                   <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
                 </View>
-              )}
-              {latestBP.date && (
-                <Text style={[styles.subText, { marginTop: 6 }]}>{fmtDate(latestBP.date)}</Text>
               )}
             </>
           ) : (
@@ -812,6 +823,17 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       borderRadius: 6, overflow: "hidden",
     },
     duoRow: { flexDirection: "row", gap: 8 },
+    compactHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 2,
+    },
+    syncDate: {
+      fontSize: 11,
+      color: theme.textTertiary,
+      letterSpacing: 0.3,
+    },
     sourceTag: {
       fontSize: 9,
       fontWeight: "600",
