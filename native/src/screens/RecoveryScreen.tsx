@@ -619,30 +619,30 @@ export function RecoveryScreen() {
         <View style={styles.infoBox}>
           <Text style={[styles.infoTitle, { color: theme.text }]}>Recovery Score</Text>
           <Text style={[styles.infoBody, { color: theme.textSecondary }]}>
-            Your score (0–100) is a weighted composite of three signals measured each morning:
+            Your score (0–100) compares today's readings against your own 30-day rolling averages — not fixed population targets. Your normal is your baseline.
           </Text>
           <View style={styles.infoRow}>
             <Text style={[styles.infoFactor, { color: theme.text }]}>HRV  40%</Text>
             <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
-              Heart rate variability — the best single marker of nervous system recovery. Higher is better.
+              Heart rate variability vs your 30-day average. At your baseline = 70. 10%+ above = 85–100. 10%+ below = Take It Easy.
             </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.infoFactor, { color: theme.text }]}>Sleep  35%</Text>
             <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
-              Duration relative to your 7.5h target. Both under- and over-sleeping reduce the score.
+              Duration vs your 30-day average. A good night for you is scored as good — no fixed 7.5h target imposed.
             </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={[styles.infoFactor, { color: theme.text }]}>RHR  25%</Text>
             <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
-              Resting heart rate — a chronically elevated RHR signals fatigue or systemic stress.
+              Resting heart rate vs your 30-day average. Lower than your norm scores well; elevated above your norm signals stress or fatigue.
             </Text>
           </View>
           <View style={[styles.infoRow, { marginTop: 8 }]}>
             <Text style={[styles.infoFactor, { color: theme.textSecondary }]}>Modifiers</Text>
             <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
-              Hard training (high active cals) applies a small penalty; HRV trending above your 7-day baseline adds a bonus. SpO2 below 95% and elevated respiratory rate also apply small adjustments.
+              Hard training applies a small penalty; HRV trending above your 7-day average adds a bonus. SpO2 below 95% and elevated respiratory rate apply small adjustments. Fallback to population targets until 5+ days of baseline data exist.
             </Text>
           </View>
           <View style={styles.infoZones}>
