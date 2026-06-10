@@ -6,8 +6,10 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  PanResponder,
 } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
+import type { NavigationContainerRef } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
@@ -87,6 +89,9 @@ function LabsIcon({ color }: { color: string }) {
   );
 }
 
+const TAB_ORDER = ["Today", "Recovery", "Fuel", "Labs"] as const;
+type TabName = typeof TAB_ORDER[number];
+
 // ── App Shell ─────────────────────────────────────────────────────
 
 function PermissionsPrompt() {
@@ -116,19 +121,43 @@ function getInitials(name: string): string {
   return "PJ";
 }
 
-function AppShell() {
+function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Record<TabName, undefined>> }) {
   const { loading, permissionGranted, userProfile } = useContext(HealthContext);
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showProfile, setShowProfile] = React.useState(false);
   const initials = userProfile.name ? getInitials(userProfile.name) : "PJ";
+  const lastSwipe = React.useRef(0);
+
+  const panResponder = React.useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onStartShouldSetPanResponderCapture: () => false,
+    onMoveShouldSetPanResponder: (_, gs) =>
+      Math.abs(gs.dx) > 15 && Math.abs(gs.dx) > Math.abs(gs.dy) * 2.5,
+    onMoveShouldSetPanResponderCapture: () => false,
+    onPanResponderRelease: (_, gs) => {
+      const now = Date.now();
+      if (now - lastSwipe.current < 400) return;
+      const current = navigationRef.getCurrentRoute()?.name;
+      const idx = TAB_ORDER.indexOf(current as TabName);
+      if (idx === -1) return;
+      if (gs.dx < -60 && idx < TAB_ORDER.length - 1) {
+        navigationRef.navigate(TAB_ORDER[idx + 1]);
+        lastSwipe.current = now;
+      } else if (gs.dx > 60 && idx > 0) {
+        navigationRef.navigate(TAB_ORDER[idx - 1]);
+        lastSwipe.current = now;
+      }
+    },
+  }), []);
 
   return (
-    <View style={[styles.shell, { backgroundColor: theme.bg }]}>
+    <View style={[styles.shell, { backgroundColor: theme.bg }]} {...panResponder.panHandlers}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.tabBar }]} edges={["top"]}>
         <Header
           loading={loading}
+          onLogoPress={() => navigationRef.navigate("Today")}
           onProfilePress={() => setShowProfile(true)}
           onThemeToggle={toggleTheme}
           isDark={isDark}
@@ -159,6 +188,7 @@ function AppShell() {
           tabBarActiveTintColor: theme.accent,
           tabBarInactiveTintColor: theme.textTertiary,
           tabBarLabelStyle: styles.tabLabel,
+          tabBarItemStyle: styles.tabItem,
           tabBarIcon: ({ color }) => {
             if (route.name === "Today") return <CalendarIcon color={color} />;
             if (route.name === "Recovery") return <RecoveryIcon color={color} />;
@@ -180,12 +210,13 @@ function AppShell() {
 // ── Root ──────────────────────────────────────────────────────────
 
 export default function App() {
+  const navigationRef = useNavigationContainerRef<Record<TabName, undefined>>();
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <HealthProvider>
-          <NavigationContainer>
-            <AppShell />
+          <NavigationContainer ref={navigationRef}>
+            <AppShell navigationRef={navigationRef} />
           </NavigationContainer>
         </HealthProvider>
       </ThemeProvider>
@@ -201,6 +232,9 @@ const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 1,
     paddingTop: 10,
+  },
+  tabItem: {
+    flex: 1,
   },
   tabLabel: {
     fontSize: 10,

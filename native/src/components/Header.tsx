@@ -5,6 +5,7 @@ import { ThemeColors } from "../context/ThemeContext";
 
 interface HeaderProps {
   loading?: boolean;
+  onLogoPress?: () => void;
   onProfilePress: () => void;
   onThemeToggle: () => void;
   isDark: boolean;
@@ -20,7 +21,7 @@ function ProfileAvatar({ initials }: { initials: string }) {
   );
 }
 
-export function Header({ loading = false, onProfilePress, onThemeToggle, isDark, theme, initials = "PJ" }: HeaderProps) {
+export function Header({ loading = false, onLogoPress, onProfilePress, onThemeToggle, isDark, theme, initials = "PJ" }: HeaderProps) {
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -46,35 +47,41 @@ export function Header({ loading = false, onProfilePress, onThemeToggle, isDark,
 
   return (
     <View style={[styles.header, { backgroundColor: theme.tabBar, borderBottomColor: theme.tabBarBorder }]}>
-      <View style={styles.logoRow}>
-        <Svg width={32} height={26} viewBox="0 0 56 44" fill="none">
-          <Circle cx={28} cy={36} r={4} fill="#1C69D4" />
-          <Path
-            d="M17 27 Q28 15 39 27"
-            stroke="#1C69D4"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            fill="none"
-          />
-          <Path
-            d="M10 19 Q28 4 46 19"
-            stroke="#1C69D4"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.55}
-          />
-          <Path
-            d="M3 12 Q28 -6 53 12"
-            stroke="#1C69D4"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.25}
-          />
-        </Svg>
-        <Text style={[styles.title, { color: theme.text }]}>Signal</Text>
-      </View>
+      <TouchableOpacity
+        onPress={onLogoPress}
+        activeOpacity={onLogoPress ? 0.7 : 1}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 16 }}
+      >
+        <View style={styles.logoRow}>
+          <Svg width={32} height={26} viewBox="0 0 56 44" fill="none">
+            <Circle cx={28} cy={36} r={4} fill="#1C69D4" />
+            <Path
+              d="M17 27 Q28 15 39 27"
+              stroke="#1C69D4"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              fill="none"
+            />
+            <Path
+              d="M10 19 Q28 4 46 19"
+              stroke="#1C69D4"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              fill="none"
+              opacity={0.55}
+            />
+            <Path
+              d="M3 12 Q28 -6 53 12"
+              stroke="#1C69D4"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              fill="none"
+              opacity={0.25}
+            />
+          </Svg>
+          <Text style={[styles.title, { color: theme.text }]}>Signal</Text>
+        </View>
+      </TouchableOpacity>
       <View style={styles.right}>
         {loading && (
           <Text style={[styles.syncText, { color: theme.textTertiary }]}>SYNCING</Text>
