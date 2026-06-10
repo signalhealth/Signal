@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   LayoutAnimation,
+  KeyboardAvoidingView,
   Platform,
   UIManager,
 } from "react-native";
@@ -77,6 +78,7 @@ export function RecoveryScreen() {
   const [infoOpen, setInfoOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const cardLayouts = useRef<Record<string, number>>({});
+  const notesCardLayout = useRef(0);
   const route = useRoute();
   const navigation = useNavigation<any>();
   useFocusEffect(
@@ -181,43 +183,29 @@ export function RecoveryScreen() {
       : { text: "ELEVATED", cls: "red" as const };
 
   // ── SpO2 ─────────────────────────────────────────────────────────
-  const [spo2Days, setSpo2Days] = useState(14);
   const spo2Sorted = [...healthData.spo2].sort((a, b) => a.date.localeCompare(b.date));
-  const cutoffSpo2 = daysAgoStr(spo2Days);
-  const spo2Slice = spo2Sorted.filter((d) => d.date >= cutoffSpo2);
   const latestSpo2 = spo2Sorted[spo2Sorted.length - 1]?.value;
-  const spo2PeriodAvg = spo2Slice.length
-    ? Math.round(avg(spo2Slice.map((d) => d.value)) * 10) / 10
-    : latestSpo2;
+  const latestSpo2Date = spo2Sorted[spo2Sorted.length - 1]?.date;
 
-  const spo2Badge = !spo2PeriodAvg
+  const spo2Badge = !latestSpo2
     ? null
-    : spo2PeriodAvg >= 95
+    : latestSpo2 >= 95
     ? { text: "NORMAL", cls: "green" as const }
-    : spo2PeriodAvg >= 93
+    : latestSpo2 >= 93
     ? { text: "LOW", cls: "amber" as const }
     : { text: "CRITICAL", cls: "red" as const };
 
   // ── Blood Pressure ───────────────────────────────────────────────
-  const [bpDays, setBpDays] = useState(14);
   const bpSorted = [...healthData.bloodPressure].sort((a, b) => a.date.localeCompare(b.date));
-  const cutoffBp = daysAgoStr(bpDays);
-  const bpSlice = bpSorted.filter((d) => d.date >= cutoffBp);
   const latestBP = bpSorted[bpSorted.length - 1];
-  const bpPeriodAvgSys = bpSlice.length
-    ? Math.round(avg(bpSlice.map((d) => d.systolic)))
-    : latestBP?.systolic;
-  const bpPeriodAvgDia = bpSlice.length
-    ? Math.round(avg(bpSlice.map((d) => d.diastolic)))
-    : latestBP?.diastolic;
 
-  const bpBadge = !bpPeriodAvgSys
+  const bpBadge = !latestBP?.systolic
     ? null
-    : bpPeriodAvgSys >= 140 || (bpPeriodAvgDia ?? 0) >= 90
+    : latestBP.systolic >= 140 || (latestBP.diastolic ?? 0) >= 90
     ? { text: "STAGE 2", cls: "red" as const }
-    : bpPeriodAvgSys >= 130 || (bpPeriodAvgDia ?? 0) >= 80
+    : latestBP.systolic >= 130 || (latestBP.diastolic ?? 0) >= 80
     ? { text: "STAGE 1", cls: "red" as const }
-    : bpPeriodAvgSys >= 120
+    : latestBP.systolic >= 120
     ? { text: "ELEVATED", cls: "amber" as const }
     : { text: "NORMAL", cls: "green" as const };
 
@@ -258,11 +246,13 @@ export function RecoveryScreen() {
   };
 
   return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView
       ref={scrollRef}
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -379,7 +369,7 @@ export function RecoveryScreen() {
         </View>
         <LineChart
           data={hrvSlice}
-          height={150}
+          height={120}
           color="#60AFFF"
           showDots
           dotColorFn={(v) =>
@@ -486,107 +476,59 @@ export function RecoveryScreen() {
       </Card>
       </View>
 
-      {/* ── SpO2 Card ── */}
-      <Card>
-        {spo2Slice.length > 0 ? (
-          <>
-            <View style={styles.topRow}>
-              <View style={styles.topLeft}>
-                <Text style={[styles.lbl, styles.metricLbl]}>SPO2</Text>
-                <View style={styles.numRow}>
-                  <Text style={styles.numLg}>{spo2PeriodAvg}</Text>
-                  <Text style={styles.numUnit}>%</Text>
+      {/* ── SpO2 + BP duo row ── */}
+      <View style={styles.duoRow}>
+        {/* SpO2 */}
+        <Card style={{ flex: 1, padding: 14 }}>
+          <Text style={styles.lbl}>SPO2</Text>
+          <Text style={[styles.sourceTag, { color: theme.textTertiary, marginBottom: 6 }]}>COROS</Text>
+          {latestSpo2 ? (
+            <>
+              <View style={styles.numRow}>
+                <Text style={styles.numMd}>{latestSpo2}</Text>
+                <Text style={styles.numUnit}>%</Text>
+              </View>
+              {spo2Badge && (
+                <View style={[styles.badge, { marginTop: 8, backgroundColor: BADGE_COLORS[spo2Badge.cls].bg, borderColor: BADGE_COLORS[spo2Badge.cls].border }]}>
+                  <Text style={[styles.badgeText, { color: BADGE_COLORS[spo2Badge.cls].text }]}>{spo2Badge.text}</Text>
                 </View>
-              </View>
-              <View style={styles.topRight}>
-                <PillGroup value={spo2Days} onChange={setSpo2Days} pillStyles={pillStylesMemo} />
-                {spo2Badge && (
-                  <View style={[styles.badge, { backgroundColor: BADGE_COLORS[spo2Badge.cls].bg, borderColor: BADGE_COLORS[spo2Badge.cls].border }]}>
-                    <Text style={[styles.badgeText, { color: BADGE_COLORS[spo2Badge.cls].text }]}>{spo2Badge.text}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            <LineChart
-              data={spo2Slice}
-              height={120}
-              color="#60AFFF"
-              showDots
-              dotColorFn={(v) => v >= 95 ? "#00D084" : v >= 93 ? "#FFAA00" : "#FF3B30"}
-              rangeBand={{ low: 95, high: 100, label: "Normal range: 95–100%" }}
-              minVal={88}
-              maxVal={100}
-            />
-          </>
-        ) : (
-          <>
-            <View style={styles.topRow}>
-              <View style={styles.topLeft}>
-                <Text style={[styles.lbl, styles.metricLbl]}>SPO2</Text>
-              </View>
-              <PillGroup value={spo2Days} onChange={setSpo2Days} pillStyles={pillStylesMemo} />
-            </View>
-            <Text style={[styles.subText, { marginTop: 4, textAlign: "center" }]}>
-              No SpO2 data in Health Connect.{"\n"}Coros does not write SpO2 to Health Connect.
-            </Text>
-          </>
-        )}
-      </Card>
+              )}
+              {latestSpo2Date && (
+                <Text style={[styles.subText, { marginTop: 6 }]}>{fmtDate(latestSpo2Date)}</Text>
+              )}
+            </>
+          ) : (
+            <Text style={[styles.subText, { marginTop: 4 }]}>No data</Text>
+          )}
+        </Card>
 
-      {/* ── Blood Pressure Card ── */}
-      <Card>
-        {latestBP ? (
-          <>
-            <View style={styles.topRow}>
-              <View style={styles.topLeft}>
-                <Text style={[styles.lbl, styles.metricLbl]}>BLOOD PRESSURE</Text>
-                <View style={styles.numRow}>
-                  <Text style={styles.numLg}>
-                    {bpPeriodAvgSys}/{bpPeriodAvgDia}
-                  </Text>
-                  <Text style={styles.numUnit}>mmHg</Text>
+        {/* Blood Pressure */}
+        <Card style={{ flex: 1, padding: 14 }}>
+          <Text style={styles.lbl}>BLOOD PRESSURE</Text>
+          <Text style={[styles.sourceTag, { color: theme.textTertiary, marginBottom: 6 }]}>WITHINGS</Text>
+          {latestBP ? (
+            <>
+              <View style={styles.numRow}>
+                <Text style={styles.numMd}>{latestBP.systolic}/{latestBP.diastolic}</Text>
+                <Text style={styles.numUnit}>mmHg</Text>
+              </View>
+              {bpBadge && (
+                <View style={[styles.badge, { marginTop: 8, backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
+                  <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
                 </View>
-              </View>
-              <View style={styles.topRight}>
-                <PillGroup value={bpDays} onChange={setBpDays} pillStyles={pillStylesMemo} />
-                {bpBadge && (
-                  <View style={[styles.badge, { backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
-                    <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            <LineChart
-              data={bpSlice.map((d) => ({ date: d.date, value: d.systolic }))}
-              secondaryData={bpSlice.map((d) => ({ date: d.date, value: d.diastolic }))}
-              secondaryColor="#A78BFA"
-              secondaryDotColorFn={(v) => v >= 90 ? "#FF3B30" : v >= 80 ? "#FFAA00" : "#A78BFA"}
-              secondaryRangeBand={{ low: 60, high: 80, label: "Normal diastolic: 60–80 mmHg" }}
-              height={120}
-              color="#60AFFF"
-              showDots
-              dotColorFn={(v) => v >= 130 ? "#FF3B30" : v >= 120 ? "#FFAA00" : "#00D084"}
-              rangeBand={{ low: 90, high: 120, label: "Normal systolic: 90–120 mmHg" }}
-              minVal={50}
-              maxVal={160}
-            />
-          </>
-        ) : (
-          <>
-            <View style={styles.topRow}>
-              <View style={styles.topLeft}>
-                <Text style={[styles.lbl, styles.metricLbl]}>BLOOD PRESSURE</Text>
-              </View>
-              <PillGroup value={bpDays} onChange={setBpDays} pillStyles={pillStylesMemo} />
-            </View>
-            <Text style={[styles.subText, { marginTop: 4, textAlign: "center" }]}>
-              No blood pressure data in Health Connect
-            </Text>
-          </>
-        )}
-      </Card>
+              )}
+              {latestBP.date && (
+                <Text style={[styles.subText, { marginTop: 6 }]}>{fmtDate(latestBP.date)}</Text>
+              )}
+            </>
+          ) : (
+            <Text style={[styles.subText, { marginTop: 4 }]}>No data</Text>
+          )}
+        </Card>
+      </View>
 
       {/* ── Recovery Notes ── */}
+      <View onLayout={e => { notesCardLayout.current = e.nativeEvent.layout.y; }}>
       <Card>
         <Text style={styles.lbl}>RECOVERY NOTES</Text>
         <View style={styles.formRow}>
@@ -603,6 +545,11 @@ export function RecoveryScreen() {
             placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
             value={recNote}
             onChangeText={setRecNote}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollRef.current?.scrollTo({ y: Math.max(0, notesCardLayout.current - 20), animated: true });
+              }, 350);
+            }}
           />
           <TouchableOpacity style={styles.addBtn} onPress={addRecoveryNote}>
             <Text style={styles.addBtnText}>Add</Text>
@@ -627,6 +574,7 @@ export function RecoveryScreen() {
             </View>
           ))}
       </Card>
+      </View>
 
       {/* ── How is this calculated? ── */}
       <TouchableOpacity onPress={toggleInfo} activeOpacity={0.7} style={styles.infoToggle}>
@@ -672,6 +620,7 @@ export function RecoveryScreen() {
         </View>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -861,6 +810,20 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     infoZoneChip: {
       fontSize: 11, fontWeight: "700", paddingHorizontal: 10, paddingVertical: 4,
       borderRadius: 6, overflow: "hidden",
+    },
+    duoRow: { flexDirection: "row", gap: 8 },
+    sourceTag: {
+      fontSize: 9,
+      fontWeight: "600",
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+    },
+    numMd: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: theme.text,
+      lineHeight: 32,
+      letterSpacing: -0.5,
     },
   });
 }
