@@ -59,6 +59,12 @@ function daysAgoStr(days: number): string {
   return localDateStr(days);
 }
 
+function daysBetween(isoEarlier: string, isoLater: string): number {
+  return Math.round(
+    (new Date(isoLater).getTime() - new Date(isoEarlier).getTime()) / 86400000
+  );
+}
+
 export function RecoveryScreen() {
   const { healthData, appState, updateAppState, refresh } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
@@ -176,6 +182,9 @@ export function RecoveryScreen() {
   const rhrSlice = rhrDeduped.filter((d) => d.date >= cutoffRhr);
   const latestRHR = rhrDeduped[rhrDeduped.length - 1]?.value;
   const latestRHRDate = rhrDeduped[rhrDeduped.length - 1]?.date;
+  const rhrStale = latestRHRDate
+    ? daysBetween(latestRHRDate, localDateStr()) >= 3
+    : false;
   const rhrPeriodAvg = rhrSlice.length
     ? Math.round(avg(rhrSlice.map((d) => d.value)))
     : latestRHR;
@@ -455,9 +464,18 @@ export function RecoveryScreen() {
               <Text style={styles.numLg}>{rhrPeriodAvg ?? "—"}</Text>
               <Text style={styles.numUnit}>bpm</Text>
             </View>
+            {rhrStale && (
+              <Text style={[styles.syncDate, { color: theme.red }]}>
+                No new sync since {fmtShortDate(latestRHRDate)}
+              </Text>
+            )}
           </View>
           <View style={styles.topRight}>
-            {latestRHRDate ? <Text style={styles.syncDate}>{fmtShortDate(latestRHRDate)}</Text> : null}
+            {latestRHRDate ? (
+              <Text style={[styles.syncDate, rhrStale && { color: theme.red }]}>
+                {fmtShortDate(latestRHRDate)}
+              </Text>
+            ) : null}
             <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />
             {rhrBadge && (
               <View
