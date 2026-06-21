@@ -26,11 +26,29 @@ function nDaysAgoStr(n: number): string {
 // Minimum data points required to trust a personal baseline
 const MIN_BASELINE_POINTS = 5;
 
-function computeBaseline(data: DataPoint[], today: string, days = 30): number | null {
+function computeStats(data: DataPoint[], today: string, days = 30): { mean: number; sd: number } | null {
   const cutoff = nDaysAgoStr(days);
   const slice = data.filter(d => d.date < today && d.date >= cutoff && d.value > 0);
   if (slice.length < MIN_BASELINE_POINTS) return null;
-  return slice.reduce((s, d) => s + d.value, 0) / slice.length;
+  const mean = slice.reduce((s, d) => s + d.value, 0) / slice.length;
+  const variance = slice.reduce((s, d) => s + (d.value - mean) ** 2, 0) / slice.length;
+  return { mean, sd: Math.sqrt(variance) };
+}
+
+function computeBaseline(data: DataPoint[], today: string, days = 30): number | null {
+  return computeStats(data, today, days)?.mean ?? null;
+}
+
+// Personalized "normal range" for a metric, derived from the user's own recent
+// history (mean ± 1 SD over the trailing window) rather than a fixed global band —
+// mirrors how Coros computes its adaptive HRV normal range from the last 30 nights.
+export function computeNormalRange(data: DataPoint[], today: string, days = 30): { low: number; high: number } | null {
+  const stats = computeStats(data, today, days);
+  if (!stats) return null;
+  return {
+    low: Math.max(0, Math.round(stats.mean - stats.sd)),
+    high: Math.round(stats.mean + stats.sd),
+  };
 }
 
 // Score based on % deviation from personal baseline.

@@ -144,7 +144,5 @@ export const MACRO_TARGETS = {
   fat: 60,
 };
 
-export const HRV_NORMAL_LOW = 69;
-export const HRV_NORMAL_HIGH = 89;
 export const SLEEP_TARGET = 7.5;
 export const STEPS_TARGET = 10000;

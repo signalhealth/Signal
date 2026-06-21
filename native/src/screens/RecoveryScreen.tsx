@@ -19,10 +19,8 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { RecoveryGauge } from "../components/RecoveryGauge";
-import { calcRecoveryScore } from "../utils/recoveryScore";
+import { calcRecoveryScore, computeNormalRange } from "../utils/recoveryScore";
 import {
-  HRV_NORMAL_LOW,
-  HRV_NORMAL_HIGH,
   SLEEP_TARGET,
   BloodPressurePoint,
 } from "../types/health";
@@ -138,13 +136,15 @@ export function RecoveryScreen() {
     ? Math.round(avg(hrvSlice.map((d) => d.value)))
     : latestHRV;
 
+  const hrvRange = computeNormalRange(healthData.hrv, localDateStr());
+
   const hrvBadgeVal = hrvPeriodAvg ?? latestHRV;
   const hrvBadge =
-    hrvBadgeVal === undefined
+    hrvBadgeVal === undefined || !hrvRange
       ? null
-      : hrvBadgeVal >= HRV_NORMAL_HIGH
+      : hrvBadgeVal >= hrvRange.high
       ? { text: "ELEVATED", cls: "green" as const }
-      : hrvBadgeVal >= HRV_NORMAL_LOW
+      : hrvBadgeVal >= hrvRange.low
       ? { text: "IN RANGE", cls: "green" as const }
       : { text: "BELOW RANGE", cls: "amber" as const };
 
@@ -390,14 +390,21 @@ export function RecoveryScreen() {
           height={120}
           color="#60AFFF"
           showDots
-          dotColorFn={(v) =>
-            v >= HRV_NORMAL_LOW && v <= HRV_NORMAL_HIGH
-              ? "#60AFFF"
-              : v < HRV_NORMAL_LOW
-              ? "#FFAA00"
-              : "#00D084"
+          dotColorFn={
+            hrvRange
+              ? (v) =>
+                  v >= hrvRange.low && v <= hrvRange.high
+                    ? "#60AFFF"
+                    : v < hrvRange.low
+                    ? "#FFAA00"
+                    : "#00D084"
+              : undefined
           }
-          rangeBand={{ low: HRV_NORMAL_LOW, high: HRV_NORMAL_HIGH, label: `Normal range: ${HRV_NORMAL_LOW}–${HRV_NORMAL_HIGH} ms` }}
+          rangeBand={
+            hrvRange
+              ? { low: hrvRange.low, high: hrvRange.high, label: `Normal range: ${hrvRange.low}–${hrvRange.high} ms` }
+              : undefined
+          }
           minVal={0}
         />
       </Card>

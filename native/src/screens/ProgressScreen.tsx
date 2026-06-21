@@ -17,7 +17,8 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { WeightChart, SparkBars } from "../components/WeightChart";
 import { MarkdownResult } from "../components/MarkdownResult";
-import { HRV_NORMAL_LOW, HRV_NORMAL_HIGH, SLEEP_TARGET } from "../types/health";
+import { SLEEP_TARGET } from "../types/health";
+import { computeNormalRange } from "../utils/recoveryScore";
 import { getInsight } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
@@ -335,8 +336,9 @@ export function ProgressScreen() {
 
   const COLORS = { green: theme.green, amber: theme.amber, red: theme.red };
 
-  const hrvColor = latestHRV === undefined ? theme.textTertiary
-    : latestHRV >= HRV_NORMAL_LOW ? COLORS.green : COLORS.amber;
+  const hrvRange = computeNormalRange(healthData.hrv, today);
+  const hrvColor = latestHRV === undefined || !hrvRange ? theme.textTertiary
+    : latestHRV >= hrvRange.low ? COLORS.green : COLORS.amber;
   const rhrColor = latestRHR === undefined ? theme.textTertiary
     : latestRHR <= 55 ? COLORS.green : latestRHR <= 65 ? COLORS.amber : COLORS.red;
   const sleepColor = latestSleep === undefined ? theme.textTertiary

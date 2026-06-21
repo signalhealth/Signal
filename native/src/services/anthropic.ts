@@ -15,6 +15,15 @@ function timeOfDay(): "morning" | "midday" | "evening" {
   return "evening";
 }
 
+function currentTimeStr(): string {
+  const d = new Date();
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
 const PANTRY = `PANTRY — the ONLY foods you may recommend. Never suggest anything not on this list.
 
 PROTEINS:
@@ -190,7 +199,9 @@ export async function getInsight(
 
   const prompt = `You are Signal, a precision health intelligence advisor${profile.name ? ` for ${profile.name}` : ""}. Deliver one sharp, personalized coaching insight based on current data.
 ${profileSection ? "\n" + profileSection + "\n" : ""}
-TODAY'S DATA:
+CURRENT TIME: ${currentTimeStr()}. The calorie/protein figures below are what's been logged SO FAR TODAY ONLY, not a final daily total — there is still time left today to eat more. Do not treat an in-progress, partial-day intake as if the day were over, and do not react with alarm to a deficit that's simply explained by the day not being finished yet.
+
+TODAY'S DATA (logged so far):
 - Weight: ${latestWeight !== null ? latestWeight + " lbs" : "unavailable"}
 ${latestDexa ? `- Body composition: ${latestDexa.bodyFat}% body fat, ${latestDexa.leanMass} lbs lean mass (DEXA ${latestDexa.date})` : ""}
 - Calories: ${todayNutrition ? todayNutrition.cals + " kcal (target: " + MACRO_TARGETS.calories + ")" : "unavailable"}
@@ -323,9 +334,9 @@ export async function analyzeFuel(
 
   const prompt = `You are Signal, a precision health intelligence advisor. Give a specific, actionable nutrition recommendation.
 ${profileSection ? "\n" + profileSection + "\n" : ""}
-TIME OF DAY: ${tod.toUpperCase()} — recommend ${mealWindow} options.
+CURRENT TIME: ${currentTimeStr()} (${tod}) — recommend ${mealWindow} options. The numbers below are what's been logged SO FAR TODAY ONLY, not a final daily total — there is still time left today to close the gap. Do not treat an in-progress, partial-day intake as if the day were over, and do not react with alarm to a deficit that's simply explained by the day not being finished yet.
 
-TODAY'S DATA:
+TODAY'S DATA (logged so far):
 - Weight: ${latestWeight !== null ? latestWeight + " lbs" : "unavailable"}
 ${latestBF !== null ? `- Body fat: ${latestBF}%` : ""}
 ${latestLM !== null ? `- Lean mass: ${latestLM} lbs` : ""}
