@@ -13,7 +13,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   UIManager,
+  Modal,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRoute, useNavigation } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
@@ -63,6 +65,162 @@ function daysBetween(isoEarlier: string, isoLater: string): number {
   );
 }
 
+// ── Blood Pressure Detail Modal ─────────────────────────────────────
+
+function BloodPressureDetailModal({ data, onClose, theme }: {
+  data: BloodPressurePoint[];
+  onClose: () => void;
+  theme: ThemeColors;
+}) {
+  const [days, setDays] = useState(30);
+  const sorted = useMemo(() => [...data].sort((a, b) => a.date.localeCompare(b.date)), [data]);
+  const cutoff = useMemo(() => daysAgoStr(days), [days]);
+  const slice = useMemo(() => sorted.filter(d => d.date >= cutoff), [sorted, cutoff]);
+  const latest = sorted[sorted.length - 1];
+
+  const avgSys = slice.length ? Math.round(avg(slice.map(d => d.systolic))) : null;
+  const avgDia = slice.length ? Math.round(avg(slice.map(d => d.diastolic))) : null;
+
+  const highest = slice.length
+    ? slice.reduce((a, b) => (b.systolic > a.systolic ? b : a))
+    : null;
+  const lowest = slice.length
+    ? slice.reduce((a, b) => (b.systolic < a.systolic ? b : a))
+    : null;
+
+  const systolicPoints = slice.map(d => ({ date: d.date, value: d.systolic }));
+  const diastolicPoints = slice.map(d => ({ date: d.date, value: d.diastolic }));
+  const chartMin = slice.length ? Math.min(...slice.map(d => d.diastolic)) - 10 : 60;
+  const chartMax = slice.length ? Math.max(...slice.map(d => d.systolic)) + 10 : 140;
+
+  return (
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={[mStyles.container, { backgroundColor: theme.bg }]}>
+        <View style={[mStyles.header, { borderBottomColor: theme.tabBarBorder, backgroundColor: theme.tabBar }]}>
+          <Text style={[mStyles.headerTitle, { color: theme.text }]}>BLOOD PRESSURE</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={[mStyles.close, { color: theme.textTertiary }]}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={mStyles.content} showsVerticalScrollIndicator={false}>
+          <View style={[mStyles.statsRow, { borderColor: theme.cardBorder, backgroundColor: theme.card }]}>
+            <View style={mStyles.stat}>
+              <Text style={[mStyles.statVal, { color: theme.text }]}>
+                {latest ? `${latest.systolic}/${latest.diastolic}` : "—"}
+              </Text>
+              <Text style={[mStyles.statLbl, { color: theme.textTertiary }]}>LATEST</Text>
+            </View>
+            <View style={[mStyles.statDivider, { backgroundColor: theme.sectionBorder }]} />
+            <View style={mStyles.stat}>
+              <Text style={[mStyles.statVal, { color: "#F5A623" }]}>{avgSys ?? "—"}</Text>
+              <Text style={[mStyles.statLbl, { color: theme.textTertiary }]}>AVG SYSTOLIC</Text>
+            </View>
+            <View style={[mStyles.statDivider, { backgroundColor: theme.sectionBorder }]} />
+            <View style={mStyles.stat}>
+              <Text style={[mStyles.statVal, { color: "#00D084" }]}>{avgDia ?? "—"}</Text>
+              <Text style={[mStyles.statLbl, { color: theme.textTertiary }]}>AVG DIASTOLIC</Text>
+            </View>
+          </View>
+          <View style={mStyles.pillRow}>
+            {([14, 30, 60, 90] as const).map(d => (
+              <TouchableOpacity
+                key={d}
+                onPress={() => setDays(d)}
+                style={[mStyles.pill, { borderColor: theme.pillBorder }, days === d && { backgroundColor: theme.pillActiveBg, borderColor: theme.accent }]}
+              >
+                <Text style={[mStyles.pillText, { color: theme.textSecondary }, days === d && { color: "#FFF" }]}>{d}D</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Card>
+            <LineChart
+              data={systolicPoints}
+              secondaryData={diastolicPoints}
+              color="#F5A623"
+              secondaryColor="#00D084"
+              showDots
+              height={220}
+              minVal={chartMin}
+              maxVal={chartMax}
+              refLines={[
+                { value: 120, color: "rgba(245,166,35,0.35)" },
+                { value: 80, color: "rgba(0,208,132,0.35)" },
+              ]}
+            />
+            <View style={bpStyles.legendRow}>
+              <View style={bpStyles.legendItem}>
+                <View style={[bpStyles.legendDot, { backgroundColor: "#F5A623" }]} />
+                <Text style={[bpStyles.legendText, { color: theme.textTertiary }]}>Systolic</Text>
+              </View>
+              <View style={bpStyles.legendItem}>
+                <View style={[bpStyles.legendDot, { backgroundColor: "#00D084" }]} />
+                <Text style={[bpStyles.legendText, { color: theme.textTertiary }]}>Diastolic</Text>
+              </View>
+            </View>
+          </Card>
+          {highest && lowest && (
+            <Card>
+              <Text style={[bpStyles.hiLoHeader, { color: theme.textTertiary }]}>HIGHEST / LOWEST ({days}D)</Text>
+              <View style={bpStyles.hiLoRow}>
+                <Text style={[bpStyles.hiLoLabel, { color: theme.textSecondary }]}>Highest</Text>
+                <Text style={[bpStyles.hiLoVal, { color: theme.text }]}>{highest.systolic}/{highest.diastolic} mmHg</Text>
+                <Text style={[bpStyles.hiLoDate, { color: theme.textTertiary }]}>{fmtShortDate(highest.date)}</Text>
+              </View>
+              <View style={bpStyles.hiLoRow}>
+                <Text style={[bpStyles.hiLoLabel, { color: theme.textSecondary }]}>Lowest</Text>
+                <Text style={[bpStyles.hiLoVal, { color: theme.text }]}>{lowest.systolic}/{lowest.diastolic} mmHg</Text>
+                <Text style={[bpStyles.hiLoDate, { color: theme.textTertiary }]}>{fmtShortDate(lowest.date)}</Text>
+              </View>
+            </Card>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const mStyles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 13, fontWeight: "700", letterSpacing: 1.5 },
+  close: { fontSize: 18 },
+  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    paddingVertical: 20,
+    borderWidth: 1,
+    borderRadius: 14,
+  },
+  statDivider: { width: 1, height: 32 },
+  stat: { alignItems: "center", flex: 1 },
+  statVal: { fontSize: 22, fontWeight: "700", letterSpacing: -0.5 },
+  statLbl: { fontSize: 9, fontWeight: "700", letterSpacing: 1, marginTop: 4, textTransform: "uppercase" },
+  pillRow: { flexDirection: "row", gap: 8, justifyContent: "center" },
+  pill: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 8, borderWidth: 1 },
+  pillText: { fontSize: 12, fontWeight: "600" },
+});
+
+const bpStyles = StyleSheet.create({
+  legendRow: { flexDirection: "row", gap: 16, marginTop: 10, justifyContent: "center" },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, letterSpacing: 0.3 },
+  hiLoHeader: { fontSize: 11, fontWeight: "700", letterSpacing: 1.2, marginBottom: 10 },
+  hiLoRow: { flexDirection: "row", alignItems: "center", paddingVertical: 6 },
+  hiLoLabel: { fontSize: 13, fontWeight: "600", flex: 1 },
+  hiLoVal: { fontSize: 14, fontWeight: "700", marginRight: 10 },
+  hiLoDate: { fontSize: 11 },
+});
+
 export function RecoveryScreen() {
   const { healthData, appState, updateAppState, refresh } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
@@ -85,6 +243,7 @@ export function RecoveryScreen() {
   const [recNote, setRecNote] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [bpDetailOpen, setBpDetailOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const cardLayouts = useRef<Record<string, number>>({});
   const notesCardLayout = useRef(0);
@@ -516,11 +675,8 @@ export function RecoveryScreen() {
       <View style={styles.duoRow}>
         {/* SpO2 */}
         <Card style={{ flex: 1, padding: 14 }}>
-          <View style={styles.compactHeader}>
-            <Text style={styles.lbl}>SPO2</Text>
-            {latestSpo2Date ? <Text style={styles.syncDate}>{fmtShortDate(latestSpo2Date)}</Text> : null}
-          </View>
-          <Text style={[styles.sourceTag, { color: theme.textTertiary, marginBottom: 6 }]}>COROS</Text>
+          <Text style={styles.lbl}>SPO2</Text>
+          {latestSpo2Date ? <Text style={[styles.syncDate, { marginTop: 2, marginBottom: 6 }]}>{fmtShortDate(latestSpo2Date)}</Text> : null}
           {latestSpo2 ? (
             <>
               <View style={styles.numRow}>
@@ -539,29 +695,40 @@ export function RecoveryScreen() {
         </Card>
 
         {/* Blood Pressure */}
-        <Card style={{ flex: 1, padding: 14 }}>
-          <View style={styles.compactHeader}>
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={0.75}
+          onPress={() => setBpDetailOpen(true)}
+        >
+          <Card style={{ padding: 14 }}>
             <Text style={styles.lbl}>BLOOD PRESSURE</Text>
-            {latestBP?.date ? <Text style={styles.syncDate}>{fmtShortDate(latestBP.date)}</Text> : null}
-          </View>
-          <Text style={[styles.sourceTag, { color: theme.textTertiary, marginBottom: 6 }]}>WITHINGS</Text>
-          {latestBP ? (
-            <>
-              <View style={styles.numRow}>
-                <Text style={styles.numMd}>{latestBP.systolic}/{latestBP.diastolic}</Text>
-                <Text style={styles.numUnit}>mmHg</Text>
-              </View>
-              {bpBadge && (
-                <View style={[styles.badge, { marginTop: 8, backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
-                  <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
+            {latestBP?.date ? <Text style={[styles.syncDate, { marginTop: 2, marginBottom: 6 }]}>{fmtShortDate(latestBP.date)}</Text> : null}
+            {latestBP ? (
+              <>
+                <View style={styles.numRow}>
+                  <Text style={styles.numMd}>{latestBP.systolic}/{latestBP.diastolic}</Text>
+                  <Text style={styles.numUnit}>mmHg</Text>
                 </View>
-              )}
-            </>
-          ) : (
-            <Text style={[styles.subText, { marginTop: 4 }]}>No data</Text>
-          )}
-        </Card>
+                {bpBadge && (
+                  <View style={[styles.badge, { marginTop: 8, backgroundColor: BADGE_COLORS[bpBadge.cls].bg, borderColor: BADGE_COLORS[bpBadge.cls].border }]}>
+                    <Text style={[styles.badgeText, { color: BADGE_COLORS[bpBadge.cls].text }]}>{bpBadge.text}</Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <Text style={[styles.subText, { marginTop: 4 }]}>No data</Text>
+            )}
+          </Card>
+        </TouchableOpacity>
       </View>
+
+      {bpDetailOpen && (
+        <BloodPressureDetailModal
+          data={healthData.bloodPressure}
+          onClose={() => setBpDetailOpen(false)}
+          theme={theme}
+        />
+      )}
 
       {/* ── Recovery Notes ── */}
       <View onLayout={e => { notesCardLayout.current = e.nativeEvent.layout.y; }}>
@@ -848,22 +1015,10 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       borderRadius: 6, overflow: "hidden",
     },
     duoRow: { flexDirection: "row", gap: 8 },
-    compactHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: 2,
-    },
     syncDate: {
       fontSize: 11,
       color: theme.textTertiary,
       letterSpacing: 0.3,
-    },
-    sourceTag: {
-      fontSize: 9,
-      fontWeight: "600",
-      letterSpacing: 0.8,
-      textTransform: "uppercase",
     },
     numMd: {
       fontSize: 28,
