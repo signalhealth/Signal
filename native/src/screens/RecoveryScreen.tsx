@@ -695,12 +695,8 @@ export function RecoveryScreen() {
         </Card>
 
         {/* Blood Pressure */}
-        <TouchableOpacity
-          style={{ flex: 1 }}
-          activeOpacity={0.75}
-          onPress={() => setBpDetailOpen(true)}
-        >
-          <Card style={{ padding: 14 }}>
+        <Card style={{ flex: 1, padding: 14 }}>
+          <TouchableOpacity activeOpacity={0.75} onPress={() => setBpDetailOpen(true)}>
             <Text style={styles.lbl}>BLOOD PRESSURE</Text>
             {latestBP?.date ? <Text style={[styles.syncDate, { marginTop: 2, marginBottom: 6 }]}>{fmtShortDate(latestBP.date)}</Text> : null}
             {latestBP ? (
@@ -718,8 +714,8 @@ export function RecoveryScreen() {
             ) : (
               <Text style={[styles.subText, { marginTop: 4 }]}>No data</Text>
             )}
-          </Card>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </Card>
       </View>
 
       {bpDetailOpen && (
