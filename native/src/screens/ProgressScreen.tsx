@@ -445,18 +445,27 @@ export function ProgressScreen() {
                   <View style={styles.recoveryBreakdownItem}>
                     <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.hrv}ms</Text>
                     <Text style={styles.recoveryBreakdownKey}>HRV</Text>
+                    {recovery.hrvDate && recovery.hrvDate !== today && (
+                      <Text style={styles.recoveryBreakdownDate}>{fmtShortDate(recovery.hrvDate)}</Text>
+                    )}
                   </View>
                 )}
                 {recovery.sleep !== null && (
                   <View style={styles.recoveryBreakdownItem}>
                     <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.sleep.toFixed(1)}h</Text>
                     <Text style={styles.recoveryBreakdownKey}>SLEEP</Text>
+                    {recovery.sleepDate && recovery.sleepDate !== today && (
+                      <Text style={styles.recoveryBreakdownDate}>{fmtShortDate(recovery.sleepDate)}</Text>
+                    )}
                   </View>
                 )}
                 {recovery.rhr !== null && (
                   <View style={styles.recoveryBreakdownItem}>
                     <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.rhr}</Text>
                     <Text style={styles.recoveryBreakdownKey}>RHR</Text>
+                    {recovery.rhrDate && recovery.rhrDate !== today && (
+                      <Text style={styles.recoveryBreakdownDate}>{fmtShortDate(recovery.rhrDate)}</Text>
+                    )}
                   </View>
                 )}
               </View>
@@ -786,6 +795,7 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     recoveryBreakdownItem: { alignItems: "center" },
     recoveryBreakdownVal: { fontSize: 16, fontWeight: "700" },
     recoveryBreakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: theme.textTertiary, marginTop: 2 },
+    recoveryBreakdownDate: { fontSize: 9, color: theme.amber, marginTop: 2, letterSpacing: 0.3 },
     recoveryHint: { fontSize: 11, color: theme.textTertiary, marginTop: 10, letterSpacing: 0.3 },
 
     compGaugeRow: { flexDirection: "row", gap: 6, marginTop: 4 },
