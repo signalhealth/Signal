@@ -441,6 +441,11 @@ export function RecoveryScreen() {
       <Card>
         <Text style={styles.lbl}>RECOVERY SCORE</Text>
         <RecoveryGauge score={recovery.score} theme={theme} isDark={isDark} />
+        {recovery.hasData && recovery.score >= 60 && recovery.score < 80 && (
+          <Text style={[styles.modifier, { color: theme.green, textAlign: "center", marginTop: -6, marginBottom: 6 }]}>
+            Solid recovery — workout, just maybe skip the PR attempt
+          </Text>
+        )}
         {recovery.hasData && (
           <View style={styles.breakdownRow}>
             {recovery.hrv !== null && (
@@ -823,8 +828,9 @@ export function RecoveryScreen() {
           </View>
           <View style={styles.infoZones}>
             <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,59,48,0.15)", color: "#FF3B30" }]}>0–39 Rest Day</Text>
-            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,170,0,0.15)", color: "#FFAA00" }]}>40–69 Take It Easy</Text>
-            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(0,208,132,0.15)", color: "#00D084" }]}>70–100 Go Hard</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,170,0,0.15)", color: "#FFAA00" }]}>40–59 Take It Easy</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(155,214,0,0.15)", color: "#9BD600" }]}>60–79 Go Ahead</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(0,208,132,0.15)", color: "#00D084" }]}>80–100 Go Hard</Text>
           </View>
         </View>
       )}

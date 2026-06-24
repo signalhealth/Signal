@@ -80,10 +80,12 @@ export function RecoveryGauge({ score, theme, isDark }: Props) {
 
   const RED        = "#FF3B30";
   const AMBER      = isDark ? "#FFAA00" : "#F5A623";
+  const LIME       = isDark ? "#9BD600" : "#7CB000";
   const GREEN      = isDark ? "#00D084" : "#00C875";
-  const zoneColor  = s < 40 ? RED : s < 70 ? AMBER : GREEN;
+  const zoneColor  = s < 40 ? RED : s < 60 ? AMBER : s < 80 ? LIME : GREEN;
   const label      = s < 40 ? "REST DAY"
-                   : s < 70 ? "TAKE IT EASY"
+                   : s < 60 ? "TAKE IT EASY"
+                   : s < 80 ? "GO AHEAD"
                    : "GO HARD";
 
   const TRACK = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.09)";
