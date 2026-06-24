@@ -42,25 +42,33 @@ function computeBaseline(data: DataPoint[], today: string, days = 30): number | 
 // Personalized "normal range" for a metric, derived from the user's own recent
 // history (mean ± 1 SD over the trailing window) rather than a fixed global band —
 // mirrors how Coros computes its adaptive HRV normal range from the last 30 nights.
-export function computeNormalRange(data: DataPoint[], today: string, days = 30): { low: number; high: number } | null {
+export function computeNormalRange(
+  data: DataPoint[],
+  today: string,
+  days = 30,
+  decimals = 0
+): { low: number; high: number } | null {
   const stats = computeStats(data, today, days);
   if (!stats) return null;
+  const mult = 10 ** decimals;
+  const round = (v: number) => Math.round(v * mult) / mult;
   return {
-    low: Math.max(0, Math.round(stats.mean - stats.sd)),
-    high: Math.round(stats.mean + stats.sd),
+    low: Math.max(0, round(stats.mean - stats.sd)),
+    high: round(stats.mean + stats.sd),
   };
 }
 
 // Score based on % deviation from personal baseline.
 // delta > 0 = better than baseline (higher HRV, more sleep, lower RHR).
-// At baseline (delta=0) → 70, the Go Hard threshold.
+// At baseline (delta=0) → 78, comfortably inside the Go Hard zone — a typical
+// night for you should read as "normal," not as a reason to ease off.
 function deviationScore(delta: number): number {
   if (delta >= 0.20) return 100;
-  if (delta >= 0.10) return lerp(delta, 0.10, 0.20, 85, 100);
-  if (delta >= 0.00) return lerp(delta, 0.00, 0.10, 70, 85);
-  if (delta >= -0.10) return lerp(delta, -0.10, 0.00, 52, 70);
-  if (delta >= -0.25) return lerp(delta, -0.25, -0.10, 30, 52);
-  return lerp(delta, -0.50, -0.25, 10, 30);
+  if (delta >= 0.10) return lerp(delta, 0.10, 0.20, 90, 100);
+  if (delta >= 0.00) return lerp(delta, 0.00, 0.10, 78, 90);
+  if (delta >= -0.10) return lerp(delta, -0.10, 0.00, 62, 78);
+  if (delta >= -0.25) return lerp(delta, -0.25, -0.10, 35, 62);
+  return lerp(delta, -0.50, -0.25, 10, 35);
 }
 
 // ── Absolute fallbacks (used when < MIN_BASELINE_POINTS of history) ──

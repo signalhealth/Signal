@@ -17,8 +17,8 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { WeightChart, SparkBars } from "../components/WeightChart";
 import { MarkdownResult } from "../components/MarkdownResult";
-import { SLEEP_TARGET } from "../types/health";
-import { computeNormalRange } from "../utils/recoveryScore";
+import { calcRecoveryScore, computeNormalRange } from "../utils/recoveryScore";
+import { RecoveryGauge } from "../components/RecoveryGauge";
 import { getInsight } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
@@ -341,8 +341,19 @@ export function ProgressScreen() {
     : latestHRV >= hrvRange.low ? COLORS.green : COLORS.amber;
   const rhrColor = latestRHR === undefined ? theme.textTertiary
     : latestRHR <= 55 ? COLORS.green : latestRHR <= 65 ? COLORS.amber : COLORS.red;
-  const sleepColor = latestSleep === undefined ? theme.textTertiary
-    : latestSleep >= SLEEP_TARGET ? COLORS.green : latestSleep >= 7.0 ? COLORS.amber : COLORS.red;
+  const sleepRange = computeNormalRange(healthData.sleep, today, 30, 1);
+  const sleepColor = latestSleep === undefined || !sleepRange ? theme.textTertiary
+    : latestSleep >= sleepRange.low ? COLORS.green : COLORS.amber;
+
+  // ── Recovery Score (home summary card) ────────────────────────────
+  const recovery = useMemo(() => calcRecoveryScore({
+    hrv: healthData.hrv,
+    rhr: healthData.rhr,
+    sleep: healthData.sleep,
+    activeCals: healthData.activeCals,
+    spo2: healthData.spo2,
+    respiratoryRate: healthData.respiratoryRate,
+  }), [healthData]);
 
   // ── Weight ──────────────────────────────────────────────────────
   const weightSorted = useMemo(() =>
@@ -423,6 +434,37 @@ export function ProgressScreen() {
           />
         }
       >
+        {/* ── Recovery Score summary ── */}
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate("Recovery")}>
+          <Card style={styles.recoveryCard}>
+            <Text style={styles.lbl}>RECOVERY SCORE</Text>
+            <RecoveryGauge score={recovery.score} theme={theme} isDark={isDark} />
+            {recovery.hasData && (
+              <View style={styles.recoveryBreakdownRow}>
+                {recovery.hrv !== null && (
+                  <View style={styles.recoveryBreakdownItem}>
+                    <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.hrv}ms</Text>
+                    <Text style={styles.recoveryBreakdownKey}>HRV</Text>
+                  </View>
+                )}
+                {recovery.sleep !== null && (
+                  <View style={styles.recoveryBreakdownItem}>
+                    <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.sleep.toFixed(1)}h</Text>
+                    <Text style={styles.recoveryBreakdownKey}>SLEEP</Text>
+                  </View>
+                )}
+                {recovery.rhr !== null && (
+                  <View style={styles.recoveryBreakdownItem}>
+                    <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.rhr}</Text>
+                    <Text style={styles.recoveryBreakdownKey}>RHR</Text>
+                  </View>
+                )}
+              </View>
+            )}
+            <Text style={styles.recoveryHint}>Tap for full breakdown ›</Text>
+          </Card>
+        </TouchableOpacity>
+
         {/* ── Row 1: HRV · RHR · Sleep ── */}
         <View style={styles.triRow}>
           <QuickCard
@@ -729,6 +771,22 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
 
     triRow: { flexDirection: "row", gap: 8 },
     duoRow: { flexDirection: "row", gap: 8 },
+
+    // Recovery Score summary card
+    recoveryCard: { alignItems: "center" },
+    recoveryBreakdownRow: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      alignSelf: "stretch",
+      marginTop: 4,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.sectionBorder,
+    },
+    recoveryBreakdownItem: { alignItems: "center" },
+    recoveryBreakdownVal: { fontSize: 16, fontWeight: "700" },
+    recoveryBreakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: theme.textTertiary, marginTop: 2 },
+    recoveryHint: { fontSize: 11, color: theme.textTertiary, marginTop: 10, letterSpacing: 0.3 },
 
     compGaugeRow: { flexDirection: "row", gap: 6, marginTop: 4 },
 

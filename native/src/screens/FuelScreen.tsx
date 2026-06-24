@@ -79,12 +79,6 @@ function localDateStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function localYesterdayStr(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function fmtDate(iso: string): string {
   const [yr, mm, dd] = iso.split("-").map(Number);
   return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
@@ -217,15 +211,11 @@ export function FuelScreen() {
     setRefreshing(false);
   }
 
-  const yesterday = localYesterdayStr();
-
   // Calorie history for chart
   const nutritionSorted = [...healthData.nutrition].sort((a, b) =>
     a.date.localeCompare(b.date)
   );
-  const todayNutrition =
-    healthData.nutrition.find((n) => n.date === today) ??
-    (nutritionSorted.length > 0 ? nutritionSorted[nutritionSorted.length - 1] : undefined);
+  const todayNutrition = healthData.nutrition.find((n) => n.date === today);
   const calHistory = nutritionSorted.slice(-calDays);
 
   // 30-day averages
@@ -298,16 +288,7 @@ export function FuelScreen() {
       {/* ── Today's Intake ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
-          <Text style={styles.lbl}>
-            {!todayNutrition || todayNutrition.date === today
-              ? "TODAY'S INTAKE"
-              : todayNutrition.date === yesterday
-              ? "YESTERDAY'S INTAKE"
-              : "RECENT INTAKE"}
-          </Text>
-          {todayNutrition && (
-            <Text style={styles.syncDate}>{fmtShortDate(todayNutrition.date)}</Text>
-          )}
+          <Text style={styles.lbl}>TODAY'S INTAKE</Text>
         </View>
 
         <View style={styles.macroGrid}>

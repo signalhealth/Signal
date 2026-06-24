@@ -22,10 +22,7 @@ import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { RecoveryGauge } from "../components/RecoveryGauge";
 import { calcRecoveryScore, computeNormalRange } from "../utils/recoveryScore";
-import {
-  SLEEP_TARGET,
-  BloodPressurePoint,
-} from "../types/health";
+import { BloodPressurePoint } from "../types/health";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
 
@@ -319,15 +316,17 @@ export function RecoveryScreen() {
     ? avg(sleepSlice.map((d) => d.value))
     : lastNightSleep;
 
+  const sleepRange = computeNormalRange(healthData.sleep, localDateStr(), 30, 1);
+
   const sleepBadgeVal = sleepPeriodAvg ?? lastNightSleep;
   const sleepBadge =
-    sleepBadgeVal === undefined
+    sleepBadgeVal === undefined || !sleepRange
       ? null
-      : sleepBadgeVal >= SLEEP_TARGET
-      ? { text: "ON TARGET", cls: "green" as const }
-      : sleepBadgeVal >= 7.0
-      ? { text: "NEAR TARGET", cls: "amber" as const }
-      : { text: "BELOW TARGET", cls: "red" as const };
+      : sleepBadgeVal >= sleepRange.high
+      ? { text: "ABOVE RANGE", cls: "green" as const }
+      : sleepBadgeVal >= sleepRange.low
+      ? { text: "IN RANGE", cls: "green" as const }
+      : { text: "BELOW RANGE", cls: "amber" as const };
 
   // ── RHR ──────────────────────────────────────────────────────────
   const seenRhr = new Map<string, number>();
@@ -607,13 +606,19 @@ export function RecoveryScreen() {
           height={130}
           barMode
           barColorFn={(v) =>
-            v >= 7.5
+            !sleepRange
+              ? "rgba(96,175,255,0.6)"
+              : v >= sleepRange.low
               ? "rgba(96,175,255,0.8)"
-              : v >= 7
+              : v >= sleepRange.low - 1
               ? "rgba(96,175,255,0.45)"
               : "rgba(255,59,48,0.55)"
           }
-          rangeBand={{ low: 7.5, high: 9, label: "Target range: 7.5–9 hr" }}
+          rangeBand={
+            sleepRange
+              ? { low: sleepRange.low, high: sleepRange.high, label: `Normal range: ${sleepRange.low}–${sleepRange.high} hr` }
+              : undefined
+          }
           minVal={0}
           maxVal={12}
         />
