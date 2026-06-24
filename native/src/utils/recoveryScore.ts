@@ -151,6 +151,17 @@ function rrModifier(rr: number): number {
   return -4;
 }
 
+// A real RHR drifts a bpm or two day to day. The exact same value N days running
+// (with fresh dates, so it's not just a stale "no new sync") points to a frozen
+// device/sync glitch rather than an actual reading — treat it as unreliable.
+const FROZEN_RUN = 3;
+function isFrozenSeries(data: DataPoint[]): boolean {
+  const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+  if (sorted.length < FROZEN_RUN) return false;
+  const v = sorted[0].value;
+  return sorted.slice(0, FROZEN_RUN).every(d => d.value === v);
+}
+
 export interface RecoveryBreakdown {
   score: number;
   hrv: number | null;
@@ -170,6 +181,7 @@ export interface RecoveryBreakdown {
   hrvBaseline: number | null;
   sleepBaseline: number | null;
   rhrBaseline: number | null;
+  rhrFrozen: boolean;
 }
 
 export function calcRecoveryScore(params: {
@@ -214,12 +226,15 @@ export function calcRecoveryScore(params: {
       trendBonus: 0, penalty: 0, hasData: false,
       spo2: null, spo2Date: null, respiratoryRate: null, respiratoryRateDate: null,
       hrvBaseline: null, sleepBaseline: null, rhrBaseline: null,
+      rhrFrozen: false,
     };
   }
 
+  const rhrFrozen = isFrozenSeries(params.rhr);
+
   const hScore = hrvVal   !== null ? scoreHRV(hrvVal,     hrvBaseline)   : 70;
   const sScore = sleepVal !== null ? scoreSleep(sleepVal, sleepBaseline) : 70;
-  const rScore = rhrVal   !== null ? scoreRHR(rhrVal,     rhrBaseline)   : 70;
+  const rScore = rhrVal   !== null && !rhrFrozen ? scoreRHR(rhrVal, rhrBaseline) : 70;
 
   // Once a personalized 30-day baseline exists, scoreHRV's deviation curve already
   // captures today-vs-recent-trend more precisely than this flat ±5 cliff — applying
@@ -253,5 +268,6 @@ export function calcRecoveryScore(params: {
     hrvBaseline,
     sleepBaseline,
     rhrBaseline,
+    rhrFrozen,
   };
 }

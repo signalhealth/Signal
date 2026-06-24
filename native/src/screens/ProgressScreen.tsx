@@ -470,6 +470,11 @@ export function ProgressScreen() {
                 )}
               </View>
             )}
+            {recovery.rhrFrozen && (
+              <Text style={[styles.recoveryHint, { color: theme.red, textAlign: "center" }]}>
+                RHR sync looks stuck — excluded from score
+              </Text>
+            )}
             <Text style={styles.recoveryHint}>Tap for full breakdown ›</Text>
           </Card>
         </TouchableOpacity>

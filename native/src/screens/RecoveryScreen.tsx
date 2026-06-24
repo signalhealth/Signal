@@ -510,6 +510,11 @@ export function RecoveryScreen() {
             )}
           </View>
         )}
+        {recovery.rhrFrozen && (
+          <Text style={[styles.modifier, { color: theme.red, textAlign: "center", marginTop: 4 }]}>
+            RHR sync looks stuck at {recovery.rhr} bpm 3+ days running — excluded from score
+          </Text>
+        )}
       </Card>
 
       {/* ── HRV Card ── */}
@@ -795,7 +800,7 @@ export function RecoveryScreen() {
           <View style={styles.infoRow}>
             <Text style={[styles.infoFactor, { color: theme.text }]}>HRV  40%</Text>
             <Text style={[styles.infoDesc, { color: theme.textTertiary }]}>
-              Heart rate variability vs your 30-day average. At your baseline = 70. 10%+ above = 85–100. 10%+ below = Take It Easy.
+              Heart rate variability vs your 30-day average. At your baseline = 78. 10%+ above = 90–100. 10%+ below = Take It Easy.
             </Text>
           </View>
           <View style={styles.infoRow}>
