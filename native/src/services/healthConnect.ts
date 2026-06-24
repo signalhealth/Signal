@@ -135,6 +135,20 @@ async function readSteps(days = 45): Promise<DataPoint[]> {
   }
 }
 
+// Time-in-bed minus AWAKE/OUT_OF_BED stages = actual time asleep. Without stage
+// data (some sources omit it), fall back to the raw start→end span.
+function sleepSessionHours(r: { startTime: string; endTime: string; stages?: { startTime: string; endTime: string; stage: number }[] }): number {
+  if (r.stages && r.stages.length > 0) {
+    const asleepMs = r.stages
+      .filter(s => s.stage !== 1 /* AWAKE */ && s.stage !== 3 /* OUT_OF_BED */)
+      .reduce((sum, s) => sum + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0);
+    if (asleepMs > 0) return asleepMs / (1000 * 3600);
+  }
+  const start = new Date(r.startTime).getTime();
+  const end = new Date(r.endTime).getTime();
+  return (end - start) / (1000 * 3600);
+}
+
 async function readSleep(days = 45): Promise<DataPoint[]> {
   try {
     const result = await readRecords("SleepSession", {
@@ -147,9 +161,7 @@ async function readSleep(days = 45): Promise<DataPoint[]> {
     const map = new Map<string, number>();
     for (const r of result.records) {
       const dateStr = toDateStr(r.startTime);
-      const start = new Date(r.startTime).getTime();
-      const end = new Date(r.endTime).getTime();
-      const hours = (end - start) / (1000 * 3600);
+      const hours = sleepSessionHours(r);
       // Keep longest session per day
       if (!map.has(dateStr) || hours > map.get(dateStr)!) {
         map.set(dateStr, Math.round(hours * 10) / 10);
