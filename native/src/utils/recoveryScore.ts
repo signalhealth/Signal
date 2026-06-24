@@ -35,10 +35,6 @@ function computeStats(data: DataPoint[], today: string, days = 30): { mean: numb
   return { mean, sd: Math.sqrt(variance) };
 }
 
-function computeBaseline(data: DataPoint[], today: string, days = 30): number | null {
-  return computeStats(data, today, days)?.mean ?? null;
-}
-
 // Personalized "normal range" for a metric, derived from the user's own recent
 // history (mean ± 1 SD over the trailing window) rather than a fixed global band —
 // mirrors how Coros computes its adaptive HRV normal range from the last 30 nights.
@@ -58,17 +54,21 @@ export function computeNormalRange(
   };
 }
 
-// Score based on % deviation from personal baseline.
-// delta > 0 = better than baseline (higher HRV, more sleep, lower RHR).
-// At baseline (delta=0) → 78, comfortably inside the Go Hard zone — a typical
+// Score based on standard deviations from personal baseline (z-score), not raw
+// % deviation — a metric with naturally wide night-to-night swings (HRV often
+// has a 30-40% coefficient of variation) shouldn't be judged on the same %
+// scale as a tight one (RHR). z=-1 (the low edge of the "normal range" shown
+// elsewhere in the app) should still read as a normal, unremarkable night.
+// z > 0 = better than baseline (higher HRV, more sleep, lower RHR).
+// At baseline (z=0) → 78, comfortably inside the Go Hard zone — a typical
 // night for you should read as "normal," not as a reason to ease off.
-function deviationScore(delta: number): number {
-  if (delta >= 0.20) return 100;
-  if (delta >= 0.10) return lerp(delta, 0.10, 0.20, 90, 100);
-  if (delta >= 0.00) return lerp(delta, 0.00, 0.10, 78, 90);
-  if (delta >= -0.10) return lerp(delta, -0.10, 0.00, 62, 78);
-  if (delta >= -0.25) return lerp(delta, -0.25, -0.10, 35, 62);
-  return lerp(delta, -0.50, -0.25, 10, 35);
+function deviationScore(z: number): number {
+  if (z >= 2.0)  return 100;
+  if (z >= 1.0)  return lerp(z, 1.0, 2.0, 92, 100);
+  if (z >= 0.0)  return lerp(z, 0.0, 1.0, 78, 92);
+  if (z >= -1.0) return lerp(z, -1.0, 0.0, 62, 78);
+  if (z >= -2.0) return lerp(z, -2.0, -1.0, 30, 62);
+  return lerp(z, -3.0, -2.0, 10, 30);
 }
 
 // ── Absolute fallbacks (used when < MIN_BASELINE_POINTS of history) ──
@@ -99,27 +99,29 @@ function scoreRHR_abs(rhr: number): number {
   return 0;
 }
 
-// ── Personalized scoring (baseline-relative) ──
+// ── Personalized scoring (baseline-relative, z-score) ──
 
-function scoreHRV(hrv: number, baseline: number | null): number {
+type Stats = { mean: number; sd: number } | null;
+
+function scoreHRV(hrv: number, stats: Stats): number {
   if (hrv < 10) return 5; // absolute physiological floor
-  if (baseline === null) return scoreHRV_abs(hrv);
-  return deviationScore((hrv - baseline) / baseline);
+  if (!stats || stats.sd <= 0) return scoreHRV_abs(hrv);
+  return deviationScore((hrv - stats.mean) / stats.sd);
 }
 
-function scoreSleep(sleep: number, baseline: number | null): number {
+function scoreSleep(sleep: number, stats: Stats): number {
   if (sleep < 2) return 5; // absolute physiological floor
-  if (baseline === null) return scoreSleep_abs(sleep);
-  // Cap upside at +30% — sleeping far above baseline likely means illness, not peak recovery
-  const delta = Math.min((sleep - baseline) / baseline, 0.30);
-  return deviationScore(delta);
+  if (!stats || stats.sd <= 0) return scoreSleep_abs(sleep);
+  // Cap upside at +1.5 SD — sleeping far above baseline likely means illness, not peak recovery
+  const z = Math.min((sleep - stats.mean) / stats.sd, 1.5);
+  return deviationScore(z);
 }
 
-function scoreRHR(rhr: number, baseline: number | null): number {
+function scoreRHR(rhr: number, stats: Stats): number {
   if (rhr > 95) return 10; // absolute physiological floor
-  if (baseline === null) return scoreRHR_abs(rhr);
-  // RHR: lower is better, so invert the delta
-  return deviationScore((baseline - rhr) / baseline);
+  if (!stats || stats.sd <= 0) return scoreRHR_abs(rhr);
+  // RHR: lower is better, so invert the z
+  return deviationScore((stats.mean - rhr) / stats.sd);
 }
 
 function trainingPenalty(cals: number): number {
@@ -206,9 +208,12 @@ export function calcRecoveryScore(params: {
   const sleepVal = latestSleep?.value ?? null;
   const rhrVal   = latestRHR?.value   ?? null;
 
-  const hrvBaseline   = computeBaseline(params.hrv,   today, 30);
-  const sleepBaseline = computeBaseline(params.sleep, today, 30);
-  const rhrBaseline   = computeBaseline(params.rhr,   today, 30);
+  const hrvStats   = computeStats(params.hrv,   today, 30);
+  const sleepStats = computeStats(params.sleep, today, 30);
+  const rhrStats   = computeStats(params.rhr,   today, 30);
+  const hrvBaseline   = hrvStats?.mean   ?? null;
+  const sleepBaseline = sleepStats?.mean ?? null;
+  const rhrBaseline   = rhrStats?.mean   ?? null;
 
   const calYesterday = params.activeCals.find(d => d.date === yesterday)?.value
     ?? params.activeCals.find(d => d.date === today)?.value
@@ -232,9 +237,9 @@ export function calcRecoveryScore(params: {
 
   const rhrFrozen = isFrozenSeries(params.rhr);
 
-  const hScore = hrvVal   !== null ? scoreHRV(hrvVal,     hrvBaseline)   : 70;
-  const sScore = sleepVal !== null ? scoreSleep(sleepVal, sleepBaseline) : 70;
-  const rScore = rhrVal   !== null && !rhrFrozen ? scoreRHR(rhrVal, rhrBaseline) : 70;
+  const hScore = hrvVal   !== null ? scoreHRV(hrvVal,     hrvStats)   : 70;
+  const sScore = sleepVal !== null ? scoreSleep(sleepVal, sleepStats) : 70;
+  const rScore = rhrVal   !== null && !rhrFrozen ? scoreRHR(rhrVal, rhrStats) : 70;
 
   // Once a personalized 30-day baseline exists, scoreHRV's deviation curve already
   // captures today-vs-recent-trend more precisely than this flat ±5 cliff — applying
