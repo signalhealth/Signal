@@ -520,11 +520,11 @@ export function RecoveryScreen() {
             <Text style={[styles.lbl, styles.metricLbl]}>HRV</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>{hrvPeriodAvg ?? "—"}</Text>
-              <Text style={styles.numUnit}>ms</Text>
+              <Text style={styles.numUnit}>ms avg</Text>
             </View>
           </View>
           <View style={styles.topRight}>
-            {latestHRVDate ? <Text style={styles.syncDate}>{fmtShortDate(latestHRVDate)}</Text> : null}
+            {latestHRVDate ? <Text style={styles.syncDate}>Latest: {fmtShortDate(latestHRVDate)}</Text> : null}
             <PillGroup value={hrvDays} onChange={setHrvDays} pillStyles={pillStylesMemo} />
             {hrvBadge && (
               <View
@@ -578,11 +578,11 @@ export function RecoveryScreen() {
               <Text style={styles.numLg}>
                 {sleepPeriodAvg?.toFixed(1) ?? "—"}
               </Text>
-              <Text style={styles.numUnit}>hr</Text>
+              <Text style={styles.numUnit}>hr avg</Text>
             </View>
           </View>
           <View style={styles.topRight}>
-            {latestSleepDate ? <Text style={styles.syncDate}>{fmtShortDate(latestSleepDate)}</Text> : null}
+            {latestSleepDate ? <Text style={styles.syncDate}>Latest: {fmtShortDate(latestSleepDate)}</Text> : null}
             <PillGroup value={sleepDays} onChange={setSleepDays} pillStyles={pillStylesMemo} />
             {sleepBadge && (
               <View
@@ -633,7 +633,7 @@ export function RecoveryScreen() {
             <Text style={[styles.lbl, styles.metricLbl]}>RHR</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>{rhrPeriodAvg ?? "—"}</Text>
-              <Text style={styles.numUnit}>bpm</Text>
+              <Text style={styles.numUnit}>bpm avg</Text>
             </View>
             {rhrStale && (
               <Text style={[styles.syncDate, { color: theme.red }]}>
@@ -644,7 +644,7 @@ export function RecoveryScreen() {
           <View style={styles.topRight}>
             {latestRHRDate ? (
               <Text style={[styles.syncDate, rhrStale && { color: theme.red }]}>
-                {fmtShortDate(latestRHRDate)}
+                {rhrStale ? "" : "Latest: "}{fmtShortDate(latestRHRDate)}
               </Text>
             ) : null}
             <PillGroup value={rhrDays} onChange={setRhrDays} pillStyles={pillStylesMemo} />

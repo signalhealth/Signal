@@ -221,8 +221,12 @@ export function calcRecoveryScore(params: {
   const sScore = sleepVal !== null ? scoreSleep(sleepVal, sleepBaseline) : 70;
   const rScore = rhrVal   !== null ? scoreRHR(rhrVal,     rhrBaseline)   : 70;
 
+  // Once a personalized 30-day baseline exists, scoreHRV's deviation curve already
+  // captures today-vs-recent-trend more precisely than this flat ±5 cliff — applying
+  // both double-counts the same dip. Only use the trend cliff as a fallback signal
+  // before there's enough history for a baseline.
   const last7hrv = params.hrv.filter(d => d.date >= sevenAgo && d.date < today);
-  const bonus    = hrvVal !== null ? hrvTrendBonus(hrvVal, last7hrv) : 0;
+  const bonus    = hrvVal !== null && hrvBaseline === null ? hrvTrendBonus(hrvVal, last7hrv) : 0;
   const penalty  = trainingPenalty(calYesterday);
   const spo2Mod  = spo2Val !== null ? spo2Modifier(spo2Val) : 0;
   const rrMod    = rrVal   !== null ? rrModifier(rrVal)     : 0;
