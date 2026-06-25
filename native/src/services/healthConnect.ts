@@ -135,18 +135,37 @@ async function readSteps(days = 45): Promise<DataPoint[]> {
   }
 }
 
-// Time-in-bed minus AWAKE/OUT_OF_BED stages = actual time asleep. Without stage
-// data (some sources omit it), fall back to the raw start→end span.
-function sleepSessionHours(r: { startTime: string; endTime: string; stages?: { startTime: string; endTime: string; stage: number }[] }): number {
+// Asleep intervals within a session: stage data minus AWAKE/OUT_OF_BED, or
+// (if no stage data) the raw start→end span as a single interval.
+function sleepSessionIntervals(r: { startTime: string; endTime: string; stages?: { startTime: string; endTime: string; stage: number }[] }): { start: number; end: number }[] {
   if (r.stages && r.stages.length > 0) {
-    const asleepMs = r.stages
+    const intervals = r.stages
       .filter(s => s.stage !== 1 /* AWAKE */ && s.stage !== 3 /* OUT_OF_BED */)
-      .reduce((sum, s) => sum + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0);
-    if (asleepMs > 0) return asleepMs / (1000 * 3600);
+      .map(s => ({ start: new Date(s.startTime).getTime(), end: new Date(s.endTime).getTime() }));
+    if (intervals.length > 0) return intervals;
   }
-  const start = new Date(r.startTime).getTime();
-  const end = new Date(r.endTime).getTime();
-  return (end - start) / (1000 * 3600);
+  return [{ start: new Date(r.startTime).getTime(), end: new Date(r.endTime).getTime() }];
+}
+
+// Merge overlapping/adjacent intervals and sum their total duration, so naps
+// that overlap a main-sleep record aren't double-counted.
+function mergedIntervalHours(intervals: { start: number; end: number }[]): number {
+  const sorted = [...intervals].sort((a, b) => a.start - b.start);
+  let totalMs = 0;
+  let curStart = sorted[0].start;
+  let curEnd = sorted[0].end;
+  for (let i = 1; i < sorted.length; i++) {
+    const { start, end } = sorted[i];
+    if (start <= curEnd) {
+      curEnd = Math.max(curEnd, end);
+    } else {
+      totalMs += curEnd - curStart;
+      curStart = start;
+      curEnd = end;
+    }
+  }
+  totalMs += curEnd - curStart;
+  return totalMs / (1000 * 3600);
 }
 
 async function readSleep(days = 45): Promise<DataPoint[]> {
@@ -158,14 +177,42 @@ async function readSleep(days = 45): Promise<DataPoint[]> {
         endTime: new Date().toISOString(),
       },
     });
-    const map = new Map<string, number>();
+    if (__DEV__) {
+      const byDay = new Map<string, number>();
+      for (const r of result.records) {
+        const d = toDateStr(r.startTime);
+        byDay.set(d, (byDay.get(d) || 0) + 1);
+      }
+      console.log(
+        "[readSleep] records:",
+        result.records.length,
+        "per day:",
+        Object.fromEntries(byDay)
+      );
+      for (const r of result.records) {
+        console.log(
+          "[readSleep] session",
+          r.startTime,
+          "->",
+          r.endTime,
+          "stages:",
+          r.stages?.length ?? 0
+        );
+      }
+    }
+    // Sum all same-day sessions (naps + main sleep), merging any overlapping
+    // intervals so overlapping minutes aren't double-counted.
+    const intervalsByDay = new Map<string, { start: number; end: number }[]>();
     for (const r of result.records) {
       const dateStr = toDateStr(r.startTime);
-      const hours = sleepSessionHours(r);
-      // Keep longest session per day
-      if (!map.has(dateStr) || hours > map.get(dateStr)!) {
-        map.set(dateStr, Math.round(hours * 10) / 10);
-      }
+      const intervals = sleepSessionIntervals(r);
+      if (!intervalsByDay.has(dateStr)) intervalsByDay.set(dateStr, []);
+      intervalsByDay.get(dateStr)!.push(...intervals);
+    }
+    const map = new Map<string, number>();
+    for (const [dateStr, intervals] of intervalsByDay) {
+      const hours = mergedIntervalHours(intervals);
+      map.set(dateStr, Math.round(hours * 10) / 10);
     }
     return Array.from(map.entries())
       .map(([date, value]) => ({ date, value }))
