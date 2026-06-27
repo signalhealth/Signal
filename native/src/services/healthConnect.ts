@@ -224,23 +224,56 @@ async function readSleep(days = 45): Promise<DataPoint[]> {
 
 async function readHRV(days = 45): Promise<DataPoint[]> {
   try {
-    const result = await readRecords("HeartRateVariabilityRmssd", {
-      timeRangeFilter: {
-        operator: "between",
-        startTime: daysAgoISO(days),
-        endTime: new Date().toISOString(),
-      },
-    });
-    const map = new Map<string, number>();
-    for (const r of result.records) {
-      const dateStr = toDateStr(r.time);
-      const ms = r.heartRateVariabilityMillis;
-      if (!map.has(dateStr) || ms > map.get(dateStr)!) {
-        map.set(dateStr, Math.round(ms));
+    const [hrvResult, sleepResult] = await Promise.all([
+      readRecords("HeartRateVariabilityRmssd", {
+        timeRangeFilter: {
+          operator: "between",
+          startTime: daysAgoISO(days),
+          endTime: new Date().toISOString(),
+        },
+      }),
+      readRecords("SleepSession", {
+        timeRangeFilter: {
+          operator: "between",
+          startTime: daysAgoISO(days),
+          endTime: new Date().toISOString(),
+        },
+      }),
+    ]);
+
+    // Sources like Coros also sync daytime "Wellness Check" HRV spot-readings
+    // into Health Connect. Restrict to readings taken during a sleep session
+    // and average them, so a daytime check (or a noisy overnight spike) can't
+    // outrank the real overnight HRV.
+    const sleepWindows: { dateStr: string; start: number; end: number }[] = [];
+    for (const r of sleepResult.records) {
+      const dateStr = toDateStr(r.startTime);
+      for (const iv of sleepSessionIntervals(r)) {
+        sleepWindows.push({ dateStr, ...iv });
       }
     }
-    return Array.from(map.entries())
-      .map(([date, value]) => ({ date, value }))
+
+    const sums = new Map<string, { total: number; count: number }>();
+    for (const r of hrvResult.records) {
+      const t = new Date(r.time).getTime();
+      const window = sleepWindows.find((w) => t >= w.start && t <= w.end);
+      if (!window) continue;
+      const entry = sums.get(window.dateStr) || { total: 0, count: 0 };
+      entry.total += r.heartRateVariabilityMillis;
+      entry.count += 1;
+      sums.set(window.dateStr, entry);
+    }
+
+    if (__DEV__) {
+      console.log(
+        "[readHRV] hrv records:", hrvResult.records.length,
+        "in-sleep-window matched:", Array.from(sums.values()).reduce((s, e) => s + e.count, 0),
+        "nights:", Object.fromEntries(Array.from(sums.entries()).map(([d, e]) => [d, e.count]))
+      );
+    }
+
+    return Array.from(sums.entries())
+      .map(([date, { total, count }]) => ({ date, value: Math.round(total / count) }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
