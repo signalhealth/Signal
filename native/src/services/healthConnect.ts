@@ -15,6 +15,7 @@ const PERMISSIONS: (Permission | { accessType: "read"; recordType: "ReadHealthDa
   { accessType: "read", recordType: "SleepSession" },
   { accessType: "read", recordType: "HeartRateVariabilityRmssd" },
   { accessType: "read", recordType: "RestingHeartRate" },
+  { accessType: "read", recordType: "HeartRate" },
   { accessType: "read", recordType: "Nutrition" },
   { accessType: "read", recordType: "ExerciseSession" },
   { accessType: "read", recordType: "BodyFat" },
@@ -282,18 +283,81 @@ async function readHRV(days = 45): Promise<DataPoint[]> {
 
 async function readRHR(days = 45): Promise<DataPoint[]> {
   try {
-    const result = await readRecords("RestingHeartRate", {
-      timeRangeFilter: {
-        operator: "between",
-        startTime: daysAgoISO(days),
-        endTime: new Date().toISOString(),
-      },
-    });
-    const map = new Map<string, number>();
-    for (const r of result.records) {
-      const dateStr = toDateStr(r.time);
-      map.set(dateStr, r.beatsPerMinute);
+    const [hrResult, sleepResult, restingResult] = await Promise.all([
+      readRecords("HeartRate", {
+        timeRangeFilter: {
+          operator: "between",
+          startTime: daysAgoISO(days),
+          endTime: new Date().toISOString(),
+        },
+      }),
+      readRecords("SleepSession", {
+        timeRangeFilter: {
+          operator: "between",
+          startTime: daysAgoISO(days),
+          endTime: new Date().toISOString(),
+        },
+      }),
+      readRecords("RestingHeartRate", {
+        timeRangeFilter: {
+          operator: "between",
+          startTime: daysAgoISO(days),
+          endTime: new Date().toISOString(),
+        },
+      }),
+    ]);
+
+    const sleepWindows: { dateStr: string; start: number; end: number }[] = [];
+    for (const r of sleepResult.records) {
+      const dateStr = toDateStr(r.startTime);
+      for (const iv of sleepSessionIntervals(r)) {
+        sleepWindows.push({ dateStr, ...iv });
+      }
     }
+
+    // Derive resting HR per night from raw heart-rate samples taken while
+    // asleep — the average of the lowest 10% of samples, which is more
+    // robust to a single noisy reading than a strict minimum. This sidesteps
+    // Health Connect's pre-computed RestingHeartRate record, whose sync from
+    // some sources (e.g. Coros) can stick on a stale value for days.
+    const samplesByDay = new Map<string, number[]>();
+    for (const r of hrResult.records) {
+      for (const s of r.samples) {
+        const t = new Date(s.time).getTime();
+        const window = sleepWindows.find((w) => t >= w.start && t <= w.end);
+        if (!window) continue;
+        if (!samplesByDay.has(window.dateStr)) samplesByDay.set(window.dateStr, []);
+        samplesByDay.get(window.dateStr)!.push(s.beatsPerMinute);
+      }
+    }
+
+    const map = new Map<string, number>();
+    for (const [dateStr, bpms] of samplesByDay) {
+      if (bpms.length < 10) continue; // too few samples to trust
+      const sorted = [...bpms].sort((a, b) => a - b);
+      const lowestCount = Math.max(1, Math.round(sorted.length * 0.1));
+      const lowest = sorted.slice(0, lowestCount);
+      const avg = lowest.reduce((sum, v) => sum + v, 0) / lowest.length;
+      map.set(dateStr, Math.round(avg));
+    }
+
+    // Fall back to Health Connect's own RestingHeartRate record for any day
+    // we couldn't derive a value for (e.g. no raw HeartRate sync yet).
+    for (const r of restingResult.records) {
+      const dateStr = toDateStr(r.time);
+      if (!map.has(dateStr)) {
+        map.set(dateStr, r.beatsPerMinute);
+      }
+    }
+
+    if (__DEV__) {
+      console.log(
+        "[readRHR] heart rate records:", hrResult.records.length,
+        "resting records:", restingResult.records.length,
+        "derived nights:", samplesByDay.size
+      );
+    }
+
     return Array.from(map.entries())
       .map(([date, value]) => ({ date, value }))
       .sort((a, b) => b.date.localeCompare(a.date));
