@@ -148,6 +148,15 @@ function sleepSessionIntervals(r: { startTime: string; endTime: string; stages?:
   return [{ start: new Date(r.startTime).getTime(), end: new Date(r.endTime).getTime() }];
 }
 
+// Full sleep session span (not stage-trimmed). Used to classify whether a
+// reading (HRV, heart rate) was taken "during sleep" — unlike duration math,
+// this should still include brief awake/out-of-bed blips near wake-up, since
+// a single overnight summary reading (e.g. Coros's HRV average) is often
+// timestamped right at the edge of one of those trimmed-out segments.
+function sleepWindowSpan(r: { startTime: string; endTime: string }): { start: number; end: number } {
+  return { start: new Date(r.startTime).getTime(), end: new Date(r.endTime).getTime() };
+}
+
 // Merge overlapping/adjacent intervals and sum their total duration, so naps
 // that overlap a main-sleep record aren't double-counted.
 function mergedIntervalHours(intervals: { start: number; end: number }[]): number {
@@ -249,9 +258,7 @@ async function readHRV(days = 45): Promise<DataPoint[]> {
     const sleepWindows: { dateStr: string; start: number; end: number }[] = [];
     for (const r of sleepResult.records) {
       const dateStr = toDateStr(r.startTime);
-      for (const iv of sleepSessionIntervals(r)) {
-        sleepWindows.push({ dateStr, ...iv });
-      }
+      sleepWindows.push({ dateStr, ...sleepWindowSpan(r) });
     }
 
     const sums = new Map<string, { total: number; count: number }>();
@@ -310,9 +317,7 @@ async function readRHR(days = 45): Promise<DataPoint[]> {
     const sleepWindows: { dateStr: string; start: number; end: number }[] = [];
     for (const r of sleepResult.records) {
       const dateStr = toDateStr(r.startTime);
-      for (const iv of sleepSessionIntervals(r)) {
-        sleepWindows.push({ dateStr, ...iv });
-      }
+      sleepWindows.push({ dateStr, ...sleepWindowSpan(r) });
     }
 
     // Derive resting HR per night from raw heart-rate samples taken while
