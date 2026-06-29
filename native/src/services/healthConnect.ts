@@ -251,37 +251,53 @@ async function readHRV(days = 45): Promise<DataPoint[]> {
       }),
     ]);
 
-    // Sources like Coros also sync daytime "Wellness Check" HRV spot-readings
-    // into Health Connect. Restrict to readings taken during a sleep session
-    // and average them, so a daytime check (or a noisy overnight spike) can't
-    // outrank the real overnight HRV.
     const sleepWindows: { dateStr: string; start: number; end: number }[] = [];
     for (const r of sleepResult.records) {
       const dateStr = toDateStr(r.startTime);
       sleepWindows.push({ dateStr, ...sleepWindowSpan(r) });
     }
 
-    const sums = new Map<string, { total: number; count: number }>();
+    // Group by the HRV record's own calendar date first — Coros writes one
+    // overnight summary value per day, but its timestamp isn't reliably
+    // during (or even shortly after) the sleep session, so matching against
+    // a sleep window directly drops almost every night. On a day with only
+    // one reading, trust it outright. On a day with multiple readings (e.g.
+    // an extra manual "Wellness Check" spot value), use the sleep window to
+    // prefer whichever reading actually falls in/near that night's sleep.
+    const byDate = new Map<string, typeof hrvResult.records>();
     for (const r of hrvResult.records) {
-      const t = new Date(r.time).getTime();
-      const window = sleepWindows.find((w) => t >= w.start && t <= w.end);
-      if (!window) continue;
-      const entry = sums.get(window.dateStr) || { total: 0, count: 0 };
-      entry.total += r.heartRateVariabilityMillis;
-      entry.count += 1;
-      sums.set(window.dateStr, entry);
+      const dateStr = toDateStr(r.time);
+      if (!byDate.has(dateStr)) byDate.set(dateStr, []);
+      byDate.get(dateStr)!.push(r);
+    }
+
+    const map = new Map<string, number>();
+    for (const [dateStr, records] of byDate) {
+      let picked = records;
+      if (records.length > 1) {
+        const window = sleepWindows.find((w) => w.dateStr === dateStr);
+        if (window) {
+          const inWindow = records.filter((r) => {
+            const t = new Date(r.time).getTime();
+            return t >= window.start && t <= window.end;
+          });
+          if (inWindow.length > 0) picked = inWindow;
+        }
+      }
+      const avg = picked.reduce((sum, r) => sum + r.heartRateVariabilityMillis, 0) / picked.length;
+      map.set(dateStr, Math.round(avg));
     }
 
     if (__DEV__) {
       console.log(
         "[readHRV] hrv records:", hrvResult.records.length,
-        "in-sleep-window matched:", Array.from(sums.values()).reduce((s, e) => s + e.count, 0),
-        "nights:", Object.fromEntries(Array.from(sums.entries()).map(([d, e]) => [d, e.count]))
+        "days with data:", map.size,
+        "values:", Object.fromEntries(map)
       );
     }
 
-    return Array.from(sums.entries())
-      .map(([date, { total, count }]) => ({ date, value: Math.round(total / count) }))
+    return Array.from(map.entries())
+      .map(([date, value]) => ({ date, value }))
       .sort((a, b) => b.date.localeCompare(a.date));
   } catch {
     return [];
