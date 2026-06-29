@@ -49,6 +49,13 @@ const emptyHealthData: HealthData = {
   bloodPressure: [],
 };
 
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 const defaultAppState: AppState = {
   dexa: [],
   labs: [],
@@ -104,31 +111,35 @@ export function HealthProvider({ children }: { children: ReactNode }) {
 
   async function bootstrap() {
     setLoading(true);
+    try {
+      const [savedState, savedProfile] = await Promise.all([
+        loadAppState(),
+        loadUserProfile(),
+      ]);
+      setAppState(savedState);
+      setUserProfile(savedProfile);
 
-    const [savedState, savedProfile] = await Promise.all([
-      loadAppState(),
-      loadUserProfile(),
-    ]);
-    setAppState(savedState);
-    setUserProfile(savedProfile);
-
-    const initialized = await initializeHealthConnect();
-    if (initialized) {
-      // Check existing grants first (no dialog, no delegate required)
-      let granted = await checkGrantedPermissions();
-      if (!granted) {
-        // Try the permission dialog (works if delegate is set up correctly)
-        granted = await requestHealthPermissions();
+      const initialized = await withTimeout(initializeHealthConnect(), 10000, false);
+      if (initialized) {
+        // Check existing grants first (no dialog, no delegate required)
+        let granted = await checkGrantedPermissions();
+        if (!granted) {
+          // Try the permission dialog (works if delegate is set up correctly)
+          granted = await withTimeout(requestHealthPermissions(), 90000, false);
+        }
+        setPermissionGranted(granted);
+        if (granted) {
+          const data = await readAllHealthData();
+          setHealthData(data);
+        }
       }
-      setPermissionGranted(granted);
-      if (granted) {
-        const data = await readAllHealthData();
-        setHealthData(data);
-      }
+    } catch {
+      // Never leave the app stuck on the loading spinner — fall through
+      // to the permissions prompt instead.
+    } finally {
+      initializedRef.current = true;
+      setLoading(false);
     }
-
-    initializedRef.current = true;
-    setLoading(false);
   }
 
   async function refresh() {
