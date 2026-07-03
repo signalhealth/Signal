@@ -381,8 +381,8 @@ export function ProgressScreen() {
     : latestStepEntry?.date === yesterday ? "Yesterday"
     : fmtShortDate(latestStepEntry?.date);
   const stepsColor = !todaySteps ? theme.textTertiary
-    : todaySteps >= 10000 ? COLORS.green
-    : todaySteps >= 7000 ? COLORS.amber
+    : todaySteps >= 7000 ? COLORS.green
+    : todaySteps >= 5001 ? COLORS.amber
     : COLORS.red;
 
   // ── Body Composition ─────────────────────────────────────────────
