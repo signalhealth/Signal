@@ -340,7 +340,7 @@ export function ProgressScreen() {
   const hrvColor = latestHRV === undefined || !hrvRange ? theme.textTertiary
     : latestHRV >= hrvRange.low ? COLORS.green : COLORS.amber;
   const rhrColor = latestRHR === undefined ? theme.textTertiary
-    : latestRHR <= 55 ? COLORS.green : latestRHR <= 65 ? COLORS.amber : COLORS.red;
+    : latestRHR < 60 ? COLORS.green : latestRHR <= 65 ? COLORS.amber : COLORS.red;
   const sleepRange = computeNormalRange(healthData.sleep, today, 30, 1);
   const sleepColor = latestSleep === undefined || !sleepRange ? theme.textTertiary
     : latestSleep >= sleepRange.low ? COLORS.green : COLORS.amber;

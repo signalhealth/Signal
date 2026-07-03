@@ -351,7 +351,7 @@ export function RecoveryScreen() {
   const rhrBadge =
     rhrBadgeVal === undefined
       ? null
-      : rhrBadgeVal <= 55
+      : rhrBadgeVal < 60
       ? { text: "EXCELLENT", cls: "green" as const }
       : rhrBadgeVal <= 65
       ? { text: "NORMAL", cls: "amber" as const }
