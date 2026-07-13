@@ -22,6 +22,7 @@ import { ProgressScreen } from "./src/screens/ProgressScreen";
 import { RecoveryScreen } from "./src/screens/RecoveryScreen";
 import { FuelScreen } from "./src/screens/FuelScreen";
 import { LabsScreen } from "./src/screens/LabsScreen";
+import { calcWellnessScore } from "./src/utils/wellnessScore";
 
 const Tab = createBottomTabNavigator();
 
@@ -122,12 +123,18 @@ function getInitials(name: string): string {
 }
 
 function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Record<TabName, undefined>> }) {
-  const { loading, permissionGranted, userProfile } = useContext(HealthContext);
+  const { loading, permissionGranted, userProfile, healthData, appState } = useContext(HealthContext);
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showProfile, setShowProfile] = React.useState(false);
   const initials = userProfile.name ? getInitials(userProfile.name) : "PJ";
   const lastSwipe = React.useRef(0);
+
+  const wellnessScore = React.useMemo(() => {
+    if (!permissionGranted && !appState.labs.length && !appState.dexa.length) return null;
+    const result = calcWellnessScore({ healthData, appState, userProfile });
+    return result.completeness > 0 ? result.score : null;
+  }, [healthData, appState, userProfile, permissionGranted]);
 
   const panResponder = React.useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -163,6 +170,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
           isDark={isDark}
           theme={theme}
           initials={initials}
+          wellnessScore={wellnessScore}
         />
       </SafeAreaView>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />

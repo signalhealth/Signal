@@ -11,6 +11,7 @@ interface HeaderProps {
   isDark: boolean;
   theme: ThemeColors;
   initials?: string;
+  wellnessScore?: number | null;
 }
 
 function ProfileAvatar({ initials }: { initials: string }) {
@@ -21,7 +22,13 @@ function ProfileAvatar({ initials }: { initials: string }) {
   );
 }
 
-export function Header({ loading = false, onLogoPress, onProfilePress, onThemeToggle, isDark, theme, initials = "PJ" }: HeaderProps) {
+function wellnessColor(score: number): string {
+  if (score >= 80) return "#00D084";
+  if (score >= 60) return "#F5A623";
+  return "#FF3B30";
+}
+
+export function Header({ loading = false, onLogoPress, onProfilePress, onThemeToggle, isDark, theme, initials = "PJ", wellnessScore = null }: HeaderProps) {
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -97,7 +104,13 @@ export function Header({ loading = false, onLogoPress, onProfilePress, onThemeTo
         <TouchableOpacity
           onPress={onProfilePress}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.avatarWrap}
         >
+          {wellnessScore !== null && (
+            <View style={[styles.scoreBadge, { backgroundColor: wellnessColor(wellnessScore) }]}>
+              <Text style={styles.scoreBadgeText}>{wellnessScore}</Text>
+            </View>
+          )}
           <ProfileAvatar initials={initials} />
         </TouchableOpacity>
       </View>
@@ -161,5 +174,25 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+  },
+  avatarWrap: {
+    position: "relative",
+  },
+  scoreBadge: {
+    position: "absolute",
+    top: -7,
+    left: -18,
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    zIndex: 1,
+    minWidth: 22,
+    alignItems: "center",
+  },
+  scoreBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
 });
