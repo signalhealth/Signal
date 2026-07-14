@@ -59,7 +59,7 @@ export function Header({
             source={require("../../assets/icon.png")}
             style={styles.appIcon}
           />
-          <Text style={[styles.title, { color: theme.text }]}>Signal</Text>
+          <Text style={styles.title}>Signal</Text>
         </View>
       </TouchableOpacity>
 
@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     letterSpacing: -0.4,
+    color: "#E8192C",
   },
   right: {
     flexDirection: "row",
