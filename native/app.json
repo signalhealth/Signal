@@ -37,6 +37,7 @@
       }
     },
     "plugins": [
+      ["expo-font", { "fonts": ["./assets/fonts/SpaceGrotesk_700Bold.ttf"] }],
       "react-native-health-connect",
       "./plugins/withHealthConnectManifest",
       "./plugins/withHealthConnectSetup",
