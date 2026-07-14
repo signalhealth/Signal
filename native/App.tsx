@@ -166,10 +166,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
           loading={loading}
           onLogoPress={() => navigationRef.navigate("Today")}
           onProfilePress={() => setShowProfile(true)}
-          onThemeToggle={toggleTheme}
-          isDark={isDark}
           theme={theme}
-          initials={initials}
           wellnessScore={wellnessScore}
         />
       </SafeAreaView>

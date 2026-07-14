@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { HealthContext } from "../context/HealthContext";
+import { useTheme } from "../context/ThemeContext";
 import { UserProfile } from "../types/health";
 import {
   getAnthropicKey,
@@ -61,6 +62,7 @@ const APP_VERSION = "1.1.0";
 
 export function ProfileModal({ visible, onClose }: Props) {
   const { userProfile, updateUserProfile } = useContext(HealthContext);
+  const { isDark, toggleTheme } = useTheme();
   const [draft, setDraft] = useState<UserProfile>(userProfile);
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [newApiKey, setNewApiKey] = useState("");
@@ -278,6 +280,17 @@ export function ProfileModal({ visible, onClose }: Props) {
               onChangeText={(v) => set("waterGoalOz", v)}
               placeholder="e.g. 64"
               keyboardType="numeric"
+            />
+          </View>
+
+          <Text style={styles.section}>APPEARANCE</Text>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Dark Mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: "#1A3A5C", true: "#0066CC" }}
+              thumbColor="#FFFFFF"
             />
           </View>
 
