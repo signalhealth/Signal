@@ -6,6 +6,7 @@ interface HeaderProps {
   loading?: boolean;
   onLogoPress?: () => void;
   onProfilePress: () => void;
+  onScorePress?: () => void;
   theme: ThemeColors;
   initials?: string;
   wellnessScore?: number | null;
@@ -21,6 +22,7 @@ export function Header({
   loading = false,
   onLogoPress,
   onProfilePress,
+  onScorePress,
   theme,
   wellnessScore = null,
 }: HeaderProps) {
@@ -68,9 +70,15 @@ export function Header({
         <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
 
         {wellnessScore !== null && (
-          <View style={[styles.scoreCircle, { backgroundColor: wellnessColor(wellnessScore) }]}>
-            <Text style={styles.scoreText}>{wellnessScore}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={onScorePress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.75}
+          >
+            <View style={[styles.scoreCircle, { backgroundColor: wellnessColor(wellnessScore) }]}>
+              <Text style={styles.scoreText}>{wellnessScore}</Text>
+            </View>
+          </TouchableOpacity>
         )}
 
         <TouchableOpacity

@@ -23,6 +23,7 @@ import { RecoveryScreen } from "./src/screens/RecoveryScreen";
 import { FuelScreen } from "./src/screens/FuelScreen";
 import { LabsScreen } from "./src/screens/LabsScreen";
 import { calcWellnessScore } from "./src/utils/wellnessScore";
+import { WellnessModal } from "./src/components/WellnessModal";
 
 const Tab = createBottomTabNavigator();
 
@@ -127,14 +128,15 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showProfile, setShowProfile] = React.useState(false);
+  const [showWellness, setShowWellness] = React.useState(false);
   const initials = userProfile.name ? getInitials(userProfile.name) : "PJ";
   const lastSwipe = React.useRef(0);
 
-  const wellnessScore = React.useMemo(() => {
-    if (!permissionGranted && !appState.labs.length && !appState.dexa.length) return null;
-    const result = calcWellnessScore({ healthData, appState, userProfile });
-    return result.completeness > 0 ? result.score : null;
-  }, [healthData, appState, userProfile, permissionGranted]);
+  const wellnessBreakdown = React.useMemo(() => {
+    return calcWellnessScore({ healthData, appState, userProfile });
+  }, [healthData, appState, userProfile]);
+
+  const wellnessScore = wellnessBreakdown.completeness > 0 ? wellnessBreakdown.score : null;
 
   const panResponder = React.useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -166,11 +168,13 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
           loading={loading}
           onLogoPress={() => navigationRef.navigate("Today")}
           onProfilePress={() => setShowProfile(true)}
+          onScorePress={() => setShowWellness(true)}
           theme={theme}
           wellnessScore={wellnessScore}
         />
       </SafeAreaView>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
+      <WellnessModal visible={showWellness} onClose={() => setShowWellness(false)} breakdown={wellnessBreakdown} />
       {loading ? (
         <View style={styles.permissionsContainer}>
           <ActivityIndicator color={theme.accent} size="large" />
