@@ -24,7 +24,7 @@ import { FuelScreen } from "./src/screens/FuelScreen";
 import { LabsScreen } from "./src/screens/LabsScreen";
 import { calcWellnessScore } from "./src/utils/wellnessScore";
 import { WellnessModal } from "./src/components/WellnessModal";
-import { useFonts, SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk";
+import { useFonts } from "expo-font";
 
 const Tab = createBottomTabNavigator();
 
@@ -221,7 +221,9 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
 
 export default function App() {
   const navigationRef = useNavigationContainerRef<Record<TabName, undefined>>();
-  const [fontsLoaded] = useFonts({ SpaceGrotesk_700Bold });
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_700Bold: require("./assets/fonts/SpaceGrotesk_700Bold.ttf"),
+  });
   if (!fontsLoaded) return null;
   return (
     <SafeAreaProvider>
