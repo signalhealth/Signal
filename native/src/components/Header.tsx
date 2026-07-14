@@ -140,21 +140,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   scoreCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     alignItems: "center",
     justifyContent: "center",
   },
   scoreText: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 0.1,
   },
   avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
   },
 });

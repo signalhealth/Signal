@@ -18,7 +18,7 @@ const CATEGORIES: Array<{
   { key: "cardiovascular",  label: "Cardiovascular",      weight: "25%" },
   { key: "metabolic",       label: "Metabolic",            weight: "20%" },
   { key: "fitness",         label: "Fitness",              weight: "20%" },
-  { key: "hormonal",        label: "Hormonal / Nutrition", weight: "15%" },
+  { key: "hormonal",        label: "Hormonal",             weight: "15%" },
   { key: "bodyComp",        label: "Body Composition",     weight: "10%" },
   { key: "sleepRecovery",   label: "Sleep / Recovery",     weight: "10%" },
 ];
@@ -39,6 +39,7 @@ function scoreLabel(score: number): string {
 
 export function WellnessModal({ visible, onClose, breakdown }: Props) {
   const { theme, isDark } = useTheme();
+  const sheetBg = isDark ? "#0D1117" : "#FFFFFF";
   const presentCount = Object.values(breakdown.categories).filter((v) => v !== null).length;
   const totalCount = CATEGORIES.length;
   const color = scoreColor(breakdown.score);
@@ -46,7 +47,7 @@ export function WellnessModal({ visible, onClose, breakdown }: Props) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: theme.tabBar, borderColor: theme.tabBarBorder }]}>
+        <View style={[styles.sheet, { backgroundColor: sheetBg, borderColor: theme.tabBarBorder }]}>
           {/* Handle */}
           <View style={[styles.handle, { backgroundColor: theme.textQuaternary }]} />
 
