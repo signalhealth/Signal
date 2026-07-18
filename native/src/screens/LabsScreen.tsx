@@ -69,7 +69,7 @@ function getTrendArrow(
   allLabs: LabResult[]
 ): { delta: string; color: string } | null {
   const sameMarker = allLabs
-    .filter((l) => normName(l.name) === normName(lab.name) && l.id !== lab.id)
+    .filter((l) => normName(l.name) === normName(lab.name) && l.id !== lab.id && l.date < lab.date)
     .sort((a, b) => b.date.localeCompare(a.date));
   if (!sameMarker.length) return null;
   const prev = sameMarker[0];
@@ -304,7 +304,7 @@ function LabDetailModal({
 
           {/* History */}
           <Text style={[s.sectionLabel, { color: theme.textTertiary }]}>HISTORY</Text>
-          {entries.map((e) => {
+          {[...entries].reverse().map((e) => {
             const eCfg = STATUS_CONFIG[e.status];
             const trend = getTrendArrow(e, allLabs);
             return (
@@ -456,12 +456,38 @@ export function LabsScreen() {
   const [labRef, setLabRef] = useState("");
   const [labStatus, setLabStatus] = useState<"green" | "amber" | "red">("green");
   const [labDirection, setLabDirection] = useState<"high" | "low">("high");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [detailMarker, setDetailMarker] = useState<string | null>(null);
 
   const allLabs = useMemo(
     () => [...appState.labs].sort((a, b) => b.date.localeCompare(a.date)),
     [appState.labs]
   );
+
+  const knownMarkers = useMemo(() => {
+    const seen = new Map<string, LabResult>();
+    for (const lab of allLabs) {
+      const key = normName(lab.name);
+      if (!seen.has(key)) seen.set(key, lab);
+    }
+    return Array.from(seen.values());
+  }, [allLabs]);
+
+  const suggestions = useMemo(() => {
+    const q = normName(labName);
+    if (!q) return [];
+    return knownMarkers
+      .filter((m) => normName(m.name).includes(q))
+      .slice(0, 6);
+  }, [labName, knownMarkers]);
+
+  function applySuggestion(lab: LabResult) {
+    setLabName(lab.name);
+    setLabRef(lab.reference ?? "");
+    setLabStatus(lab.status);
+    if (lab.direction) setLabDirection(lab.direction);
+    setShowSuggestions(false);
+  }
 
   // One entry per marker (case-insensitive dedup, most recent wins)
   const latestByName = useMemo(() => {
@@ -621,20 +647,23 @@ export function LabsScreen() {
         {changeLog.hasChanges && (
           <View style={[styles.changeLogCard, { backgroundColor: theme.insightCard, borderColor: theme.insightCardBorder }]}>
             <Text style={[styles.changeLogTitle, { color: theme.textTertiary }]}>SINCE LAST UPDATE</Text>
-            <View style={styles.changeLogRow}>
+            <View style={styles.changeLogStats}>
               {changeLog.toOptimal > 0 && (
-                <View style={[styles.changeChip, { backgroundColor: "rgba(0,208,132,0.15)", borderColor: "rgba(0,200,120,0.25)" }]}>
-                  <Text style={[styles.changeChipText, { color: "#00D084" }]}>↑ {changeLog.toOptimal} to Optimal</Text>
+                <View style={styles.changeLogStat}>
+                  <Text style={[styles.changeLogNum, { color: "#00D084" }]}>{changeLog.toOptimal}</Text>
+                  <Text style={[styles.changeLogLabel, { color: "#00D084" }]}>↑ Optimal</Text>
                 </View>
               )}
               {changeLog.toMonitor > 0 && (
-                <View style={[styles.changeChip, { backgroundColor: "rgba(245,166,35,0.1)", borderColor: "rgba(245,166,35,0.25)" }]}>
-                  <Text style={[styles.changeChipText, { color: "#F5A623" }]}>↑ {changeLog.toMonitor} to Monitor</Text>
+                <View style={styles.changeLogStat}>
+                  <Text style={[styles.changeLogNum, { color: "#F5A623" }]}>{changeLog.toMonitor}</Text>
+                  <Text style={[styles.changeLogLabel, { color: "#F5A623" }]}>↑ Monitor</Text>
                 </View>
               )}
               {changeLog.toFlagged > 0 && (
-                <View style={[styles.changeChip, { backgroundColor: "rgba(255,59,48,0.15)", borderColor: "rgba(233,40,58,0.25)" }]}>
-                  <Text style={[styles.changeChipText, { color: "#FF3B30" }]}>↓ {changeLog.toFlagged} to Flagged</Text>
+                <View style={styles.changeLogStat}>
+                  <Text style={[styles.changeLogNum, { color: "#FF3B30" }]}>{changeLog.toFlagged}</Text>
+                  <Text style={[styles.changeLogLabel, { color: "#FF3B30" }]}>↓ Flagged</Text>
                 </View>
               )}
             </View>
@@ -656,13 +685,30 @@ export function LabsScreen() {
               value={labDate}
               onChangeText={setLabDate}
             />
-            <TextInput
-              style={[styles.formInput, { flex: 1 }]}
-              placeholder="Marker name"
-              placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
-              value={labName}
-              onChangeText={setLabName}
-            />
+            <View style={{ flex: 1 }}>
+              <TextInput
+                style={[styles.formInput, { flex: 1 }]}
+                placeholder="Marker name"
+                placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
+                value={labName}
+                onChangeText={(t) => { setLabName(t); setShowSuggestions(true); }}
+                onFocus={() => setShowSuggestions(true)}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <View style={[styles.suggestionsBox, { backgroundColor: theme.tabBar, borderColor: theme.tabBarBorder }]}>
+                  {suggestions.map((m) => (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={[styles.suggestionRow, { borderBottomColor: theme.cardBorder }]}
+                      onPress={() => applySuggestion(m)}
+                    >
+                      <Text style={[styles.suggestionName, { color: theme.text }]}>{m.name}</Text>
+                      <Text style={[styles.suggestionMeta, { color: theme.textTertiary }]}>{m.value} · {m.reference}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
           <View style={styles.formRow}>
             <TextInput
@@ -730,16 +776,15 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       textTransform: "uppercase", marginBottom: 14, color: theme.textTertiary,
     },
     changeLogCard: {
-      borderWidth: 1, borderRadius: 14, padding: 14,
+      borderWidth: 1, borderRadius: 14, padding: 16,
     },
     changeLogTitle: {
-      fontSize: 10, fontWeight: "700", letterSpacing: 1.4, marginBottom: 10,
+      fontSize: 10, fontWeight: "700", letterSpacing: 1.4, marginBottom: 14, color: theme.textTertiary,
     },
-    changeLogRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-    changeChip: {
-      borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
-    },
-    changeChipText: { fontSize: 12, fontWeight: "700" },
+    changeLogStats: { flexDirection: "row", gap: 24 },
+    changeLogStat: { alignItems: "center" },
+    changeLogNum: { fontSize: 28, fontWeight: "800", lineHeight: 30 },
+    changeLogLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.4, marginTop: 2 },
     labRow: {
       flexDirection: "row", justifyContent: "space-between", alignItems: "center",
       paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: theme.cardBorder,
@@ -782,5 +827,14 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     },
     accordionCountText: { fontSize: 11, fontWeight: "700" },
     accordionChevron: { fontSize: 10 },
+    suggestionsBox: {
+      position: "absolute", top: 38, left: 0, right: 0, zIndex: 100,
+      borderWidth: 1, borderRadius: 8, overflow: "hidden",
+    },
+    suggestionRow: {
+      paddingHorizontal: 12, paddingVertical: 9, borderBottomWidth: 1,
+    },
+    suggestionName: { fontSize: 13, fontWeight: "500" },
+    suggestionMeta: { fontSize: 11, marginTop: 1 },
   });
 }
