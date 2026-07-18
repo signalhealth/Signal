@@ -8,6 +8,7 @@
     "platforms": ["android"],
     "android": {
       "package": "com.signalhealth.app",
+      "softwareKeyboardLayoutMode": "pan",
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",

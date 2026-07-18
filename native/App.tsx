@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  ActivityIndicator,
   PanResponder,
 } from "react-native";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
@@ -176,13 +175,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
       </SafeAreaView>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
       <WellnessModal visible={showWellness} onClose={() => setShowWellness(false)} breakdown={wellnessBreakdown} />
-      {loading ? (
-        <View style={styles.permissionsContainer}>
-          <ActivityIndicator color={theme.accent} size="large" />
-        </View>
-      ) : !permissionGranted ? (
-        <PermissionsPrompt />
-      ) : null}
+      {!loading && !permissionGranted && <PermissionsPrompt />}
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
