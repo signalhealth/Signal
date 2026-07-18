@@ -642,6 +642,7 @@ export function LabsScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Change log */}
         {changeLog.hasChanges && (
@@ -684,6 +685,7 @@ export function LabsScreen() {
               placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
               value={labDate}
               onChangeText={setLabDate}
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)}
             />
             <View style={{ flex: 1 }}>
               <TextInput
@@ -692,7 +694,7 @@ export function LabsScreen() {
                 placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
                 value={labName}
                 onChangeText={(t) => { setLabName(t); setShowSuggestions(true); }}
-                onFocus={() => setShowSuggestions(true)}
+                onFocus={() => { setShowSuggestions(true); setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100); }}
               />
               {showSuggestions && suggestions.length > 0 && (
                 <View style={[styles.suggestionsBox, { backgroundColor: theme.tabBar, borderColor: theme.tabBarBorder }]}>
@@ -717,6 +719,7 @@ export function LabsScreen() {
               placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
               value={labValue}
               onChangeText={setLabValue}
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)}
             />
             <TextInput
               style={[styles.formInput, { flex: 1 }]}
@@ -724,6 +727,7 @@ export function LabsScreen() {
               placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
               value={labRef}
               onChangeText={setLabRef}
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)}
             />
           </View>
           <View style={styles.statusRow}>

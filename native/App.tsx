@@ -224,7 +224,6 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_700Bold: require("./assets/fonts/SpaceGrotesk_700Bold.ttf"),
   });
-  if (!fontsLoaded) return null;
   return (
     <SafeAreaProvider>
       <ThemeProvider>
