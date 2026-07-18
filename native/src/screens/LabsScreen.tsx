@@ -56,6 +56,8 @@ const LOWER_IS_BETTER = new Set([
   "BUN", "BUN/Creat Ratio", "Alb/Glob Ratio", "PSA, Total", "Insulin", "Hemoglobin A1C",
 ]);
 
+function normName(n: string) { return n.toLowerCase().trim(); }
+
 function badgeLabel(lab: LabResult): string {
   return lab.status === "red"
     ? lab.direction === "low" ? "LOW" : "HIGH"
@@ -67,7 +69,7 @@ function getTrendArrow(
   allLabs: LabResult[]
 ): { delta: string; color: string } | null {
   const sameMarker = allLabs
-    .filter((l) => l.name === lab.name && l.id !== lab.id)
+    .filter((l) => normName(l.name) === normName(lab.name) && l.id !== lab.id)
     .sort((a, b) => b.date.localeCompare(a.date));
   if (!sameMarker.length) return null;
   const prev = sameMarker[0];
@@ -83,6 +85,11 @@ function getTrendArrow(
   return { delta: `${arrow} ${absDiff} from last`, color: improved ? "#00D084" : "#F5A623" };
 }
 
+function todayDateStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // ── Lab detail modal ─────────────────────────────────────────────────────────
 
 function LabDetailModal({
@@ -90,12 +97,14 @@ function LabDetailModal({
   allLabs,
   onClose,
   onDelete,
+  onAdd,
   userProfile,
 }: {
   markerName: string;
   allLabs: LabResult[];
   onClose: () => void;
   onDelete: (id: string) => void;
+  onAdd: (lab: LabResult) => void;
   userProfile: UserProfile;
 }) {
   const { theme, isDark } = useTheme();
@@ -103,10 +112,20 @@ function LabDetailModal({
     "Tap Analyze below for a plain-language explanation and actionable guidance."
   );
   const [analyzing, setAnalyzing] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newValue, setNewValue] = useState("");
+  const [newDate, setNewDate] = useState(todayDateStr());
+  const [newStatus, setNewStatus] = useState<"green" | "amber" | "red">("green");
+  const [newDirection, setNewDirection] = useState<"high" | "low">("high");
 
-  const entries = allLabs
-    .filter((l) => l.name === markerName)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  // Case-insensitive name match so old and new entries group correctly
+  const entries = useMemo(
+    () =>
+      allLabs
+        .filter((l) => normName(l.name) === normName(markerName))
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    [allLabs, markerName]
+  );
 
   useEffect(() => {
     if (entries.length === 0) onClose();
@@ -115,11 +134,17 @@ function LabDetailModal({
   const latest = entries[0];
   const cfg = latest ? STATUS_CONFIG[latest.status] : STATUS_CONFIG.green;
 
-  const chartData = useMemo(() =>
-    entries
-      .filter((e) => !isNaN(parseFloat(e.value)))
-      .map((e) => ({ date: e.date, value: parseFloat(e.value) }))
-      .reverse(),
+  // Pre-fill new entry status from latest
+  useEffect(() => {
+    if (latest) setNewStatus(latest.status);
+  }, [latest?.status]);
+
+  const chartData = useMemo(
+    () =>
+      entries
+        .filter((e) => !isNaN(parseFloat(e.value)))
+        .map((e) => ({ date: e.date, value: parseFloat(e.value) }))
+        .reverse(),
     [entries]
   );
 
@@ -143,7 +168,33 @@ function LabDetailModal({
     }
   }
 
+  function handleAddEntry() {
+    if (!newValue.trim()) return;
+    const lab: LabResult = {
+      id: `custom-${Date.now()}`,
+      date: newDate,
+      name: latest?.name ?? markerName, // preserve original casing
+      value: newValue.trim(),
+      reference: latest?.reference ?? "",
+      status: newStatus,
+      ...(newStatus === "red" && { direction: newDirection }),
+    };
+    onAdd(lab);
+    setNewValue("");
+    setNewDate(todayDateStr());
+    setShowAddForm(false);
+  }
+
   const s = mStyles(theme, isDark);
+
+  const NewEntryStatusBtn = ({ value, label, color }: { value: "green" | "amber" | "red"; label: string; color: string }) => (
+    <TouchableOpacity
+      style={[s.statusBtn, newStatus === value && { borderColor: color, backgroundColor: `${color}22` }]}
+      onPress={() => setNewStatus(value)}
+    >
+      <Text style={[s.statusBtnText, newStatus === value && { color }]}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
@@ -151,12 +202,76 @@ function LabDetailModal({
         {/* Header */}
         <View style={[s.header, { borderBottomColor: theme.tabBarBorder, backgroundColor: theme.tabBar }]}>
           <Text style={[s.headerTitle, { color: theme.text }]}>{markerName.toUpperCase()}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={[s.closeBtn, { color: theme.textTertiary }]}>✕</Text>
-          </TouchableOpacity>
+          <View style={s.headerRight}>
+            <TouchableOpacity
+              onPress={() => setShowAddForm((v) => !v)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={[s.addEntryBtn, { borderColor: theme.accent }]}
+            >
+              <Text style={[s.addEntryBtnText, { color: theme.accent }]}>+ Add Entry</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Text style={[s.closeBtn, { color: theme.textTertiary }]}>✕</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          {/* Inline add-entry form */}
+          {showAddForm && (
+            <View style={[s.addFormCard, { backgroundColor: theme.insightCard, borderColor: theme.insightCardBorder }]}>
+              <Text style={[s.sectionLabel, { color: theme.textTertiary }]}>NEW ENTRY</Text>
+              <View style={s.addFormRow}>
+                <TextInput
+                  style={[s.formInput, { flex: 1, marginRight: 8, color: theme.text, backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}
+                  placeholder="Date (YYYY-MM-DD)"
+                  placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
+                  value={newDate}
+                  onChangeText={setNewDate}
+                />
+                <TextInput
+                  style={[s.formInput, { flex: 1, color: theme.text, backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}
+                  placeholder="Value"
+                  placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
+                  value={newValue}
+                  onChangeText={setNewValue}
+                  autoFocus
+                />
+              </View>
+              {latest?.reference ? (
+                <Text style={[s.prefilledRef, { color: theme.textTertiary }]}>Reference: {latest.reference}</Text>
+              ) : null}
+              <View style={s.addFormStatusRow}>
+                <NewEntryStatusBtn value="green" label="✓ Normal" color="#00D084" />
+                <NewEntryStatusBtn value="amber" label="⚠ Monitor" color="#F5A623" />
+                <NewEntryStatusBtn value="red" label="✗ Flagged" color="#FF3B30" />
+              </View>
+              {newStatus === "red" && (
+                <View style={s.addFormStatusRow}>
+                  <TouchableOpacity
+                    style={[s.statusBtn, newDirection === "high" && { borderColor: "#FF3B30", backgroundColor: "rgba(255,59,48,0.12)" }]}
+                    onPress={() => setNewDirection("high")}
+                  >
+                    <Text style={[s.statusBtnText, newDirection === "high" && { color: "#FF3B30" }]}>↑ Too High</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.statusBtn, newDirection === "low" && { borderColor: "#FF3B30", backgroundColor: "rgba(255,59,48,0.12)" }]}
+                    onPress={() => setNewDirection("low")}
+                  >
+                    <Text style={[s.statusBtnText, newDirection === "low" && { color: "#FF3B30" }]}>↓ Too Low</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TouchableOpacity
+                style={[s.addBtn, { backgroundColor: theme.accent }, !newValue.trim() && { opacity: 0.4 }]}
+                onPress={handleAddEntry}
+                disabled={!newValue.trim()}
+              >
+                <Text style={s.addBtnText}>Save Entry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Latest value */}
           {latest && (
             <View style={s.latestRow}>
@@ -179,7 +294,6 @@ function LabDetailModal({
                 color={cfg.text}
                 showDots
                 dotColorFn={(v) => {
-                  if (!latest) return cfg.text;
                   const max = Math.max(...chartData.map(d => d.value));
                   const min = Math.min(...chartData.map(d => d.value));
                   return v === max || v === min ? "#FFAA00" : cfg.text;
@@ -249,13 +363,33 @@ function mStyles(theme: ThemeColors, isDark: boolean) {
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingVertical: 14,
       borderBottomWidth: 1,
     },
     headerTitle: { fontSize: 14, fontWeight: "700", letterSpacing: 1.4 },
+    headerRight: { flexDirection: "row", alignItems: "center", gap: 14 },
+    addEntryBtn: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+    addEntryBtnText: { fontSize: 12, fontWeight: "600" },
     closeBtn: { fontSize: 20, fontWeight: "400" },
-    content: { padding: 20, paddingBottom: 48, gap: 0 },
-    latestRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 6 },
+    content: { padding: 20, paddingBottom: 48 },
+    addFormCard: {
+      borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 20,
+    },
+    addFormRow: { flexDirection: "row", marginBottom: 8 },
+    addFormStatusRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+    prefilledRef: { fontSize: 11, marginBottom: 10 },
+    formInput: {
+      borderWidth: 1, borderRadius: 8, padding: 9,
+      paddingHorizontal: 12, fontSize: 13,
+    },
+    statusBtn: {
+      flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.12)", alignItems: "center",
+    },
+    statusBtnText: { fontSize: 11, fontWeight: "600", color: "#8899AA" },
+    addBtn: { borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 4 },
+    addBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 13 },
+    latestRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 6, marginTop: 4 },
     latestValue: { fontSize: 36, fontWeight: "700" },
     refText: { fontSize: 12, marginBottom: 20, letterSpacing: 0.3 },
     chartWrap: { marginBottom: 24, marginTop: 4 },
@@ -293,6 +427,8 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+const STATUS_RANK = { red: 0, amber: 1, green: 2 } as const;
+
 export function LabsScreen() {
   const { appState, updateAppState, userProfile } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
@@ -314,36 +450,63 @@ export function LabsScreen() {
     }, [])
   );
 
-  const [labDate, setLabDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  });
+  const [labDate, setLabDate] = useState(todayDateStr);
   const [labName, setLabName] = useState("");
   const [labValue, setLabValue] = useState("");
   const [labRef, setLabRef] = useState("");
   const [labStatus, setLabStatus] = useState<"green" | "amber" | "red">("green");
   const [labDirection, setLabDirection] = useState<"high" | "low">("high");
-
   const [detailMarker, setDetailMarker] = useState<string | null>(null);
 
-  // All entries sorted newest-first — used for trend arrows and modal history
   const allLabs = useMemo(
     () => [...appState.labs].sort((a, b) => b.date.localeCompare(a.date)),
     [appState.labs]
   );
 
-  // One entry per marker name (most recent wins) for section display
+  // One entry per marker (case-insensitive dedup, most recent wins)
   const latestByName = useMemo(() => {
     const map = new Map<string, LabResult>();
     for (const lab of allLabs) {
-      if (!map.has(lab.name)) map.set(lab.name, lab);
+      const key = normName(lab.name);
+      if (!map.has(key)) map.set(key, lab);
     }
     return Array.from(map.values());
   }, [allLabs]);
 
-  const redLabs = latestByName.filter((l) => l.status === "red");
+  const redLabs   = latestByName.filter((l) => l.status === "red");
   const amberLabs = latestByName.filter((l) => l.status === "amber");
   const greenLabs = latestByName.filter((l) => l.status === "green");
+
+  // Change log: compare most recent vs previous entry per marker
+  const changeLog = useMemo(() => {
+    const byName = new Map<string, LabResult[]>();
+    for (const lab of allLabs) {
+      const key = normName(lab.name);
+      if (!byName.has(key)) byName.set(key, []);
+      byName.get(key)!.push(lab);
+    }
+    let toOptimal = 0, toMonitor = 0, toFlagged = 0;
+    for (const [, entries] of byName) {
+      if (entries.length < 2) continue;
+      const curr = STATUS_RANK[entries[0].status];
+      const prev = STATUS_RANK[entries[1].status];
+      if (curr === prev) continue;
+      if (curr > prev) {
+        if (entries[0].status === "green") toOptimal++;
+        else toMonitor++;
+      } else {
+        toFlagged++;
+      }
+    }
+    return { toOptimal, toMonitor, toFlagged, hasChanges: toOptimal + toMonitor + toFlagged > 0 };
+  }, [allLabs]);
+
+  // Auto-fill reference when marker name matches an existing entry
+  useEffect(() => {
+    if (!labName.trim()) return;
+    const match = allLabs.find((l) => normName(l.name) === normName(labName));
+    if (match?.reference && !labRef) setLabRef(match.reference);
+  }, [labName]);
 
   function addLab() {
     if (!labName.trim() || !labValue.trim()) {
@@ -363,6 +526,10 @@ export function LabsScreen() {
     setLabName("");
     setLabValue("");
     setLabRef("");
+  }
+
+  function addLabDirect(lab: LabResult) {
+    updateAppState({ ...appState, labs: [...appState.labs, lab] });
   }
 
   function deleteLab(id: string) {
@@ -408,7 +575,7 @@ export function LabsScreen() {
             ? labs.map((lab, i) => {
                 const cfg = STATUS_CONFIG[lab.status];
                 const trend = getTrendArrow(lab, allLabs);
-                const allForMarker = allLabs.filter(l => l.name === lab.name);
+                const allForMarker = allLabs.filter(l => normName(l.name) === normName(lab.name));
                 return (
                   <TouchableOpacity
                     key={lab.id || i}
@@ -450,6 +617,30 @@ export function LabsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {/* Change log */}
+        {changeLog.hasChanges && (
+          <View style={[styles.changeLogCard, { backgroundColor: theme.insightCard, borderColor: theme.insightCardBorder }]}>
+            <Text style={[styles.changeLogTitle, { color: theme.textTertiary }]}>SINCE LAST UPDATE</Text>
+            <View style={styles.changeLogRow}>
+              {changeLog.toOptimal > 0 && (
+                <View style={[styles.changeChip, { backgroundColor: "rgba(0,208,132,0.15)", borderColor: "rgba(0,200,120,0.25)" }]}>
+                  <Text style={[styles.changeChipText, { color: "#00D084" }]}>↑ {changeLog.toOptimal} to Optimal</Text>
+                </View>
+              )}
+              {changeLog.toMonitor > 0 && (
+                <View style={[styles.changeChip, { backgroundColor: "rgba(245,166,35,0.1)", borderColor: "rgba(245,166,35,0.25)" }]}>
+                  <Text style={[styles.changeChipText, { color: "#F5A623" }]}>↑ {changeLog.toMonitor} to Monitor</Text>
+                </View>
+              )}
+              {changeLog.toFlagged > 0 && (
+                <View style={[styles.changeChip, { backgroundColor: "rgba(255,59,48,0.15)", borderColor: "rgba(233,40,58,0.25)" }]}>
+                  <Text style={[styles.changeChipText, { color: "#FF3B30" }]}>↓ {changeLog.toFlagged} to Flagged</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {renderSection(redLabs, "red", "FLAGGED", "#FF3B30", "rgba(255,59,48,0.15)", "rgba(233,40,58,0.25)", "No flagged results.")}
         {renderSection(amberLabs, "amber", "MONITOR", "#F5A623", "rgba(245,166,35,0.1)", "rgba(245,166,35,0.25)", "No monitored results.")}
         {renderSection(greenLabs, "green", "OPTIMAL", "#00D084", "rgba(0,208,132,0.15)", "rgba(0,200,120,0.25)", "No optimal results yet.")}
@@ -522,6 +713,7 @@ export function LabsScreen() {
           allLabs={allLabs}
           onClose={() => setDetailMarker(null)}
           onDelete={deleteLab}
+          onAdd={addLabDirect}
           userProfile={userProfile}
         />
       )}
@@ -537,6 +729,17 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       fontSize: 11, fontWeight: "700", letterSpacing: 1.5,
       textTransform: "uppercase", marginBottom: 14, color: theme.textTertiary,
     },
+    changeLogCard: {
+      borderWidth: 1, borderRadius: 14, padding: 14,
+    },
+    changeLogTitle: {
+      fontSize: 10, fontWeight: "700", letterSpacing: 1.4, marginBottom: 10,
+    },
+    changeLogRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    changeChip: {
+      borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
+    },
+    changeChipText: { fontSize: 12, fontWeight: "700" },
     labRow: {
       flexDirection: "row", justifyContent: "space-between", alignItems: "center",
       paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: theme.cardBorder,
@@ -552,7 +755,6 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     chevron: { fontSize: 20, marginLeft: -4 },
     badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 5, borderWidth: 1 },
     badgeText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.9, textTransform: "uppercase" },
-
     formRow: { flexDirection: "row", marginBottom: 8 },
     formInput: {
       backgroundColor: theme.inputBg, borderWidth: 1, borderColor: theme.inputBorder,
@@ -570,7 +772,6 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     },
     addBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 14 },
     emptyNote: { fontSize: 13, color: theme.textTertiary, marginVertical: 8 },
-
     accordionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     accordionLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
     accordionDot: { width: 8, height: 8, borderRadius: 4 },
