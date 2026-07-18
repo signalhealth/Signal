@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import {
   Modal,
   View,
@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { HealthContext } from "../context/HealthContext";
-import { useTheme } from "../context/ThemeContext";
+import { useTheme, ThemeColors } from "../context/ThemeContext";
 import { UserProfile } from "../types/health";
 import {
   getAnthropicKey,
@@ -40,6 +40,8 @@ function Field({
   keyboardType?: "default" | "decimal-pad" | "numeric";
   multiline?: boolean;
 }) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -48,7 +50,7 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#5A7090"
+        placeholderTextColor={theme.textTertiary}
         keyboardType={keyboardType}
         multiline={multiline}
         autoCapitalize="none"
@@ -62,7 +64,8 @@ const APP_VERSION = "1.1.0";
 
 export function ProfileModal({ visible, onClose }: Props) {
   const { userProfile, updateUserProfile } = useContext(HealthContext);
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [draft, setDraft] = useState<UserProfile>(userProfile);
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [newApiKey, setNewApiKey] = useState("");
@@ -119,6 +122,17 @@ export function ProfileModal({ visible, onClose }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <Text style={[styles.section, { marginTop: 0 }]}>APPEARANCE</Text>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Dark Mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: theme.inputBorder, true: theme.accent }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
           <Text style={styles.section}>YOUR INFO</Text>
           <Field
             label="Name"
@@ -188,7 +202,7 @@ export function ProfileModal({ visible, onClose }: Props) {
             <Switch
               value={draft.onTRT}
               onValueChange={(v) => set("onTRT", v)}
-              trackColor={{ false: "#1A3A5C", true: "#0066CC" }}
+              trackColor={{ false: theme.inputBorder, true: theme.accent }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -283,17 +297,6 @@ export function ProfileModal({ visible, onClose }: Props) {
             />
           </View>
 
-          <Text style={styles.section}>APPEARANCE</Text>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Dark Mode</Text>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: "#1A3A5C", true: "#0066CC" }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-
           <Text style={styles.section}>AI ANALYSIS</Text>
           {apiKeySaved ? (
             <View style={styles.keySavedRow}>
@@ -308,7 +311,7 @@ export function ProfileModal({ visible, onClose }: Props) {
               <TextInput
                 style={styles.input}
                 placeholder="sk-ant-api03-…"
-                placeholderTextColor="#5A7090"
+                placeholderTextColor={theme.textTertiary}
                 value={newApiKey}
                 onChangeText={(v) => { setNewApiKey(v); setApiKeyError(""); }}
                 secureTextEntry
@@ -337,160 +340,162 @@ export function ProfileModal({ visible, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#07070D",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#182030",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    letterSpacing: -0.3,
-  },
-  closeBtn: {
-    padding: 6,
-  },
-  closeBtnText: {
-    fontSize: 18,
-    color: "rgba(255,255,255,0.4)",
-  },
-  scroll: { flex: 1 },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 20,
-  },
-  section: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: "rgba(0,102,204,0.7)",
-    textTransform: "uppercase",
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  sectionHint: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.3)",
-    marginTop: -8,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  field: {
-    marginBottom: 12,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "rgba(255,255,255,0.4)",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: "#0A1628",
-    borderWidth: 1,
-    borderColor: "#1A3A5C",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: "#FFFFFF",
-  },
-  inputMulti: {
-    minHeight: 72,
-    textAlignVertical: "top",
-  },
-  row: {
-    flexDirection: "row",
-  },
-  toggleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#182030",
-    marginBottom: 12,
-  },
-  toggleLabel: {
-    fontSize: 15,
-    color: "#FFFFFF",
-    fontWeight: "500",
-  },
-  keySavedRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(0,208,132,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(0,208,132,0.2)",
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  keySavedText: {
-    fontSize: 14,
-    color: "#00D084",
-    fontWeight: "500",
-  },
-  removeKeyBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,59,48,0.4)",
-  },
-  removeKeyBtnText: {
-    fontSize: 12,
-    color: "#FF3B30",
-    fontWeight: "600",
-  },
-  apiKeyHint: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.3)",
-    marginTop: 5,
-    lineHeight: 16,
-  },
-  apiKeyError: {
-    fontSize: 11,
-    color: "#FF3B30",
-    marginTop: 5,
-  },
-  versionText: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.2)",
-    textAlign: "center",
-    marginTop: 28,
-    letterSpacing: 0.5,
-  },
-  footer: {
-    padding: 20,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-    borderTopColor: "#182030",
-  },
-  saveBtn: {
-    backgroundColor: "#0066CC",
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  saveBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
-});
+function makeStyles(theme: ThemeColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: theme.bg,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionBorder,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.text,
+      letterSpacing: -0.3,
+    },
+    closeBtn: {
+      padding: 6,
+    },
+    closeBtnText: {
+      fontSize: 18,
+      color: theme.textSecondary,
+    },
+    scroll: { flex: 1 },
+    scrollContent: {
+      padding: 20,
+      paddingBottom: 20,
+    },
+    section: {
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.5,
+      color: theme.accent,
+      textTransform: "uppercase",
+      marginTop: 24,
+      marginBottom: 12,
+    },
+    sectionHint: {
+      fontSize: 12,
+      color: theme.textTertiary,
+      marginTop: -8,
+      marginBottom: 12,
+      lineHeight: 18,
+    },
+    field: {
+      marginBottom: 12,
+    },
+    fieldLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: theme.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
+      marginBottom: 6,
+    },
+    input: {
+      backgroundColor: theme.inputBg,
+      borderWidth: 1,
+      borderColor: theme.inputBorder,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      fontSize: 14,
+      color: theme.text,
+    },
+    inputMulti: {
+      minHeight: 72,
+      textAlignVertical: "top",
+    },
+    row: {
+      flexDirection: "row",
+    },
+    toggleRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.sectionBorder,
+      marginBottom: 12,
+    },
+    toggleLabel: {
+      fontSize: 15,
+      color: theme.text,
+      fontWeight: "500",
+    },
+    keySavedRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: "rgba(0,208,132,0.08)",
+      borderWidth: 1,
+      borderColor: "rgba(0,208,132,0.2)",
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    keySavedText: {
+      fontSize: 14,
+      color: theme.green,
+      fontWeight: "500",
+    },
+    removeKeyBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "rgba(255,59,48,0.4)",
+    },
+    removeKeyBtnText: {
+      fontSize: 12,
+      color: theme.red,
+      fontWeight: "600",
+    },
+    apiKeyHint: {
+      fontSize: 11,
+      color: theme.textTertiary,
+      marginTop: 5,
+      lineHeight: 16,
+    },
+    apiKeyError: {
+      fontSize: 11,
+      color: theme.red,
+      marginTop: 5,
+    },
+    versionText: {
+      fontSize: 11,
+      color: theme.textQuaternary,
+      textAlign: "center",
+      marginTop: 28,
+      letterSpacing: 0.5,
+    },
+    footer: {
+      padding: 20,
+      paddingBottom: 32,
+      borderTopWidth: 1,
+      borderTopColor: theme.sectionBorder,
+    },
+    saveBtn: {
+      backgroundColor: theme.accent,
+      borderRadius: 12,
+      paddingVertical: 15,
+      alignItems: "center",
+    },
+    saveBtnText: {
+      color: "#FFFFFF",
+      fontWeight: "700",
+      fontSize: 16,
+      letterSpacing: 0.3,
+    },
+  });
+}

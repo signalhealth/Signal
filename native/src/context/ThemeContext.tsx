@@ -16,6 +16,7 @@ export interface ThemeColors {
   accentBright: string;
   tabBar: string;
   tabBarBorder: string;
+  tabActiveBg: string;
   inputBg: string;
   inputBorder: string;
   insightCard: string;
@@ -41,6 +42,7 @@ export const darkTheme: ThemeColors = {
   accentBright: "#60AFFF",
   tabBar: "rgba(17,17,24,0.96)",
   tabBarBorder: "rgba(0,102,204,0.2)",
+  tabActiveBg: "rgba(0,102,204,0.22)",
   inputBg: "#0A1628",
   inputBorder: "#1A3A5C",
   insightCard: "#0A2050",
@@ -66,6 +68,7 @@ export const lightTheme: ThemeColors = {
   accentBright: "#1C69D4",
   tabBar: "rgba(255,255,255,0.97)",
   tabBarBorder: "rgba(0,102,204,0.15)",
+  tabActiveBg: "rgba(0,102,204,0.12)",
   inputBg: "#EFF3F8",
   inputBorder: "#C0CCD8",
   insightCard: "#E8F2FF",

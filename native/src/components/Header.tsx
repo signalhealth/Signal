@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { ThemeColors } from "../context/ThemeContext";
 
 interface HeaderProps {
@@ -26,27 +26,6 @@ export function Header({
   theme,
   wellnessScore = null,
 }: HeaderProps) {
-  const pulseAnim = React.useRef(new Animated.Value(1)).current;
-
-  React.useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [pulseAnim]);
-
   return (
     <View style={[styles.header, { backgroundColor: theme.tabBar, borderBottomColor: theme.tabBarBorder }]}>
       <TouchableOpacity
@@ -67,7 +46,6 @@ export function Header({
         {loading && (
           <Text style={[styles.syncText, { color: theme.textTertiary }]}>SYNCING</Text>
         )}
-        <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
 
         {wellnessScore !== null && (
           <TouchableOpacity
@@ -117,7 +95,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 22,
-    fontWeight: "700",
     letterSpacing: -0.4,
     color: "#E8192C",
   },
@@ -129,16 +106,6 @@ const styles = StyleSheet.create({
   syncText: {
     fontSize: 9,
     letterSpacing: 0.8,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#0066CC",
-    shadowColor: "#0066CC",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
   },
   scoreCircle: {
     width: 45,

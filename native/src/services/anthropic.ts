@@ -219,6 +219,10 @@ Give a 2–3 sentence coaching insight. Be specific, direct, grounded in the num
   return callAnthropic(apiKey, prompt, 200);
 }
 
+function normLabName(n: string): string {
+  return n.toLowerCase().trim();
+}
+
 export async function analyzeLab(
   apiKey: string,
   lab: LabResult,
@@ -232,15 +236,36 @@ export async function analyzeLab(
         : "above range (HIGH)"
       : "borderline (MONITOR)";
 
-  const otherFlagged = allLabs
-    .filter((l) => (l.status === "red" || l.status === "amber") && l.id !== lab.id)
-    .map((l) => `- ${l.name}: ${l.value} (ref ${l.reference}) [${l.direction === "low" ? "LOW" : l.status === "red" ? "HIGH" : "MONITOR"}]`)
+  // Full history for THIS marker, oldest first, so trend/dates are unambiguous.
+  const history = allLabs
+    .filter((l) => normLabName(l.name) === normLabName(lab.name))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const historySection = history.length > 1
+    ? history
+        .map((l) => `- ${l.date}: ${l.value}${l.id === lab.id ? " (this draw)" : ""}`)
+        .join("\n")
+    : "Only one draw on record — no trend data.";
+
+  // Other flagged markers, excluding this marker's own history, deduped to each marker's latest draw.
+  const latestByMarker = new Map<string, LabResult>();
+  for (const l of allLabs) {
+    if (normLabName(l.name) === normLabName(lab.name)) continue;
+    if (l.status !== "red" && l.status !== "amber") continue;
+    const key = normLabName(l.name);
+    const existing = latestByMarker.get(key);
+    if (!existing || l.date > existing.date) latestByMarker.set(key, l);
+  }
+  const otherFlagged = Array.from(latestByMarker.values())
+    .map((l) => `- ${l.name}: ${l.value} (ref ${l.reference}) [${l.direction === "low" ? "LOW" : l.status === "red" ? "HIGH" : "MONITOR"}] — drawn ${l.date}`)
     .join("\n");
 
   const profileSection = buildProfileSection(profile);
 
   const prompt = `You are Signal, a precision health intelligence advisor. Explain this lab result clearly and give actionable guidance.
 ${profileSection ? "\n" + profileSection + "\n" : ""}
+CURRENT DATE: ${localDate()}
+
 SELECTED MARKER:
 - Name: ${lab.name}
 - Value: ${lab.value}
@@ -248,12 +273,15 @@ SELECTED MARKER:
 - Status: ${direction}
 - Draw date: ${lab.date}
 
-OTHER FLAGGED / MONITOR MARKERS (context):
+HISTORY FOR THIS MARKER (chronological, oldest to newest — use these exact dates and values for any trend statement, do not assume or infer values not listed here):
+${historySection}
+
+OTHER FLAGGED / MONITOR MARKERS (different markers, most recent draw only, for context — do not confuse these with the selected marker's history above):
 ${otherFlagged || "None"}
 
 Respond with exactly these four sections:
 1. WHAT IT MEASURES — one sentence, plain language
-2. WHAT THIS MEANS — why this result is flagged and what it signals about health
+2. WHAT THIS MEANS — why this result is flagged and what it signals about health. If trend data exists, describe the actual direction of change using the real dates/values above — never guess.
 3. TOP LEVERS — 3 specific, actionable items (foods, supplements with doses, or lifestyle changes)
 4. WORTH ASKING — one follow-up test or question for the doctor (skip if not relevant)
 

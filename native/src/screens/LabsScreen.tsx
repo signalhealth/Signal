@@ -511,20 +511,29 @@ export function LabsScreen() {
       if (!byName.has(key)) byName.set(key, []);
       byName.get(key)!.push(lab);
     }
-    let toOptimal = 0, toMonitor = 0, toFlagged = 0;
+    const toOptimalNames: string[] = [];
+    const toMonitorNames: string[] = [];
+    const toFlaggedNames: string[] = [];
     for (const [, entries] of byName) {
       if (entries.length < 2) continue;
       const curr = STATUS_RANK[entries[0].status];
       const prev = STATUS_RANK[entries[1].status];
       if (curr === prev) continue;
-      if (curr > prev) {
-        if (entries[0].status === "green") toOptimal++;
-        else toMonitor++;
-      } else {
-        toFlagged++;
-      }
+      // Bucket by the resulting status, not just direction of change —
+      // a green→amber drop is Monitor, not Flagged; only landing on red is Flagged.
+      if (entries[0].status === "green") toOptimalNames.push(entries[0].name);
+      else if (entries[0].status === "red") toFlaggedNames.push(entries[0].name);
+      else toMonitorNames.push(entries[0].name);
     }
-    return { toOptimal, toMonitor, toFlagged, hasChanges: toOptimal + toMonitor + toFlagged > 0 };
+    return {
+      toOptimal: toOptimalNames.length,
+      toMonitor: toMonitorNames.length,
+      toFlagged: toFlaggedNames.length,
+      toOptimalNames,
+      toMonitorNames,
+      toFlaggedNames,
+      hasChanges: toOptimalNames.length + toMonitorNames.length + toFlaggedNames.length > 0,
+    };
   }, [allLabs]);
 
   // Auto-fill reference when marker name matches an existing entry
@@ -668,6 +677,25 @@ export function LabsScreen() {
                 </View>
               )}
             </View>
+            {(changeLog.toOptimalNames.length > 0 || changeLog.toMonitorNames.length > 0 || changeLog.toFlaggedNames.length > 0) && (
+              <View style={styles.changeLogNames}>
+                {changeLog.toOptimalNames.length > 0 && (
+                  <Text style={[styles.changeLogNameLine, { color: theme.textSecondary }]}>
+                    <Text style={{ color: "#00D084" }}>Optimal: </Text>{changeLog.toOptimalNames.join(", ")}
+                  </Text>
+                )}
+                {changeLog.toMonitorNames.length > 0 && (
+                  <Text style={[styles.changeLogNameLine, { color: theme.textSecondary }]}>
+                    <Text style={{ color: "#F5A623" }}>Monitor: </Text>{changeLog.toMonitorNames.join(", ")}
+                  </Text>
+                )}
+                {changeLog.toFlaggedNames.length > 0 && (
+                  <Text style={[styles.changeLogNameLine, { color: theme.textSecondary }]}>
+                    <Text style={{ color: "#FF3B30" }}>Flagged: </Text>{changeLog.toFlaggedNames.join(", ")}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
         )}
 
@@ -789,6 +817,8 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     changeLogStat: { alignItems: "center" },
     changeLogNum: { fontSize: 28, fontWeight: "800", lineHeight: 30 },
     changeLogLabel: { fontSize: 11, fontWeight: "600", letterSpacing: 0.4, marginTop: 2 },
+    changeLogNames: { marginTop: 12, gap: 4 },
+    changeLogNameLine: { fontSize: 12, lineHeight: 17 },
     labRow: {
       flexDirection: "row", justifyContent: "space-between", alignItems: "center",
       paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: theme.cardBorder,

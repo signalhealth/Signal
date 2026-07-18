@@ -606,7 +606,6 @@ const avgStyles = StyleSheet.create({
   num: {
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 30,
-    fontWeight: "700",
     lineHeight: 34,
   },
   unit: {

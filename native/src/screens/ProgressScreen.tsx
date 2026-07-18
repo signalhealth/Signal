@@ -45,14 +45,6 @@ function avg(arr: number[]) {
   return arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
-function daysUntilAug5(): number {
-  const now = new Date();
-  const yr = now.getFullYear();
-  let target = new Date(yr, 7, 5);
-  if (now.getTime() >= target.getTime()) target = new Date(yr + 1, 7, 5);
-  return Math.ceil((target.getTime() - now.getTime()) / 86400000);
-}
-
 // ── Quick Card ─────────────────────────────────────────────────────
 
 interface QuickCardProps {
@@ -586,17 +578,7 @@ export function ProgressScreen() {
 
         {/* ── DEXA Timeline ── */}
         <Card>
-          <View style={styles.dexaHeaderRow}>
-            <Text style={[styles.lbl, { marginBottom: 0 }]}>DEXA TIMELINE</Text>
-            <View style={styles.dexaCountdownBlock}>
-              <Text style={[styles.dexaCountdownNum, { color: theme.accent }]}>
-                {daysUntilAug5()}
-              </Text>
-              <Text style={[styles.dexaCountdownLabel, { color: theme.textTertiary }]}>
-                days · Aug 5
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.lbl}>DEXA TIMELINE</Text>
           <View style={{ height: 12 }} />
           {appState.dexa.length === 0 ? (
             <Text style={styles.emptyNote}>No scans added yet.</Text>
@@ -806,14 +788,6 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     compGaugeRow: { flexDirection: "row", gap: 6, marginTop: 4 },
 
     // DEXA
-    dexaHeaderRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-    },
-    dexaCountdownBlock: { alignItems: "flex-end" },
-    dexaCountdownNum: { fontSize: 32, fontWeight: "700", lineHeight: 34, letterSpacing: -1 },
-    dexaCountdownLabel: { fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase", marginTop: 2 },
     dexaRow: {
       flexDirection: "row",
       alignItems: "flex-start",

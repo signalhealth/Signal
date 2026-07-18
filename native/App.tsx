@@ -10,11 +10,12 @@ import {
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import type { NavigationContainerRef } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
 
 import { HealthProvider, HealthContext } from "./src/context/HealthContext";
-import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+import { ThemeProvider, useTheme, ThemeColors } from "./src/context/ThemeContext";
 import { Header } from "./src/components/Header";
 import { ProfileModal } from "./src/components/ProfileModal";
 import { ProgressScreen } from "./src/screens/ProgressScreen";
@@ -93,6 +94,30 @@ function LabsIcon({ color }: { color: string }) {
 
 const TAB_ORDER = ["Today", "Recovery", "Fuel", "Labs"] as const;
 type TabName = typeof TAB_ORDER[number];
+
+function TabBarButton({
+  theme,
+  style,
+  children,
+  accessibilityState,
+  ...rest
+}: BottomTabBarButtonProps & { theme: ThemeColors }) {
+  const focused = accessibilityState?.selected;
+  return (
+    <TouchableOpacity
+      {...rest}
+      accessibilityState={accessibilityState}
+      activeOpacity={0.7}
+      style={[
+        style,
+        styles.tabButton,
+        focused && { backgroundColor: theme.tabActiveBg },
+      ]}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+}
 
 // ── App Shell ─────────────────────────────────────────────────────
 
@@ -192,6 +217,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
           tabBarInactiveTintColor: theme.textTertiary,
           tabBarLabelStyle: styles.tabLabel,
           tabBarItemStyle: styles.tabItem,
+          tabBarButton: (props) => <TabBarButton {...props} theme={theme} />,
           tabBarIcon: ({ color }) => {
             if (route.name === "Today") return <CalendarIcon color={color} />;
             if (route.name === "Recovery") return <RecoveryIcon color={color} />;
@@ -241,6 +267,15 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 4,
+    marginTop: -6,
+    borderRadius: 14,
+    paddingTop: 6,
   },
   tabLabel: {
     fontSize: 10,
