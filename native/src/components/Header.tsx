@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { ThemeColors } from "../context/ThemeContext";
+import { FONT_DISPLAY } from "../theme/typography";
 
 interface HeaderProps {
   loading?: boolean;
@@ -15,7 +16,7 @@ interface HeaderProps {
 function wellnessColor(score: number): string {
   if (score >= 80) return "#00D084";
   if (score >= 60) return "#F5A623";
-  return "#FF3B30";
+  return "#F11A22";
 }
 
 export function Header({
@@ -27,7 +28,7 @@ export function Header({
   wellnessScore = null,
 }: HeaderProps) {
   return (
-    <View style={[styles.header, { backgroundColor: theme.tabBar, borderBottomColor: theme.tabBarBorder }]}>
+    <View style={[styles.header, { backgroundColor: theme.hero }]}>
       <TouchableOpacity
         onPress={onLogoPress}
         activeOpacity={onLogoPress ? 0.7 : 1}
@@ -44,7 +45,7 @@ export function Header({
 
       <View style={styles.right}>
         {loading && (
-          <Text style={[styles.syncText, { color: theme.textTertiary }]}>SYNCING</Text>
+          <Text style={[styles.syncText, { color: "rgba(255,255,255,0.65)" }]}>SYNCING</Text>
         )}
 
         {wellnessScore !== null && (
@@ -80,7 +81,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
   },
   logoRow: {
     flexDirection: "row",
@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   title: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: FONT_DISPLAY,
     fontSize: 22,
     letterSpacing: -0.4,
-    color: "#E8192C",
+    color: "#FFFFFF",
   },
   right: {
     flexDirection: "row",

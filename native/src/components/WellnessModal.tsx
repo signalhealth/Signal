@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from "rea
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WellnessBreakdown } from "../utils/wellnessScore";
 import { useTheme } from "../context/ThemeContext";
+import { FONT_DISPLAY } from "../theme/typography";
 
 interface Props {
   visible: boolean;
@@ -26,7 +27,7 @@ const CATEGORIES: Array<{
 function scoreColor(score: number): string {
   if (score >= 80) return "#00D084";
   if (score >= 60) return "#F5A623";
-  return "#FF3B30";
+  return "#F11A22";
 }
 
 function scoreLabel(score: number): string {
@@ -134,8 +135,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   headerTitle: {
+    fontFamily: FONT_DISPLAY,
     fontSize: 11,
-    fontWeight: "700",
     letterSpacing: 1.5,
   },
   closeBtn: {
@@ -153,8 +154,8 @@ const styles = StyleSheet.create({
     lineHeight: 68,
   },
   scoreLabel: {
+    fontFamily: FONT_DISPLAY,
     fontSize: 16,
-    fontWeight: "700",
   },
   completeness: {
     fontSize: 12,

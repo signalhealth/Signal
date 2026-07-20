@@ -13,7 +13,11 @@ import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { MarkdownResult } from "../components/MarkdownResult";
-import { FuelCtx, MACRO_TARGETS, DEFAULT_MICROS } from "../types/health";
+import { MultiRingGauge } from "../components/MultiRingGauge";
+import { METRIC_ICON_PATHS } from "../components/metricIcons";
+import { HERO_MIN_HEIGHT, HERO_CONTENT_TOP } from "../components/heroLayout";
+import { FuelCtx, MACRO_TARGETS } from "../types/health";
+import { FONT_DISPLAY } from "../theme/typography";
 
 function WaterGlass({ oz, goal, theme }: { oz: number; goal: number; theme: ThemeColors }) {
   const W = 72;
@@ -27,7 +31,7 @@ function WaterGlass({ oz, goal, theme }: { oz: number; goal: number; theme: Them
   const leftAtFill = (fillY / H) * 10;
   const rightAtFill = W - (fillY / H) * 10;
 
-  const color = pct >= 1 ? "#00D084" : pct >= 0.5 ? "#60AFFF" : "#FFAA00";
+  const color = pct >= 1 ? theme.green : pct >= 0.5 ? theme.accentBright : theme.amber;
 
   const fillPath = pct > 0
     ? `M${leftAtFill},${fillY} L10,${H} L${W - 10},${H} L${rightAtFill},${fillY} Z`
@@ -144,13 +148,6 @@ export function FuelScreen() {
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
 
-  const COLORS = {
-    green: theme.green,
-    amber: theme.amber,
-    blue: theme.accent,
-    red: theme.red,
-  };
-
   const waterGoal = parseMacroTarget(userProfile.waterGoalOz, 64);
   const today = localDateStr();
   // Prefer HC hydration (aggregates Coros + Signal logs), fall back to local cache
@@ -197,6 +194,9 @@ export function FuelScreen() {
         fat: parseMacroTarget(userProfile.fatTarget, MACRO_TARGETS.fat),
       }
     : null;
+  const ringTargets = targets ?? MACRO_TARGETS;
+  const pct = (value: number | undefined, target: number) =>
+    target ? Math.round(((value ?? 0) / target) * 100) : 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -285,6 +285,46 @@ export function FuelScreen() {
         />
       }
     >
+      {/* ── Macro Rings Hero ── */}
+      <View style={[styles.heroWrap, { backgroundColor: theme.hero }]}>
+        <MultiRingGauge
+          rings={[
+            { fraction: (todayNutrition?.cals ?? 0) / ringTargets.calories, color: "#FFFFFF" },
+            { fraction: (todayNutrition?.protein ?? 0) / ringTargets.protein, color: theme.red },
+            { fraction: (todayNutrition?.carbs ?? 0) / ringTargets.carbs, color: theme.accentBright },
+            { fraction: (todayNutrition?.fat ?? 0) / ringTargets.fat, color: theme.gray },
+          ]}
+        />
+        <View style={styles.ringLegend}>
+          <View style={styles.ringLegendItem}>
+            <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+              <SvgPath d={METRIC_ICON_PATHS.calories} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={styles.ringLegendText}>Cal {pct(todayNutrition?.cals, ringTargets.calories)}%</Text>
+          </View>
+          <View style={styles.ringLegendItem}>
+            <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+              <SvgPath d={METRIC_ICON_PATHS.protein} stroke={theme.red} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={styles.ringLegendText}>Protein {pct(todayNutrition?.protein, ringTargets.protein)}%</Text>
+          </View>
+          <View style={styles.ringLegendItem}>
+            <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+              <SvgPath d={METRIC_ICON_PATHS.fat} stroke={theme.gray} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={styles.ringLegendText}>Fat {pct(todayNutrition?.fat, ringTargets.fat)}%</Text>
+          </View>
+          <View style={styles.ringLegendItem}>
+            <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+              <SvgPath d={METRIC_ICON_PATHS.carbs} stroke={theme.accentBright} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={styles.ringLegendText}>Carbs {pct(todayNutrition?.carbs, ringTargets.carbs)}%</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.sheet}>
+
       {/* ── Today's Intake ── */}
       <Card>
         <View style={styles.cardHeaderRow}>
@@ -305,7 +345,7 @@ export function FuelScreen() {
             value={todayNutrition?.protein}
             target={targets ? `${targets.protein}g` : null}
             unit=""
-            color={COLORS.green}
+            color={theme.red}
             theme={theme}
           />
         </View>
@@ -315,7 +355,7 @@ export function FuelScreen() {
             value={todayNutrition?.carbs}
             target={targets ? `${targets.carbs}g` : null}
             unit=""
-            color={COLORS.blue}
+            color={theme.accentBright}
             theme={theme}
           />
           <MacroBox
@@ -323,48 +363,10 @@ export function FuelScreen() {
             value={todayNutrition?.fat}
             target={targets ? `${targets.fat}g` : null}
             unit=""
-            color={COLORS.amber}
+            color={theme.gray}
             theme={theme}
           />
         </View>
-
-        {todayNutrition && targets && (
-          <View style={{ marginTop: 16 }}>
-            <MacroProgressBar
-              label="Calories"
-              value={todayNutrition.cals}
-              max={targets.calories}
-              color={COLORS.blue}
-              displayVal={`${todayNutrition.cals} / ${targets.calories}`}
-              theme={theme}
-            />
-            <MacroProgressBar
-              label="Protein"
-              value={todayNutrition.protein}
-              max={targets.protein}
-              color={COLORS.green}
-              displayVal={`${todayNutrition.protein}g / ${targets.protein}g`}
-              theme={theme}
-            />
-            <MacroProgressBar
-              label="Carbs"
-              value={todayNutrition.carbs}
-              max={targets.carbs}
-              color={COLORS.blue}
-              displayVal={`${todayNutrition.carbs}g / ${targets.carbs}g`}
-              theme={theme}
-            />
-            <MacroProgressBar
-              label="Fat"
-              value={todayNutrition.fat}
-              max={targets.fat}
-              color={COLORS.amber}
-              displayVal={`${todayNutrition.fat}g / ${targets.fat}g`}
-              last
-              theme={theme}
-            />
-          </View>
-        )}
       </Card>
 
       {/* ── Context Toggles ── */}
@@ -513,7 +515,7 @@ export function FuelScreen() {
                 return v >= targets.calories - 100 && v <= targets.calories + 100
                   ? "rgba(96,175,255,0.8)"
                   : v > targets.calories + 100
-                  ? "rgba(255,59,48,0.7)"
+                  ? "rgba(241,26,34,0.7)"
                   : "rgba(255,170,0,0.7)";
               }}
               rangeBand={targets ? {
@@ -538,47 +540,13 @@ export function FuelScreen() {
         <Text style={styles.lbl}>30-DAY AVERAGES</Text>
         <View style={styles.avgGrid}>
           <AvgStat value={last30.length ? avgCals : "—"} unit="kcal" theme={theme} />
-          <AvgStat
-            value={last30.length ? avgProtein : "—"}
-            unit="protein"
-            color={COLORS.green}
-            theme={theme}
-          />
-          <AvgStat
-            value={last30.length ? avgCarbs : "—"}
-            unit="carbs"
-            color={COLORS.blue}
-            theme={theme}
-          />
-          <AvgStat
-            value={last30.length ? avgFat : "—"}
-            unit="fat"
-            color={COLORS.amber}
-            theme={theme}
-          />
+          <AvgStat value={last30.length ? avgProtein : "—"} unit="protein" theme={theme} />
+          <AvgStat value={last30.length ? avgCarbs : "—"} unit="carbs" theme={theme} />
+          <AvgStat value={last30.length ? avgFat : "—"} unit="fat" theme={theme} />
         </View>
       </Card>
 
-      {/* ── Micronutrient Goals ── */}
-      <Card>
-        <Text style={styles.lbl}>MICRONUTRIENT GOALS</Text>
-        {(appState.micros.length > 0 ? appState.micros : DEFAULT_MICROS).map(
-          (micro, i, arr) => (
-            <View
-              key={micro.name}
-              style={[
-                styles.microRow,
-                i === arr.length - 1 && { borderBottomWidth: 0 },
-              ]}
-            >
-              <Text style={styles.microName}>{micro.name}</Text>
-              <Text style={styles.microTarget}>
-                {micro.target} {micro.unit}
-              </Text>
-            </View>
-          )
-        )}
-      </Card>
+      </View>
     </ScrollView>
   );
 }
@@ -604,7 +572,7 @@ function AvgStat({
 
 const avgStyles = StyleSheet.create({
   num: {
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontWeight: "700",
     fontSize: 30,
     lineHeight: 34,
   },
@@ -617,67 +585,42 @@ const avgStyles = StyleSheet.create({
   },
 });
 
-function MacroProgressBar({
-  label,
-  value,
-  max,
-  color,
-  displayVal,
-  last = false,
-  theme,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-  displayVal: string;
-  last?: boolean;
-  theme: ThemeColors;
-}) {
-  const pct = Math.min(100, (value / max) * 100);
-  return (
-    <View style={[mpbStyles.wrap, last && { marginBottom: 0 }]}>
-      <View style={mpbStyles.row}>
-        <Text style={[mpbStyles.label, { color: theme.textSecondary }]}>{label}</Text>
-        <Text style={[mpbStyles.val, { color }]}>{displayVal}</Text>
-      </View>
-      <View style={[mpbStyles.track, { backgroundColor: theme.sectionBorder }]}>
-        <View
-          style={[
-            mpbStyles.fill,
-            { width: `${pct}%` as `${number}%`, backgroundColor: color },
-          ]}
-        />
-      </View>
-    </View>
-  );
-}
-
-const mpbStyles = StyleSheet.create({
-  wrap: { marginBottom: 16 },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 7,
-  },
-  label: { fontSize: 14 },
-  val: { fontSize: 13, fontWeight: "600" },
-  track: {
-    height: 4,
-    borderRadius: 99,
-    overflow: "hidden",
-  },
-  fill: { height: "100%", borderRadius: 99 },
-});
 
 function makeStyles(theme: ThemeColors, isDark: boolean) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     content: { padding: 16, paddingBottom: 110, gap: 12 },
+    heroWrap: {
+      alignItems: "center",
+      minHeight: HERO_MIN_HEIGHT,
+      paddingTop: HERO_CONTENT_TOP,
+      paddingBottom: 20,
+      marginTop: -16,
+      marginHorizontal: -16,
+    },
+    sheet: {
+      backgroundColor: theme.bg,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      marginTop: -24,
+      marginHorizontal: -16,
+      paddingHorizontal: 16,
+      paddingTop: 24,
+      gap: 12,
+    },
+    ringLegend: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: 10,
+      marginTop: 18,
+      paddingHorizontal: 12,
+    },
+    ringLegendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+    ringLegendText: { fontSize: 11.5, fontWeight: "600", color: "rgba(255,255,255,0.85)" },
     lbl: {
+      fontFamily: FONT_DISPLAY,
       fontSize: 11,
-      fontWeight: "700",
       letterSpacing: 1.5,
       color: theme.textTertiary,
       textTransform: "uppercase",
@@ -759,8 +702,8 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       marginTop: 16,
     },
     analyzeBtnText: {
+      fontFamily: FONT_DISPLAY,
       color: "#FFFFFF",
-      fontWeight: "700",
       fontSize: 14,
       letterSpacing: 1,
     },
@@ -862,24 +805,6 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       letterSpacing: 0.5,
       minWidth: 40,
       textAlign: "center",
-    },
-
-    microRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingVertical: 11,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.sectionBorder,
-    },
-    microName: {
-      fontSize: 14,
-      color: theme.text,
-    },
-    microTarget: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: theme.textSecondary,
     },
   });
 }

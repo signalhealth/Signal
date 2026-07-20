@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import {
   View,
   StatusBar,
@@ -6,13 +6,15 @@ import {
   Text,
   TouchableOpacity,
   PanResponder,
+  Platform,
 } from "react-native";
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import type { NavigationContainerRef } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Circle } from "react-native-svg";
+import { requireOptionalNativeModule } from "expo-modules-core";
 
 import { HealthProvider, HealthContext } from "./src/context/HealthContext";
 import { ThemeProvider, useTheme, ThemeColors } from "./src/context/ThemeContext";
@@ -25,14 +27,15 @@ import { LabsScreen } from "./src/screens/LabsScreen";
 import { calcWellnessScore } from "./src/utils/wellnessScore";
 import { WellnessModal } from "./src/components/WellnessModal";
 import { useFonts } from "expo-font";
+import { FONT_DISPLAY } from "./src/theme/typography";
 
 const Tab = createBottomTabNavigator();
 
 // ── Tab icons ─────────────────────────────────────────────────────
 
-function CalendarIcon({ color }: { color: string }) {
+function CalendarIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
         d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"
         stroke={color}
@@ -49,9 +52,9 @@ function CalendarIcon({ color }: { color: string }) {
   );
 }
 
-function RecoveryIcon({ color }: { color: string }) {
+function RecoveryIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
         stroke={color}
@@ -63,9 +66,9 @@ function RecoveryIcon({ color }: { color: string }) {
   );
 }
 
-function FuelIcon({ color }: { color: string }) {
+function FuelIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       {/* pump body */}
       <Path d="M3 22V7a2 2 0 012-2h8a2 2 0 012 2v15" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       {/* base */}
@@ -78,9 +81,9 @@ function FuelIcon({ color }: { color: string }) {
   );
 }
 
-function LabsIcon({ color }: { color: string }) {
+function LabsIcon({ color, size = 20 }: { color: string; size?: number }) {
   return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
         d="M9 3h6M9 3v8L4 19a1 1 0 001 1h14a1 1 0 001-1L15 11V3M9 3H6M15 3h3"
         stroke={color}
@@ -163,6 +166,23 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
 
   const wellnessScore = wellnessBreakdown.completeness > 0 ? wellnessBreakdown.score : null;
 
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    // Check via the non-throwing lookup first — expo-navigation-bar's own JS
+    // entry calls the throwing requireNativeModule() at its top level, which
+    // Metro's dev overlay surfaces as a red screen even when the caller (us)
+    // wraps the import in try/catch. Skipping the import entirely until the
+    // native module is registered avoids that path until the next native build.
+    if (!requireOptionalNativeModule("ExpoNavigationBar")) return;
+    try {
+      const NavigationBar = require("expo-navigation-bar");
+      NavigationBar.setBackgroundColorAsync(theme.hero).catch(() => {});
+      NavigationBar.setButtonStyleAsync("light").catch(() => {});
+    } catch {
+      // Defensive fallback — should not trigger given the check above.
+    }
+  }, [theme.hero]);
+
   const panResponder = React.useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onStartShouldSetPanResponderCapture: () => false,
@@ -187,8 +207,8 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
 
   return (
     <View style={[styles.shell, { backgroundColor: theme.bg }]} {...panResponder.panHandlers}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.tabBar }]} edges={["top"]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={[styles.safeArea, { backgroundColor: theme.hero, paddingTop: insets.top }]}>
         <Header
           loading={loading}
           onLogoPress={() => navigationRef.navigate("Today")}
@@ -197,7 +217,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
           theme={theme}
           wellnessScore={wellnessScore}
         />
-      </SafeAreaView>
+      </View>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
       <WellnessModal visible={showWellness} onClose={() => setShowWellness(false)} breakdown={wellnessBreakdown} />
       {!loading && !permissionGranted && <PermissionsPrompt />}
@@ -213,16 +233,17 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
               height: 60 + insets.bottom,
             },
           ],
-          tabBarActiveTintColor: theme.accent,
+          tabBarActiveTintColor: theme.gradientMid,
           tabBarInactiveTintColor: theme.textTertiary,
-          tabBarLabelStyle: styles.tabLabel,
+          tabBarShowLabel: false,
           tabBarItemStyle: styles.tabItem,
           tabBarButton: (props) => <TabBarButton {...props} theme={theme} />,
           tabBarIcon: ({ color }) => {
-            if (route.name === "Today") return <CalendarIcon color={color} />;
-            if (route.name === "Recovery") return <RecoveryIcon color={color} />;
-            if (route.name === "Fuel") return <FuelIcon color={color} />;
-            if (route.name === "Labs") return <LabsIcon color={color} />;
+            const size = 27;
+            if (route.name === "Today") return <CalendarIcon color={color} size={size} />;
+            if (route.name === "Recovery") return <RecoveryIcon color={color} size={size} />;
+            if (route.name === "Fuel") return <FuelIcon color={color} size={size} />;
+            if (route.name === "Labs") return <LabsIcon color={color} size={size} />;
             return null;
           },
         })}
@@ -241,7 +262,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
 export default function App() {
   const navigationRef = useNavigationContainerRef<Record<TabName, undefined>>();
   const [fontsLoaded] = useFonts({
-    SpaceGrotesk_700Bold: require("./assets/fonts/SpaceGrotesk_700Bold.ttf"),
+    [FONT_DISPLAY]: require("./assets/fonts/SpaceGrotesk_700Bold.ttf"),
   });
   return (
     <SafeAreaProvider>
@@ -263,7 +284,7 @@ const styles = StyleSheet.create({
   safeArea: {},
   tabBar: {
     borderTopWidth: 1,
-    paddingTop: 10,
+    paddingTop: 14,
   },
   tabItem: {
     flex: 1,
@@ -272,10 +293,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 4,
-    marginTop: -6,
-    borderRadius: 14,
-    paddingTop: 6,
+    marginHorizontal: 6,
+    marginTop: -8,
+    borderRadius: 18,
+    paddingVertical: 12,
   },
   tabLabel: {
     fontSize: 10,

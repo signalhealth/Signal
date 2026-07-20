@@ -15,7 +15,7 @@ export function ProgressBar({
   value,
   max,
   unit = "",
-  color = "#0066CC",
+  color = "#0166B1",
   subLabel,
 }: ProgressBarProps) {
   const pct = Math.min(100, max > 0 ? (value / max) * 100 : 0);

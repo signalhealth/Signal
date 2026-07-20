@@ -1,1 +1,4 @@
 native/node_modules/
+.DS_Store
+native/.expo/
+native/build-*.apk

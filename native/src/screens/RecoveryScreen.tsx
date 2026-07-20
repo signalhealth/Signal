@@ -5,8 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
-  Alert,
   RefreshControl,
   Animated,
   LayoutAnimation,
@@ -15,16 +13,21 @@ import {
   UIManager,
   Modal,
 } from "react-native";
+import Svg, { Path as SvgPath } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRoute, useNavigation } from "@react-navigation/native";
 import { HealthContext } from "../context/HealthContext";
 import { Card } from "../components/MetricCard";
 import { LineChart } from "../components/WeightChart";
 import { RecoveryGauge } from "../components/RecoveryGauge";
+import { METRIC_ICON_PATHS } from "../components/metricIcons";
+import { HERO_MIN_HEIGHT, HERO_CONTENT_TOP } from "../components/heroLayout";
 import { calcRecoveryScore, computeNormalRange } from "../utils/recoveryScore";
 import { BloodPressurePoint } from "../types/health";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
+import { FONT_DISPLAY } from "../theme/typography";
+import { withOpacity } from "../theme/color";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -42,10 +45,6 @@ function localDateStr(offsetDays = 0): string {
 }
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function fmtDate(iso: string): string {
-  const [yr, mm, dd] = iso.split("-").map(Number);
-  return `${MONTHS[mm - 1]} ${dd}, ${yr}`;
-}
 function fmtShortDate(iso: string | undefined): string {
   if (!iso) return "";
   const [, mm, dd] = iso.split("-").map(Number);
@@ -186,7 +185,7 @@ const mStyles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 13, fontWeight: "700", letterSpacing: 1.5 },
+  headerTitle: { fontFamily: FONT_DISPLAY, fontSize: 13, letterSpacing: 1.5 },
   close: { fontSize: 18 },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   statsRow: {
@@ -218,8 +217,20 @@ const bpStyles = StyleSheet.create({
   hiLoDate: { fontSize: 11 },
 });
 
+function MetricIconBadge({ icon, color, theme }: { icon: string; color: string; theme: ThemeColors }) {
+  const path = METRIC_ICON_PATHS[icon];
+  if (!path) return null;
+  return (
+    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: withOpacity(color, 0.16), alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+        <SvgPath d={path} stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    </View>
+  );
+}
+
 export function RecoveryScreen() {
-  const { healthData, appState, updateAppState, refresh } = useContext(HealthContext);
+  const { healthData, refresh } = useContext(HealthContext);
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(theme, isDark), [theme, isDark]);
   const pillStylesMemo = useMemo(() => makePillStyles(theme), [theme]);
@@ -236,14 +247,11 @@ export function RecoveryScreen() {
   const [hrvDays, setHrvDays] = useState(14);
   const [sleepDays, setSleepDays] = useState(14);
   const [rhrDays, setRhrDays] = useState(14);
-  const [recDate, setRecDate] = useState(localDateStr());
-  const [recNote, setRecNote] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [bpDetailOpen, setBpDetailOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const cardLayouts = useRef<Record<string, number>>({});
-  const notesCardLayout = useRef(0);
   const route = useRoute();
   const navigation = useNavigation<any>();
   useFocusEffect(
@@ -384,31 +392,6 @@ export function RecoveryScreen() {
     ? { text: "ELEVATED", cls: "amber" as const }
     : { text: "NORMAL", cls: "green" as const };
 
-  // ── Recovery Notes ───────────────────────────────────────────────
-  function addRecoveryNote() {
-    if (!recNote.trim()) {
-      Alert.alert("Empty", "Please enter a note.");
-      return;
-    }
-    const updated = {
-      ...appState,
-      recovery: [
-        ...appState.recovery,
-        { date: recDate, note: recNote.trim() },
-      ].sort((a, b) => a.date.localeCompare(b.date)),
-    };
-    updateAppState(updated);
-    setRecNote("");
-  }
-
-  function deleteRecoveryNote(idx: number) {
-    const updated = {
-      ...appState,
-      recovery: appState.recovery.filter((_, i) => i !== idx),
-    };
-    updateAppState(updated);
-  }
-
   function toggleInfo() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setInfoOpen(o => !o);
@@ -417,7 +400,7 @@ export function RecoveryScreen() {
   const BADGE_COLORS = {
     green: { bg: "rgba(0,208,132,0.15)", text: theme.green, border: "rgba(0,200,120,0.25)" },
     amber: { bg: "rgba(245,166,35,0.1)", text: theme.amber, border: "rgba(245,166,35,0.25)" },
-    red: { bg: "rgba(255,59,48,0.15)", text: theme.red, border: "rgba(233,40,58,0.25)" },
+    red: { bg: "rgba(241,26,34,0.15)", text: theme.red, border: "rgba(220,20,28,0.25)" },
   };
 
   return (
@@ -437,12 +420,11 @@ export function RecoveryScreen() {
         />
       }
     >
-      {/* ── Recovery Score Gauge ── */}
-      <Card>
-        <Text style={styles.lbl}>RECOVERY SCORE</Text>
+      {/* ── Recovery Score Hero ── */}
+      <View style={[styles.heroWrap, { backgroundColor: theme.hero }]}>
         <RecoveryGauge score={recovery.score} theme={theme} isDark={isDark} />
         {recovery.hasData && recovery.score >= 60 && recovery.score < 80 && (
-          <Text style={[styles.modifier, { color: theme.green, textAlign: "center", marginTop: -6, marginBottom: 6 }]}>
+          <Text style={[styles.modifier, { color: "#FFFFFF", textAlign: "center", marginTop: -6, marginBottom: 6 }]}>
             Solid recovery — workout, just maybe skip the PR attempt
           </Text>
         )}
@@ -450,7 +432,7 @@ export function RecoveryScreen() {
           <View style={styles.breakdownRow}>
             {recovery.hrv !== null && (
               <View style={styles.breakdownItem}>
-                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.hrv}ms</Text>
+                <Text style={styles.breakdownVal}>{recovery.hrv}ms</Text>
                 <Text style={styles.breakdownKey}>HRV</Text>
                 {recovery.hrvDate && recovery.hrvDate !== localDateStr() && (
                   <Text style={styles.breakdownDate}>{recovery.hrvDate.slice(5)}</Text>
@@ -459,7 +441,7 @@ export function RecoveryScreen() {
             )}
             {recovery.sleep !== null && (
               <View style={styles.breakdownItem}>
-                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.sleep?.toFixed(1)}h</Text>
+                <Text style={styles.breakdownVal}>{recovery.sleep?.toFixed(1)}h</Text>
                 <Text style={styles.breakdownKey}>SLEEP</Text>
                 {recovery.sleepDate && recovery.sleepDate !== localDateStr() && (
                   <Text style={styles.breakdownDate}>{recovery.sleepDate.slice(5)}</Text>
@@ -468,7 +450,7 @@ export function RecoveryScreen() {
             )}
             {recovery.rhr !== null && (
               <View style={styles.breakdownItem}>
-                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.rhr}</Text>
+                <Text style={styles.breakdownVal}>{recovery.rhr}</Text>
                 <Text style={styles.breakdownKey}>RHR</Text>
                 {recovery.rhrDate && recovery.rhrDate !== localDateStr() && (
                   <Text style={styles.breakdownDate}>{recovery.rhrDate.slice(5)}</Text>
@@ -477,13 +459,13 @@ export function RecoveryScreen() {
             )}
             {recovery.activeCalsYesterday !== null && (
               <View style={styles.breakdownItem}>
-                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.activeCalsYesterday}</Text>
+                <Text style={styles.breakdownVal}>{recovery.activeCalsYesterday}</Text>
                 <Text style={styles.breakdownKey}>CAL BURNED</Text>
               </View>
             )}
             {recovery.spo2 !== null && (
               <View style={styles.breakdownItem}>
-                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.spo2}%</Text>
+                <Text style={styles.breakdownVal}>{recovery.spo2}%</Text>
                 <Text style={styles.breakdownKey}>SPO2</Text>
                 {recovery.spo2Date && recovery.spo2Date !== localDateStr() && (
                   <Text style={styles.breakdownDate}>{recovery.spo2Date.slice(5)}</Text>
@@ -492,7 +474,7 @@ export function RecoveryScreen() {
             )}
             {recovery.respiratoryRate !== null && (
               <View style={styles.breakdownItem}>
-                <Text style={[styles.breakdownVal, { color: theme.text }]}>{recovery.respiratoryRate}</Text>
+                <Text style={styles.breakdownVal}>{recovery.respiratoryRate}</Text>
                 <Text style={styles.breakdownKey}>RESP/MIN</Text>
                 {recovery.respiratoryRateDate && recovery.respiratoryRateDate !== localDateStr() && (
                   <Text style={styles.breakdownDate}>{recovery.respiratoryRateDate.slice(5)}</Text>
@@ -516,17 +498,20 @@ export function RecoveryScreen() {
           </View>
         )}
         {recovery.rhrFrozen && (
-          <Text style={[styles.modifier, { color: theme.red, textAlign: "center", marginTop: 4 }]}>
+          <Text style={[styles.modifier, { color: "#FFD9D9", textAlign: "center", marginTop: 4 }]}>
             RHR sync looks stuck at {recovery.rhr} bpm 3+ days running — excluded from score
           </Text>
         )}
-      </Card>
+      </View>
+
+      <View style={styles.sheet}>
 
       {/* ── HRV Card ── */}
       <View onLayout={e => { cardLayouts.current["hrv"] = e.nativeEvent.layout.y; }}>
       <Card>
         <View style={styles.topRow}>
           <View style={styles.topLeft}>
+            <MetricIconBadge icon="hrv" color={hrvBadge ? BADGE_COLORS[hrvBadge.cls].text : theme.textTertiary} theme={theme} />
             <Text style={[styles.lbl, styles.metricLbl]}>HRV</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>{hrvPeriodAvg ?? "—"}</Text>
@@ -556,13 +541,13 @@ export function RecoveryScreen() {
         <LineChart
           data={hrvSlice}
           height={120}
-          color="#60AFFF"
+          color={theme.accentBright}
           showDots
           dotColorFn={
             hrvRange
               ? (v) =>
                   v >= hrvRange.low && v <= hrvRange.high
-                    ? "#60AFFF"
+                    ? theme.accentBright
                     : v < hrvRange.low
                     ? "#FFAA00"
                     : "#00D084"
@@ -583,6 +568,7 @@ export function RecoveryScreen() {
       <Card>
         <View style={styles.topRow}>
           <View style={styles.topLeft}>
+            <MetricIconBadge icon="sleep" color={sleepBadge ? BADGE_COLORS[sleepBadge.cls].text : theme.textTertiary} theme={theme} />
             <Text style={[styles.lbl, styles.metricLbl]}>SLEEP</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>
@@ -622,7 +608,7 @@ export function RecoveryScreen() {
               ? "rgba(96,175,255,0.8)"
               : v >= sleepRange.low - 1
               ? "rgba(96,175,255,0.45)"
-              : "rgba(255,59,48,0.55)"
+              : "rgba(241,26,34,0.55)"
           }
           rangeBand={
             sleepRange
@@ -640,6 +626,7 @@ export function RecoveryScreen() {
       <Card>
         <View style={styles.topRow}>
           <View style={styles.topLeft}>
+            <MetricIconBadge icon="rhr" color={rhrBadge ? BADGE_COLORS[rhrBadge.cls].text : theme.textTertiary} theme={theme} />
             <Text style={[styles.lbl, styles.metricLbl]}>RHR</Text>
             <View style={styles.numRow}>
               <Text style={styles.numLg}>{rhrPeriodAvg ?? "—"}</Text>
@@ -678,7 +665,7 @@ export function RecoveryScreen() {
         <LineChart
           data={rhrSlice}
           height={120}
-          color="#60AFFF"
+          color={theme.accentBright}
           rangeBand={{ low: 45, high: 65, label: "Normal range: 45–65 bpm" }}
           minVal={40}
           maxVal={90}
@@ -690,6 +677,7 @@ export function RecoveryScreen() {
       <View style={styles.duoRow}>
         {/* SpO2 */}
         <Card style={{ flex: 1, padding: 14 }}>
+          <MetricIconBadge icon="spo2" color={spo2Badge ? BADGE_COLORS[spo2Badge.cls].text : theme.textTertiary} theme={theme} />
           <Text style={styles.lbl}>SPO2</Text>
           {latestSpo2Date ? <Text style={[styles.syncDate, { marginTop: 2, marginBottom: 6 }]}>{fmtShortDate(latestSpo2Date)}</Text> : null}
           {latestSpo2 ? (
@@ -712,6 +700,7 @@ export function RecoveryScreen() {
         {/* Blood Pressure */}
         <Card style={{ flex: 1, padding: 14 }}>
           <TouchableOpacity activeOpacity={0.75} onPress={() => setBpDetailOpen(true)}>
+            <MetricIconBadge icon="bp" color={bpBadge ? BADGE_COLORS[bpBadge.cls].text : theme.textTertiary} theme={theme} />
             <Text style={styles.lbl}>BLOOD PRESSURE</Text>
             {latestBP?.date ? <Text style={[styles.syncDate, { marginTop: 2, marginBottom: 6 }]}>{fmtShortDate(latestBP.date)}</Text> : null}
             {latestBP ? (
@@ -741,54 +730,6 @@ export function RecoveryScreen() {
         />
       )}
 
-      {/* ── Recovery Notes ── */}
-      <View onLayout={e => { notesCardLayout.current = e.nativeEvent.layout.y; }}>
-      <Card>
-        <Text style={styles.lbl}>RECOVERY NOTES</Text>
-        <View style={styles.formRow}>
-          <TextInput
-            style={[styles.formInput, { width: 130 }]}
-            placeholder="Date"
-            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
-            value={recDate}
-            onChangeText={setRecDate}
-          />
-          <TextInput
-            style={[styles.formInput, { flex: 1 }]}
-            placeholder="e.g. 79ms — full recovery"
-            placeholderTextColor={isDark ? "#5A7090" : "#8899AA"}
-            value={recNote}
-            onChangeText={setRecNote}
-            onFocus={() => {
-              setTimeout(() => {
-                scrollRef.current?.scrollTo({ y: Math.max(0, notesCardLayout.current - 20), animated: true });
-              }, 350);
-            }}
-          />
-          <TouchableOpacity style={styles.addBtn} onPress={addRecoveryNote}>
-            <Text style={styles.addBtnText}>Add</Text>
-          </TouchableOpacity>
-        </View>
-        {appState.recovery
-          .slice()
-          .reverse()
-          .map((r, i) => (
-            <View key={i} style={styles.recItem}>
-              <View style={styles.recItemLeft}>
-                <Text style={styles.recDate}>{fmtDate(r.date)}</Text>
-                <Text style={styles.recNote}>{r.note}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() =>
-                  deleteRecoveryNote(appState.recovery.length - 1 - i)
-                }
-              >
-                <Text style={styles.delBtn}>×</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-      </Card>
-      </View>
 
       {/* ── How is this calculated? ── */}
       <TouchableOpacity onPress={toggleInfo} activeOpacity={0.7} style={styles.infoToggle}>
@@ -827,13 +768,14 @@ export function RecoveryScreen() {
             </Text>
           </View>
           <View style={styles.infoZones}>
-            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,59,48,0.15)", color: "#FF3B30" }]}>0–39 Rest Day</Text>
+            <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(241,26,34,0.15)", color: "#F11A22" }]}>0–39 Rest Day</Text>
             <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(255,170,0,0.15)", color: "#FFAA00" }]}>40–59 Take It Easy</Text>
             <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(155,214,0,0.15)", color: "#9BD600" }]}>60–79 Go Ahead</Text>
             <Text style={[styles.infoZoneChip, { backgroundColor: "rgba(0,208,132,0.15)", color: "#00D084" }]}>80–100 Go Hard</Text>
           </View>
         </View>
       )}
+      </View>
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -894,8 +836,8 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     container: { flex: 1, backgroundColor: theme.bg },
     content: { padding: 16, paddingBottom: 110, gap: 12 },
     lbl: {
+      fontFamily: FONT_DISPLAY,
       fontSize: 11,
-      fontWeight: "700",
       letterSpacing: 1.5,
       color: theme.textTertiary,
       marginBottom: 0,
@@ -941,61 +883,44 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
       alignSelf: "flex-start",
     },
     badgeText: {
+      fontFamily: FONT_DISPLAY,
       fontSize: 10,
-      fontWeight: "700",
       letterSpacing: 0.9,
       textTransform: "uppercase",
     },
-    formRow: {
-      flexDirection: "row",
-      gap: 8,
+    // breakdown row under gauge (sits on the hero band — always white)
+    heroWrap: {
       alignItems: "center",
-      marginTop: 6,
-      marginBottom: 8,
+      minHeight: HERO_MIN_HEIGHT,
+      paddingTop: HERO_CONTENT_TOP,
+      paddingBottom: 20,
+      marginTop: -16,
+      marginHorizontal: -16,
     },
-    formInput: {
-      backgroundColor: theme.inputBg,
-      borderWidth: 1,
-      borderColor: theme.inputBorder,
-      borderRadius: 8,
-      padding: 9,
-      paddingHorizontal: 12,
-      fontSize: 13,
-      color: theme.text,
-    },
-    addBtn: {
-      backgroundColor: theme.accent,
-      borderRadius: 8,
-      paddingVertical: 9,
+    sheet: {
+      backgroundColor: theme.bg,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      marginTop: -24,
+      marginHorizontal: -16,
       paddingHorizontal: 16,
-      alignItems: "center",
+      paddingTop: 24,
+      gap: 12,
     },
-    addBtnText: { color: "#FFFFFF", fontWeight: "600", fontSize: 13 },
-    recItem: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.sectionBorder,
-    },
-    recItemLeft: { flex: 1 },
-    recDate: { fontSize: 12, fontWeight: "600", color: theme.textSecondary },
-    recNote: { fontSize: 12, color: theme.textTertiary, marginTop: 2 },
-    delBtn: { fontSize: 18, color: theme.textTertiary, paddingHorizontal: 4 },
-    // breakdown row under gauge
     breakdownRow: {
       flexDirection: "row",
+      flexWrap: "wrap",
       justifyContent: "space-around",
+      rowGap: 12,
       marginTop: 8,
       paddingTop: 12,
       borderTopWidth: 1,
-      borderTopColor: theme.sectionBorder,
+      borderTopColor: "rgba(255,255,255,0.18)",
     },
-    breakdownItem: { alignItems: "center" },
-    breakdownVal: { fontSize: 16, fontWeight: "700" },
-    breakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: theme.textTertiary, marginTop: 2 },
-    breakdownDate: { fontSize: 9, color: theme.amber, marginTop: 2, letterSpacing: 0.3 },
+    breakdownItem: { alignItems: "center", minWidth: 64 },
+    breakdownVal: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+    breakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: "rgba(255,255,255,0.68)", marginTop: 2 },
+    breakdownDate: { fontSize: 9, color: "rgba(255,255,255,0.55)", marginTop: 2, letterSpacing: 0.3 },
     modifierRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 6 },
     modifier: { fontSize: 11, fontWeight: "600" },
     // info tooltip

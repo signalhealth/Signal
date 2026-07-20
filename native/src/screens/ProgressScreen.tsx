@@ -19,10 +19,14 @@ import { WeightChart, SparkBars } from "../components/WeightChart";
 import { MarkdownResult } from "../components/MarkdownResult";
 import { calcRecoveryScore, computeNormalRange } from "../utils/recoveryScore";
 import { RecoveryGauge } from "../components/RecoveryGauge";
+import { METRIC_ICON_PATHS } from "../components/metricIcons";
+import { HERO_MIN_HEIGHT, HERO_CONTENT_TOP } from "../components/heroLayout";
 import { getInsight } from "../services/anthropic";
 import { getAnthropicKey } from "../services/storage";
 import { useTheme } from "../context/ThemeContext";
 import { ThemeColors } from "../context/ThemeContext";
+import { FONT_DISPLAY } from "../theme/typography";
+import { withOpacity } from "../theme/color";
 
 function localDateStr(): string {
   const d = new Date();
@@ -55,9 +59,11 @@ interface QuickCardProps {
   color: string;
   onPress?: () => void;
   theme: ThemeColors;
+  icon?: string;
 }
 
-function QuickCard({ label, value, unit, date, color, onPress, theme }: QuickCardProps) {
+function QuickCard({ label, value, unit, date, color, onPress, theme, icon }: QuickCardProps) {
+  const iconPath = icon ? METRIC_ICON_PATHS[icon] : undefined;
   return (
     <TouchableOpacity
       style={[qcStyles.card, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
@@ -65,17 +71,20 @@ function QuickCard({ label, value, unit, date, color, onPress, theme }: QuickCar
       activeOpacity={0.75}
     >
       <View style={qcStyles.topRow}>
-        <Text style={[qcStyles.label, { color: theme.textTertiary }]}>{label}</Text>
+        {iconPath && (
+          <View style={[qcStyles.iconBadge, { backgroundColor: withOpacity(color, 0.16) }]}>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+              <SvgPath d={iconPath} stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </View>
+        )}
         {date ? <Text style={[qcStyles.date, { color: theme.textTertiary }]}>{date}</Text> : null}
       </View>
       <View style={qcStyles.metricRow}>
         <Text style={[qcStyles.value, { color: theme.text }]}>{value ?? "—"}</Text>
         {unit ? <Text style={[qcStyles.unit, { color: theme.textSecondary }]}> {unit}</Text> : null}
       </View>
-      <View style={qcStyles.footer}>
-        <Text style={[qcStyles.chevron, { color: color }]}>›</Text>
-      </View>
-      <View style={[qcStyles.bottomBar, { backgroundColor: color }]} />
+      <Text style={[qcStyles.label, { color: theme.textTertiary }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -84,29 +93,29 @@ const qcStyles = StyleSheet.create({
   card: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    overflow: "hidden",
+    borderRadius: 20,
+    padding: 16,
+    gap: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 4,
   },
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+    alignItems: "center",
   },
-  label: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
+  iconBadge: {
+    width: 42, height: 42, borderRadius: 21,
+    alignItems: "center", justifyContent: "center",
+  },
+  label: { fontSize: 11, fontWeight: "500", letterSpacing: 0.3 },
   date: { fontSize: 9, letterSpacing: 0.3 },
   metricRow: { flexDirection: "row", alignItems: "baseline" },
-  value: { fontSize: 28, fontWeight: "700", letterSpacing: -0.5, lineHeight: 32 },
+  value: { fontSize: 26, fontWeight: "800", letterSpacing: -0.4, lineHeight: 30 },
   unit: { fontSize: 11, fontWeight: "400" },
-  footer: { flexDirection: "row", justifyContent: "flex-end", marginTop: 8, paddingBottom: 6 },
-  chevron: { fontSize: 20, lineHeight: 22 },
-  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, height: 3 },
 });
 
 // ── Weight Detail Modal ────────────────────────────────────────────
@@ -244,7 +253,7 @@ const mStyles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 13, fontWeight: "700", letterSpacing: 1.5 },
+  headerTitle: { fontFamily: FONT_DISPLAY, fontSize: 13, letterSpacing: 1.5 },
   close: { fontSize: 18 },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   statsRow: {
@@ -426,50 +435,20 @@ export function ProgressScreen() {
           />
         }
       >
-        {/* ── Recovery Score summary ── */}
-        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate("Recovery")}>
-          <Card style={styles.recoveryCard}>
-            <Text style={styles.lbl}>RECOVERY SCORE</Text>
-            <RecoveryGauge score={recovery.score} theme={theme} isDark={isDark} />
-            {recovery.hasData && (
-              <View style={styles.recoveryBreakdownRow}>
-                {recovery.hrv !== null && (
-                  <View style={styles.recoveryBreakdownItem}>
-                    <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.hrv}ms</Text>
-                    <Text style={styles.recoveryBreakdownKey}>HRV</Text>
-                    {recovery.hrvDate && recovery.hrvDate !== today && (
-                      <Text style={styles.recoveryBreakdownDate}>{fmtShortDate(recovery.hrvDate)}</Text>
-                    )}
-                  </View>
-                )}
-                {recovery.sleep !== null && (
-                  <View style={styles.recoveryBreakdownItem}>
-                    <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.sleep.toFixed(1)}h</Text>
-                    <Text style={styles.recoveryBreakdownKey}>SLEEP</Text>
-                    {recovery.sleepDate && recovery.sleepDate !== today && (
-                      <Text style={styles.recoveryBreakdownDate}>{fmtShortDate(recovery.sleepDate)}</Text>
-                    )}
-                  </View>
-                )}
-                {recovery.rhr !== null && (
-                  <View style={styles.recoveryBreakdownItem}>
-                    <Text style={[styles.recoveryBreakdownVal, { color: theme.text }]}>{recovery.rhr}</Text>
-                    <Text style={styles.recoveryBreakdownKey}>RHR</Text>
-                    {recovery.rhrDate && recovery.rhrDate !== today && (
-                      <Text style={styles.recoveryBreakdownDate}>{fmtShortDate(recovery.rhrDate)}</Text>
-                    )}
-                  </View>
-                )}
-              </View>
-            )}
+        {/* ── Recovery Score hero ── */}
+        <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate("Recovery")}>
+          <View style={[styles.recoveryHero, { backgroundColor: theme.hero }]}>
+            <RecoveryGauge score={recovery.score} theme={theme} isDark={isDark} size={260} />
             {recovery.rhrFrozen && (
-              <Text style={[styles.recoveryHint, { color: theme.red, textAlign: "center" }]}>
+              <Text style={[styles.recoveryHint, { color: "#FFD9D9", textAlign: "center" }]}>
                 RHR sync looks stuck — excluded from score
               </Text>
             )}
-            <Text style={styles.recoveryHint}>Tap for full breakdown ›</Text>
-          </Card>
+            <Text style={[styles.recoveryHint, { color: "rgba(255,255,255,0.7)" }]}>Tap for full breakdown ›</Text>
+          </View>
         </TouchableOpacity>
+
+        <View style={styles.sheet}>
 
         {/* ── Row 1: HRV · RHR · Sleep ── */}
         <View style={styles.triRow}>
@@ -480,6 +459,7 @@ export function ProgressScreen() {
             date={fmtVitalDate(latestHRVDate)}
             color={hrvColor}
             theme={theme}
+            icon="hrv"
             onPress={() => navigation.navigate("Recovery", { scrollTo: "hrv" })}
           />
           <QuickCard
@@ -489,6 +469,7 @@ export function ProgressScreen() {
             date={fmtVitalDate(latestRHRDate)}
             color={rhrColor}
             theme={theme}
+            icon="rhr"
             onPress={() => navigation.navigate("Recovery", { scrollTo: "rhr" })}
           />
           <QuickCard
@@ -498,6 +479,7 @@ export function ProgressScreen() {
             date={fmtVitalDate(latestSleepDate)}
             color={sleepColor}
             theme={theme}
+            icon="sleep"
             onPress={() => navigation.navigate("Recovery", { scrollTo: "sleep" })}
           />
         </View>
@@ -511,6 +493,7 @@ export function ProgressScreen() {
             date={wtDateLabel}
             color={wtColor}
             theme={theme}
+            icon="weight"
             onPress={() => setDetailScreen("weight")}
           />
           <QuickCard
@@ -520,6 +503,7 @@ export function ProgressScreen() {
             date={stepsDateLabel}
             color={stepsColor}
             theme={theme}
+            icon="steps"
             onPress={() => setDetailScreen("steps")}
           />
         </View>
@@ -560,7 +544,7 @@ export function ProgressScreen() {
                 <MiniGauge
                   title={`Lean Mass${lmFromScale ? " · Scale" : latestDexa ? " · DEXA" : ""}`}
                   value={`${latestLM.toFixed(1)}`}
-                  fill={(latestLM - 117.5) / (132 - 117.5)}
+                  fill={(latestLM - 116) / (132 - 116)}
                   color={latestLM < 121 ? COLORS.red : latestLM < 127 ? COLORS.amber : COLORS.green}
                   startLabel="116 lbs"
                   goalLabel="132 lbs"
@@ -600,6 +584,7 @@ export function ProgressScreen() {
           )}
           <DexaAddForm theme={theme} styles={styles} />
         </Card>
+        </View>
       </ScrollView>
 
       {/* ── Detail Modals ── */}
@@ -725,7 +710,7 @@ function MiniGauge({
   const TRACK = isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)";
   return (
     <View style={[mgStyles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" }]}>
-      <Text style={[mgStyles.mgValue, { color }]}>{value}</Text>
+      <Text style={[mgStyles.mgValue, { color: theme.text }]}>{value}</Text>
       <Text style={[mgStyles.mgTitle, { color: theme.textTertiary }]}>{title}</Text>
       <Svg width={MG_W} height={MG_H} viewBox={`0 0 ${MG_W} ${MG_H}`}>
         <SvgPath d={mgArc(MG_START, MG_END)} stroke={TRACK} strokeWidth={MG_TW} strokeLinecap="round" fill="none" />
@@ -757,8 +742,8 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     content: { padding: 16, paddingBottom: 32, gap: 12 },
 
     lbl: {
+      fontFamily: FONT_DISPLAY,
       fontSize: 11,
-      fontWeight: "700",
       letterSpacing: 1.5,
       color: theme.textTertiary,
       marginBottom: 12,
@@ -769,21 +754,25 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
     duoRow: { flexDirection: "row", gap: 8 },
 
     // Recovery Score summary card
-    recoveryCard: { alignItems: "center" },
-    recoveryBreakdownRow: {
-      flexDirection: "row",
-      justifyContent: "space-around",
-      alignSelf: "stretch",
-      marginTop: 4,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: theme.sectionBorder,
+    recoveryHero: {
+      alignItems: "center",
+      minHeight: HERO_MIN_HEIGHT,
+      paddingTop: HERO_CONTENT_TOP,
+      paddingBottom: 20,
+      marginTop: -16,
+      marginHorizontal: -16,
     },
-    recoveryBreakdownItem: { alignItems: "center" },
-    recoveryBreakdownVal: { fontSize: 16, fontWeight: "700" },
-    recoveryBreakdownKey: { fontSize: 9, fontWeight: "600", letterSpacing: 1, color: theme.textTertiary, marginTop: 2 },
-    recoveryBreakdownDate: { fontSize: 9, color: theme.amber, marginTop: 2, letterSpacing: 0.3 },
-    recoveryHint: { fontSize: 11, color: theme.textTertiary, marginTop: 10, letterSpacing: 0.3 },
+    sheet: {
+      backgroundColor: theme.bg,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      marginTop: -24,
+      marginHorizontal: -16,
+      paddingHorizontal: 16,
+      paddingTop: 24,
+      gap: 12,
+    },
+    recoveryHint: { fontSize: 11, color: theme.textTertiary, marginTop: 2, letterSpacing: 0.3 },
 
     compGaugeRow: { flexDirection: "row", gap: 6, marginTop: 4 },
 
@@ -825,24 +814,24 @@ function makeStyles(theme: ThemeColors, isDark: boolean) {
 
     // Insight
     insightCard: {
-      backgroundColor: theme.insightCard,
+      backgroundColor: theme.card,
       borderWidth: 1,
-      borderColor: theme.insightCardBorder,
-      borderRadius: 16,
+      borderColor: "rgba(0,138,201,0.4)",
+      borderRadius: 22,
       padding: 24,
     },
     insightLabel: {
-      fontSize: 11, fontWeight: "700", letterSpacing: 1.5, color: theme.accent, marginBottom: 10,
+      fontFamily: FONT_DISPLAY, fontSize: 11, letterSpacing: 1.5, color: theme.accentBright, marginBottom: 10,
     },
     insightBtn: {
       marginTop: 16,
       paddingVertical: 11,
-      borderRadius: 10,
+      borderRadius: 100,
       borderWidth: 1,
-      borderColor: theme.cardBorder,
-      backgroundColor: isDark ? "rgba(0,102,204,0.12)" : "rgba(0,102,204,0.08)",
+      borderColor: "rgba(0,138,201,0.5)",
+      backgroundColor: theme.accentBright,
       alignItems: "center",
     },
-    insightBtnText: { color: theme.accentBright, fontWeight: "700", fontSize: 12, letterSpacing: 1 },
+    insightBtnText: { fontFamily: FONT_DISPLAY, color: "#FFFFFF", fontSize: 12, letterSpacing: 1 },
   });
 }

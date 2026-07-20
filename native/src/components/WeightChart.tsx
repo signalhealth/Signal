@@ -87,14 +87,14 @@ export function WeightChart({ data, height = 120 }: WeightChartProps) {
         {/* Raw line — faint */}
         <Path
           d={rawPath}
-          stroke="rgba(96,175,255,0.25)"
+          stroke={`${theme.accentBright}40`}
           strokeWidth={1}
           fill="none"
         />
         {/* Moving average — bright */}
         <Path
           d={maPath}
-          stroke="#60AFFF"
+          stroke={theme.accentBright}
           strokeWidth={2.5}
           fill="none"
         />
@@ -126,7 +126,7 @@ function fmtStepCount(v: number): string {
 export function SparkBars({
   data,
   height = 60,
-  color = "#0066CC",
+  color = "#0166B1",
   target,
   count = 14,
 }: SparkBarsProps) {
@@ -164,10 +164,10 @@ export function SparkBars({
           const barY = height - barH;
           const isToday = dateStr === todayStr;
           const barColor = isToday
-            ? "#60AFFF"
+            ? theme.accentBright
             : v >= (target || 10000)
-            ? "rgba(96,175,255,0.6)"
-            : "rgba(96,175,255,0.3)";
+            ? "rgba(0,138,201,0.6)"
+            : "rgba(0,138,201,0.3)";
           const [yr, mo, dy] = dateStr.split("-").map(Number);
           const dow = DOW[new Date(yr, mo - 1, dy).getDay()];
           const barCenterX = x + barW / 2;
@@ -231,11 +231,11 @@ interface LineChartProps {
 export function LineChart({
   data,
   secondaryData,
-  secondaryColor = "#A78BFA",
+  secondaryColor = "#7C5CB0",
   secondaryDotColorFn,
   secondaryRangeBand,
   height = 130,
-  color = "#60AFFF",
+  color = "#008AC9",
   showDots = false,
   dotColorFn,
   refLines,
@@ -329,7 +329,7 @@ export function LineChart({
     y: toY(v),
   }));
   const secPath = secPoints.length ? buildPath(secPoints, true) : "";
-  const secBandColor = secondaryRangeBand?.color ?? "rgba(167,139,250,0.12)";
+  const secBandColor = secondaryRangeBand?.color ?? "rgba(124,92,176,0.12)";
 
   return (
     <View>
@@ -388,7 +388,7 @@ export function LineChart({
           )}
           {secondaryRangeBand?.label && (
             <View style={legendStyles.row}>
-              <View style={[legendStyles.swatch, { backgroundColor: "rgba(167,139,250,0.55)" }]} />
+              <View style={[legendStyles.swatch, { backgroundColor: "rgba(124,92,176,0.55)" }]} />
               <Text style={[legendStyles.text, { color: theme.textTertiary }]}>{secondaryRangeBand.label}</Text>
             </View>
           )}

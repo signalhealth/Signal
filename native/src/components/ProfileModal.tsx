@@ -19,6 +19,7 @@ import {
   setAnthropicKey,
   removeAnthropicKey,
 } from "../services/storage";
+import { FONT_DISPLAY } from "../theme/typography";
 
 interface Props {
   visible: boolean;
@@ -357,8 +358,8 @@ function makeStyles(theme: ThemeColors) {
       borderBottomColor: theme.sectionBorder,
     },
     headerTitle: {
+      fontFamily: FONT_DISPLAY,
       fontSize: 20,
-      fontWeight: "700",
       color: theme.text,
       letterSpacing: -0.3,
     },
@@ -375,8 +376,8 @@ function makeStyles(theme: ThemeColors) {
       paddingBottom: 20,
     },
     section: {
+      fontFamily: FONT_DISPLAY,
       fontSize: 11,
-      fontWeight: "700",
       letterSpacing: 1.5,
       color: theme.accent,
       textTransform: "uppercase",
@@ -454,7 +455,7 @@ function makeStyles(theme: ThemeColors) {
       paddingVertical: 5,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: "rgba(255,59,48,0.4)",
+      borderColor: "rgba(241,26,34,0.4)",
     },
     removeKeyBtnText: {
       fontSize: 12,
@@ -492,8 +493,8 @@ function makeStyles(theme: ThemeColors) {
       alignItems: "center",
     },
     saveBtnText: {
+      fontFamily: FONT_DISPLAY,
       color: "#FFFFFF",
-      fontWeight: "700",
       fontSize: 16,
       letterSpacing: 0.3,
     },

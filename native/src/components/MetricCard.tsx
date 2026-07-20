@@ -15,8 +15,8 @@ interface MetricCardProps {
 const STATUS_COLORS = {
   green: "#00D084",
   amber: "#F5A623",
-  red: "#FF3B30",
-  blue: "#0066CC",
+  red: "#F11A22",
+  blue: "#0166B1",
 } as const;
 
 export function MetricCard({
@@ -86,12 +86,12 @@ export function SectionLabel({ children }: { children: string }) {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24,
+    padding: 22,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
     elevation: 8,
   },
   label: {
