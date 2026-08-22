@@ -25,6 +25,7 @@ interface HealthContextValue {
   appState: AppState;
   userProfile: UserProfile;
   loading: boolean;
+  healthInitializing: boolean;
   permissionGranted: boolean;
   refresh: () => Promise<void>;
   updateAppState: (state: AppState) => void;
@@ -69,6 +70,7 @@ export const HealthContext = createContext<HealthContextValue>({
   appState: defaultAppState,
   userProfile: DEFAULT_PROFILE,
   loading: false,
+  healthInitializing: false,
   permissionGranted: false,
   refresh: async () => {},
   updateAppState: () => {},
@@ -81,6 +83,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
   const [appState, setAppState] = useState<AppState>(defaultAppState);
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
+  const [healthInitializing, setHealthInitializing] = useState(true);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const initializedRef = useRef(false);
 
@@ -96,12 +99,12 @@ export function HealthProvider({ children }: { children: ReactNode }) {
         const granted = await checkGrantedPermissions();
         if (granted) {
           setPermissionGranted(true);
-          setLoading(true);
+          setHealthInitializing(true);
           try {
             const data = await readAllHealthData();
             setHealthData(data);
           } finally {
-            setLoading(false);
+            setHealthInitializing(false);
           }
         }
       }
@@ -110,7 +113,9 @@ export function HealthProvider({ children }: { children: ReactNode }) {
   }, [permissionGranted]);
 
   async function bootstrap() {
-    setLoading(true);
+    // Phase 1: load persisted data from AsyncStorage — very fast (~50ms).
+    // Set loading=false as soon as this completes so the UI renders immediately
+    // with real labs data and a computed wellness score.
     try {
       const [savedState, savedProfile] = await Promise.all([
         loadAppState(),
@@ -118,13 +123,19 @@ export function HealthProvider({ children }: { children: ReactNode }) {
       ]);
       setAppState(savedState);
       setUserProfile(savedProfile);
+    } catch {
+      // Proceed with defaults if storage fails
+    } finally {
+      setLoading(false);
+    }
 
+    // Phase 2: initialize Health Connect in the background without blocking
+    // the UI. healthInitializing drives the "SYNCING" indicator in the header.
+    try {
       const initialized = await withTimeout(initializeHealthConnect(), 10000, false);
       if (initialized) {
-        // Check existing grants first (no dialog, no delegate required)
         let granted = await checkGrantedPermissions();
         if (!granted) {
-          // Try the permission dialog (works if delegate is set up correctly)
           granted = await withTimeout(requestHealthPermissions(), 90000, false);
         }
         setPermissionGranted(granted);
@@ -134,11 +145,10 @@ export function HealthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch {
-      // Never leave the app stuck on the loading spinner — fall through
-      // to the permissions prompt instead.
+      // Health Connect errors are non-fatal
     } finally {
       initializedRef.current = true;
-      setLoading(false);
+      setHealthInitializing(false);
     }
   }
 
@@ -166,12 +176,13 @@ export function HealthProvider({ children }: { children: ReactNode }) {
         appState,
         userProfile,
         loading,
+        healthInitializing,
         permissionGranted,
         refresh,
         updateAppState,
         updateUserProfile,
         openPermissions: async () => {
-          setLoading(true);
+          setHealthInitializing(true);
           try {
             const granted = await requestHealthPermissions();
             setPermissionGranted(granted);
@@ -182,7 +193,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
               openHealthConnectPermissions();
             }
           } finally {
-            setLoading(false);
+            setHealthInitializing(false);
           }
         },
       }}

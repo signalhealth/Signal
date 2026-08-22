@@ -152,7 +152,7 @@ function getInitials(name: string): string {
 }
 
 function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Record<TabName, undefined>> }) {
-  const { loading, permissionGranted, userProfile, healthData, appState } = useContext(HealthContext);
+  const { loading, healthInitializing, permissionGranted, userProfile, healthData, appState } = useContext(HealthContext);
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [showProfile, setShowProfile] = React.useState(false);
@@ -210,7 +210,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <View style={[styles.safeArea, { backgroundColor: theme.hero, paddingTop: insets.top }]}>
         <Header
-          loading={loading}
+          loading={healthInitializing}
           onLogoPress={() => navigationRef.navigate("Today")}
           onProfilePress={() => setShowProfile(true)}
           onScorePress={() => setShowWellness(true)}
@@ -220,7 +220,7 @@ function AppShell({ navigationRef }: { navigationRef: NavigationContainerRef<Rec
       </View>
       <ProfileModal visible={showProfile} onClose={() => setShowProfile(false)} />
       <WellnessModal visible={showWellness} onClose={() => setShowWellness(false)} breakdown={wellnessBreakdown} />
-      {!loading && !permissionGranted && <PermissionsPrompt />}
+      {!loading && !healthInitializing && !permissionGranted && <PermissionsPrompt />}
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
